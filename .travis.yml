@@ -8,10 +8,11 @@ cache:
     - "${HOME}/persist"
 
 before_script:
+  - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
   - sudo dpkg --add-architecture i386
   - sudo apt-get update -qq || true
   - sudo apt-get install -y python3 gcc-multilib pkg-config libffi-dev libffi-dev:i386 qemu-system gcc-mingw-w64
-  - sudo apt-get install -y --force-yes gcc-arm-none-eabi
+  - sudo apt-get install -y --force-yes gcc-arm-embedded
   # For teensy build
   - sudo apt-get install realpath
   # For coverage testing
