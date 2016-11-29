@@ -34,6 +34,7 @@ script:
   - mkdir -p ${HOME}/persist
   # Save new firmware for reference, but only if building a main branch, not a pull request
   - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then cp minimal/build/firmware.bin ${HOME}/persist/; fi'
+  - make -C unix deplibs
   - make -C unix
   - make -C bare-arm
   - make -C qemu-arm test
