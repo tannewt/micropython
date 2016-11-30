@@ -215,6 +215,25 @@ void common_hal_busio_spi_unlock(busio_spi_obj_t *self) {
     spi_unlock(&self->spi_master_instance);
 }
 
+void common_hal_busio_spi_configure(busio_spi_obj_t *self,
+        uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits) {
+    return;
+}
+
+bool common_hal_busio_spi_try_lock(busio_spi_obj_t *self) {
+    self->has_lock = spi_lock(&self->spi_master_instance) == STATUS_OK;
+    return self->has_lock;
+}
+
+bool common_hal_busio_spi_has_lock(busio_spi_obj_t *self) {
+    return self->has_lock;
+}
+
+void common_hal_busio_spi_unlock(busio_spi_obj_t *self) {
+    self->has_lock = false;
+    spi_unlock(&self->spi_master_instance);
+}
+
 bool common_hal_busio_spi_write(busio_spi_obj_t *self,
         const uint8_t *data, size_t len) {
     if (len == 0) {
