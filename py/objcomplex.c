@@ -64,7 +64,7 @@ STATIC void complex_print(const mp_print_t *print, mp_obj_t o_in, mp_print_kind_
     } else {
         mp_format_float(o->real, buf, sizeof(buf), 'g', precision, '\0');
         mp_printf(print, "(%s", buf);
-        if (o->imag >= 0 || isnan(o->imag)) {
+        if (o->imag >= 0 || isnan((double) o->imag)) {
             mp_print_str(print, "+");
         }
         mp_format_float(o->imag, buf, sizeof(buf), 'g', precision, '\0');

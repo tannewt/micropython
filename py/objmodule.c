@@ -254,7 +254,7 @@ mp_obj_t mp_module_get(qstr module_name) {
             return MP_OBJ_NULL;
         }
 
-        if (MICROPY_MODULE_BUILTIN_INIT) {
+        #if MICROPY_MODULE_BUILTIN_INIT
             // look for __init__ and call it if it exists
             mp_obj_t dest[2];
             mp_load_method_maybe(el->value, MP_QSTR___init__, dest);
@@ -263,7 +263,7 @@ mp_obj_t mp_module_get(qstr module_name) {
                 // register module so __init__ is not called again
                 mp_module_register(module_name, el->value);
             }
-        }
+        #endif
     }
 
     // module found, return it

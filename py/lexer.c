@@ -483,7 +483,10 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, bool first_token) {
                         }
                     }
                     if (c != MP_LEXER_EOF) {
+                        #if MICROPY_DYNAMIC_COMPILER
                         if (MICROPY_PY_BUILTINS_STR_UNICODE_DYNAMIC) {
+                        #endif
+                        #if MICROPY_DYNAMIC_COMPILER || MICROPY_PY_BUILTINS_STR_UNICODE
                             if (c < 0x110000 && !is_bytes) {
                                 vstr_add_char(&lex->vstr, c);
                             } else if (c < 0x100 && is_bytes) {
@@ -493,7 +496,11 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, bool first_token) {
                                 // this raises a generic SyntaxError; could provide more info
                                 lex->tok_kind = MP_TOKEN_INVALID;
                             }
+                        #endif
+                        #if MICROPY_DYNAMIC_COMPILER
                         } else {
+                        #endif
+                        #if MICROPY_DYNAMIC_COMPILER || !MICROPY_PY_BUILTINS_STR_UNICODE
                             // without unicode everything is just added as an 8-bit byte
                             if (c < 0x100) {
                                 vstr_add_byte(&lex->vstr, c);
@@ -502,7 +509,10 @@ STATIC void mp_lexer_next_token_into(mp_lexer_t *lex, bool first_token) {
                                 // this raises a generic SyntaxError; could provide more info
                                 lex->tok_kind = MP_TOKEN_INVALID;
                             }
+                        #endif
+                        #if MICROPY_DYNAMIC_COMPILER
                         }
+                        #endif
                     }
                 } else {
                     // Add the "character" as a byte so that we remain 8-bit clean.

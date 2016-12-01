@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-#if defined(__x86_64__) && !MICROPY_NLR_SETJMP
+#if defined(__x86_64__) && defined(MICROPY_NLR_SETJMP) && !MICROPY_NLR_SETJMP
 
 // We only need the functions here if we are on x86-64, and we are not
 // using setjmp/longjmp.

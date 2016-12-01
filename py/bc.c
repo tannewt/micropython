@@ -168,7 +168,10 @@ void mp_setup_code_state(mp_code_state_t *code_state, mp_obj_fun_bc_t *self, siz
         }
 
         // get pointer to arg_names array
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
         const mp_obj_t *arg_names = (const mp_obj_t*)code_state->const_table;
+#pragma GCC diagnostic pop
 
         for (size_t i = 0; i < n_kw; i++) {
             // the keys in kwargs are expected to be qstr objects

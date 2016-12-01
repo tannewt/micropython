@@ -320,7 +320,7 @@ mp_obj_t mp_obj_new_int_from_uint(mp_uint_t value) {
 
 #if MICROPY_PY_BUILTINS_FLOAT
 mp_obj_t mp_obj_new_int_from_float(mp_float_t val) {
-    int cl = fpclassify(val);
+    int cl = fpclassify((double) val);
     if (cl == FP_INFINITE) {
         mp_raise_msg(&mp_type_OverflowError, "can't convert inf to int");
     } else if (cl == FP_NAN) {

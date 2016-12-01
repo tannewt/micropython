@@ -22,11 +22,14 @@ QSTR_DEFS = qstrdefsport.h
 include ../py/py.mk
 
 CROSS_COMPILE = arm-none-eabi-
+CC = /usr/local/opt/llvm/bin/clang
 
 BOSSAC := tools/bossac_osx
 
 HAL_DIR=hal/$(MCU_SERIES)
 
+INC += -I/usr/local/Caskroom/gcc-arm-embedded/5_4-2016q3,20160926/gcc-arm-none-eabi-5_4-2016q3/arm-none-eabi/include/
+INC += -I/usr/local/Caskroom/gcc-arm-embedded/5_4-2016q3,20160926/gcc-arm-none-eabi-5_4-2016q3/lib/gcc/arm-none-eabi/5.4.1/include-fixed/
 INC += -I.
 INC += -I..
 INC += -I../lib/mp-readline
@@ -77,13 +80,10 @@ INC += -Ifreetouch/
 INC += -I$(BUILD)
 
 CFLAGS_CORTEX_M0 = \
-	-mthumb \
-	-mabi=aapcs-linux \
-	-mcpu=cortex-m0plus \
+	-target armv6m-none-eabi \
 	-msoft-float \
-	-mfloat-abi=soft \
-	-fsingle-precision-constant \
 	-fno-strict-aliasing \
+	-fomit-frame-pointer \
 	-Wdouble-promotion \
 	-Wno-endif-labels \
 	-Wstrict-prototypes \
@@ -100,6 +100,8 @@ CFLAGS_CORTEX_M0 = \
 	-Wnested-externs \
 	-Wunreachable-code \
 	-Wcast-align \
+	-Wno-int-to-void-pointer-cast \
+	-Wno-expansion-to-defined \
 	-D__$(CHIP_VARIANT)__ \
 	-DUSB_DEVICE_PRODUCT_ID=$(USB_PID) \
 	-DUSB_DEVICE_VENDOR_ID=$(USB_VID) \
@@ -107,7 +109,9 @@ CFLAGS_CORTEX_M0 = \
 	-ffunction-sections \
 	-fdata-sections \
 	-fshort-enums \
-	-flto \
+	-ffast-math \
+	-D _XOPEN_SOURCE=0 \
+	-D __have_long64=0 \
 	-D ARM_MATH_CM0PLUS=true \
 	-DSYSTICK_MODE \
 	-DEXTINT_CALLBACK_MODE=true \
@@ -119,8 +123,7 @@ CFLAGS_CORTEX_M0 = \
 	-DTCC_ASYNC=false \
 	-DADC_CALLBACK_MODE=false \
 	-DTC_ASYNC=true \
-	-DUSB_DEVICE_LPM_SUPPORT \
-	--param max-inline-insns-single=500
+	-DUSB_DEVICE_LPM_SUPPORT
 CFLAGS = $(INC) -Wall -Werror -std=gnu11 -nostdlib $(CFLAGS_CORTEX_M0) $(COPT)
 
 #Debugging/Optimization
@@ -145,9 +148,16 @@ CFLAGS += -DMICROPY_QSTR_EXTRA_POOL=mp_qstr_frozen_const_pool
 CFLAGS += -DMICROPY_MODULE_FROZEN_MPY
 endif
 
-#LIBM_FILE_NAME   = $(shell $(CC) $(CFLAGS) -print-file-name=libm.a)
-LDFLAGS = $(CFLAGS) -nostartfiles -fshort-enums -mthumb -mcpu=cortex-m0plus -Lasf/thirdparty/CMSIS/Lib/GCC/ -Wl,-nostdlib -Wl,-T,$(LD_FILE) -Wl,-Map=$@.map -Wl,-cref -Wl,-gc-sections -specs=nano.specs
-LIBS = -larm_cortexM0l_math -lm -lgcc -lc
+# new
+LIBM_FILE_NAME   = $(shell $(CC) $(CFLAGS) -print-file-name=libm.a)
+LDFLAGS = -mthumb -mcpu=cortex-m0plus -Lasf/thirdparty/CMSIS/Lib/GCC/ -LQTouch/ -L$(dir $(LIBM_FILE_NAME)) -Wl,-nostdlib -Wl,-T,$(LD_FILE) -Wl,-Map=$@.map -Wl,-cref -Wl,-gc-sections -specs=nano.specs
+LIBS = -larm_cortexM0l_math -lsamd21_qtouch_gcc -lm -lgcc -lc
+
+# old
+#LIBGCC_FILE_NAME = $(shell arm-none-eabi-gcc $(CFLAGS) -print-libgcc-file-name)
+#LIBM_FILE_NAME   = $(shell arm-none-eabi-gcc $(CFLAGS) -print-file-name=libm.a)
+#LDFLAGS = -Lasf/thirdparty/CMSIS/Lib/GCC/ -L $(dir $(LIBGCC_FILE_NAME)) -L $(dir $(LIBM_FILE_NAME)) -nostdlib -T $(LD_FILE) -Map=$@.map --cref --gc-sections
+#LIBS = -larm_cortexM0l_math -lm -lgcc -lc
 
 SRC_ASF = $(addprefix asf/sam0/,\
 	drivers/adc/adc_sam_d_r/adc.c \

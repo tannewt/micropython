@@ -76,10 +76,12 @@ mp_uint_t mp_stream_rw(mp_obj_t stream, void *buf_, mp_uint_t size, int *errcode
             return done;
         }
         if (out_sz == MP_STREAM_ERROR) {
+            #if MICROPY_STREAMS_NON_BLOCK
             // If we read something before getting EAGAIN, don't leak it
             if (mp_is_nonblocking_error(*errcode) && done != 0) {
                 *errcode = 0;
             }
+            #endif
             return done;
         }
         if (flags & MP_STREAM_RW_ONCE) {
@@ -148,6 +150,7 @@ STATIC mp_obj_t stream_read_generic(size_t n_args, const mp_obj_t *args, byte fl
             mp_uint_t out_sz = mp_stream_read_exactly(args[0], p, more_bytes, &error);
             if (error != 0) {
                 vstr_cut_tail_bytes(&vstr, more_bytes);
+                #if MICROPY_STREAMS_NON_BLOCK
                 if (mp_is_nonblocking_error(error)) {
                     // With non-blocking streams, we read as much as we can.
                     // If we read nothing, return None, just like read().
@@ -159,6 +162,7 @@ STATIC mp_obj_t stream_read_generic(size_t n_args, const mp_obj_t *args, byte fl
                     }
                     break;
                 }
+                #endif
                 mp_raise_OSError(error);
             }
 
@@ -334,6 +338,7 @@ STATIC mp_obj_t stream_readall(mp_obj_t self_in) {
         int error;
         mp_uint_t out_sz = stream_p->read(self_in, p, current_read, &error);
         if (out_sz == MP_STREAM_ERROR) {
+            #if MICROPY_STREAMS_NON_BLOCK
             if (mp_is_nonblocking_error(error)) {
                 // With non-blocking streams, we read as much as we can.
                 // If we read nothing, return None, just like read().
@@ -343,6 +348,7 @@ STATIC mp_obj_t stream_readall(mp_obj_t self_in) {
                 }
                 break;
             }
+            #endif
             mp_raise_OSError(error);
         }
         if (out_sz == 0) {
@@ -387,6 +393,7 @@ STATIC mp_obj_t stream_unbuffered_readline(size_t n_args, const mp_obj_t *args) 
         int error;
         mp_uint_t out_sz = stream_p->read(args[0], p, 1, &error);
         if (out_sz == MP_STREAM_ERROR) {
+            #if MICROPY_STREAMS_NON_BLOCK
             if (mp_is_nonblocking_error(error)) {
                 if (vstr.len == 1) {
                     // We just incremented it, but otherwise we read nothing
@@ -401,10 +408,13 @@ STATIC mp_obj_t stream_unbuffered_readline(size_t n_args, const mp_obj_t *args) 
                     goto done;
                 }
             }
+            #endif
             mp_raise_OSError(error);
         }
         if (out_sz == 0) {
+#if MICROPY_STREAMS_NON_BLOCK
 done:
+#endif
             // Back out previously added byte
             // Consider, what's better - read a char and get OutOfMemory (so read
             // char is lost), or allocate first as we do.

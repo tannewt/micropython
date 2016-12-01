@@ -134,15 +134,19 @@ STATIC mp_obj_t eval_exec_helper(size_t n_args, const mp_obj_t *args, mp_parse_i
     // create the lexer
     // MP_PARSE_SINGLE_INPUT is used to indicate a file input
     mp_lexer_t *lex;
-    if (MICROPY_PY_BUILTINS_EXECFILE && parse_input_kind == MP_PARSE_SINGLE_INPUT) {
+    #if MICROPY_PY_BUILTINS_EXECFILE
+    if (parse_input_kind == MP_PARSE_SINGLE_INPUT) {
         lex = mp_lexer_new_from_file(str);
         if (lex == NULL) {
             mp_raise_msg_varg(&mp_type_OSError, "could not open file '%s'", str);
         }
         parse_input_kind = MP_PARSE_FILE_INPUT;
     } else {
+    #endif
         lex = mp_lexer_new_from_str_len(MP_QSTR__lt_string_gt_, str, str_len, 0);
+    #if MICROPY_PY_BUILTINS_EXECFILE
     }
+    #endif
 
     return mp_parse_compile_execute(lex, parse_input_kind, globals, locals);
 }

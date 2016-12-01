@@ -162,23 +162,23 @@ STATIC void mp_obj_float_divmod(mp_float_t *x, mp_float_t *y) {
     mp_float_t div = (*x - mod) / *y;
 
     // Python specs require that mod has same sign as second operand
-    if (mod == 0.0) {
+    if (mod == 0.0f) {
         mod = MICROPY_FLOAT_C_FUN(copysign)(0.0, *y);
     } else {
-        if ((mod < 0.0) != (*y < 0.0)) {
+        if ((mod < 0.0f) != (*y < 0.0f)) {
             mod += *y;
             div -= 1.0;
         }
     }
 
     mp_float_t floordiv;
-    if (div == 0.0) {
+    if (div == 0.0f) {
         // if division is zero, take the correct sign of zero
         floordiv = MICROPY_FLOAT_C_FUN(copysign)(0.0, *x / *y);
     } else {
         // Python specs require that x == (x//y)*y + (x%y)
         floordiv = MICROPY_FLOAT_C_FUN(floor)(div);
-        if (div - floordiv > 0.5) {
+        if (div - floordiv > 0.5f) {
             floordiv += 1.0;
         }
     }
@@ -222,10 +222,10 @@ mp_obj_t mp_obj_float_binary_op(mp_uint_t op, mp_float_t lhs_val, mp_obj_t rhs_i
             }
             lhs_val = MICROPY_FLOAT_C_FUN(fmod)(lhs_val, rhs_val);
             // Python specs require that mod has same sign as second operand
-            if (lhs_val == 0.0) {
+            if (lhs_val == 0.0f) {
                 lhs_val = MICROPY_FLOAT_C_FUN(copysign)(0.0, rhs_val);
             } else {
-                if ((lhs_val < 0.0) != (rhs_val < 0.0)) {
+                if ((lhs_val < 0.0f) != (rhs_val < 0.0f)) {
                     lhs_val += rhs_val;
                 }
             }

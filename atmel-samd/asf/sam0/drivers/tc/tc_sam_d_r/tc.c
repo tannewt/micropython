@@ -499,19 +499,19 @@ uint32_t tc_get_capture_value(
 	/* Read out based on the TC counter size */
 	switch (module_inst->counter_size) {
 		case TC_COUNTER_SIZE_8BIT:
-			if (channel_index <
+			if ((uint8_t) channel_index <
 					NUMBER_OF_COMPARE_CAPTURE_CHANNELS) {
 				return tc_module->COUNT8.CC[channel_index].reg;
 			}
 
 		case TC_COUNTER_SIZE_16BIT:
-			if (channel_index <
+			if ((uint8_t) channel_index <
 					NUMBER_OF_COMPARE_CAPTURE_CHANNELS) {
 				return tc_module->COUNT16.CC[channel_index].reg;
 			}
 
 		case TC_COUNTER_SIZE_32BIT:
-			if (channel_index <
+			if ((uint8_t) channel_index <
 					NUMBER_OF_COMPARE_CAPTURE_CHANNELS) {
 				return tc_module->COUNT32.CC[channel_index].reg;
 			}
@@ -554,7 +554,7 @@ enum status_code tc_set_compare_value(
 	/* Read out based on the TC counter size */
 	switch (module_inst->counter_size) {
 		case TC_COUNTER_SIZE_8BIT:
-			if (channel_index <
+			if ((uint8_t) channel_index <
 					NUMBER_OF_COMPARE_CAPTURE_CHANNELS) {
 				tc_module->COUNT8.CC[channel_index].reg  =
 						(uint8_t)compare;
@@ -562,7 +562,7 @@ enum status_code tc_set_compare_value(
 			}
 
 		case TC_COUNTER_SIZE_16BIT:
-			if (channel_index <
+			if ((uint8_t) channel_index <
 					NUMBER_OF_COMPARE_CAPTURE_CHANNELS) {
 				tc_module->COUNT16.CC[channel_index].reg =
 						(uint16_t)compare;
@@ -570,7 +570,7 @@ enum status_code tc_set_compare_value(
 			}
 
 		case TC_COUNTER_SIZE_32BIT:
-			if (channel_index <
+			if ((uint8_t) channel_index <
 					NUMBER_OF_COMPARE_CAPTURE_CHANNELS) {
 				tc_module->COUNT32.CC[channel_index].reg =
 						(uint32_t)compare;

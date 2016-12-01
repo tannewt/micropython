@@ -72,17 +72,17 @@ mp_obj_t namedtuple_make_new(const mp_obj_type_t *type_in, size_t n_args, size_t
     const mp_obj_namedtuple_type_t *type = (const mp_obj_namedtuple_type_t*)type_in;
     size_t num_fields = type->n_fields;
     if (n_args + n_kw != num_fields) {
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_arg_error_terse_mismatch();
-        } else if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_NORMAL) {
+        #elif MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_NORMAL
             mp_raise_TypeError_varg(
                 "function takes %d positional arguments but %d were given",
                 num_fields, n_args + n_kw);
-        } else if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_DETAILED) {
+        #elif MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_DETAILED
             mp_raise_TypeError_varg(
                 "%q() takes %d positional arguments but %d were given",
                 type->base.name, num_fields, n_args + n_kw);
-        }
+        #endif
     }
 
     mp_obj_t *arg_objects;
@@ -101,20 +101,20 @@ mp_obj_t namedtuple_make_new(const mp_obj_type_t *type_in, size_t n_args, size_t
             qstr kw = mp_obj_str_get_qstr(args[i]);
             int id = namedtuple_find_field(type, kw);
             if (id == -1) {
-                if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+                #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
                     mp_arg_error_terse_mismatch();
-                } else {
+                #else
                     mp_raise_TypeError_varg(
                         "unexpected keyword argument '%q'", kw);
-                }
+                #endif
             }
             if (arg_objects[id] != MP_OBJ_NULL) {
-                if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+                #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
                     mp_arg_error_terse_mismatch();
-                } else {
+                #else
                     mp_raise_TypeError_varg(
                         "function got multiple values for argument '%q'", kw);
-                }
+                #endif
             }
             arg_objects[id] = args[i + 1];
         }

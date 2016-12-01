@@ -143,11 +143,11 @@ STATIC void do_load_from_lexer(mp_obj_t module_obj, mp_lexer_t *lex, const char 
 
     if (lex == NULL) {
         // we verified the file exists using stat, but lexer could still fail
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_ImportError("module not found");
-        } else {
+        #else
             mp_raise_msg_varg(&mp_type_ImportError, "no module named '%s'", fname);
-        }
+        #endif
     }
 
     #if MICROPY_PY___FILE__
@@ -428,12 +428,12 @@ mp_obj_t mp_builtin___import__(size_t n_args, const mp_obj_t *args) {
                 {
                 #endif
                     // couldn't find the file, so fail
-                    if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+                    #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
                         mp_raise_ImportError("module not found");
-                    } else {
+                    #else
                         mp_raise_msg_varg(&mp_type_ImportError,
                             "no module named '%q'", mod_name);
-                    }
+                    #endif
                 }
             } else {
                 // found the file, so get the module

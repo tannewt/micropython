@@ -122,8 +122,12 @@ STATIC void str_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t
     #else
     bool is_bytes = true;
     #endif
-    if (kind == PRINT_RAW || (!MICROPY_PY_BUILTINS_STR_UNICODE && kind == PRINT_STR && !is_bytes)) {
+    if (kind == PRINT_RAW) {
         mp_printf(print, "%.*s", str_len, str_data);
+    #if !MICROPY_PY_BUILTINS_STR_UNICODE
+    } else if (kind == PRINT_STR && !is_bytes)) {
+        mp_printf(print, "%.*s", str_len, str_data);
+    #endif
     } else {
         if (is_bytes) {
             mp_print_str(print, "b");
@@ -407,11 +411,15 @@ STATIC mp_obj_t bytes_subscr(mp_obj_t self_in, mp_obj_t index, mp_obj_t value) {
 #endif
         mp_uint_t index_val = mp_get_index(type, self_len, index, false);
         // If we have unicode enabled the type will always be bytes, so take the short cut.
-        if (MICROPY_PY_BUILTINS_STR_UNICODE || type == &mp_type_bytes) {
+        #if !MICROPY_PY_BUILTINS_STR_UNICODE
+        if (type == &mp_type_bytes) {
+        #endif
             return MP_OBJ_NEW_SMALL_INT(self_data[index_val]);
+        #if !MICROPY_PY_BUILTINS_STR_UNICODE
         } else {
             return mp_obj_new_str((char*)&self_data[index_val], 1, true);
         }
+        #endif
     } else {
         return MP_OBJ_NULL; // op not supported
     }
@@ -941,18 +949,18 @@ STATIC vstr_t mp_obj_str_format_helper(const char *str, const char *top, int *ar
             if (str < top && (*str == 'r' || *str == 's')) {
                 conversion = *str++;
             } else {
-                if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+                #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
                     terse_str_format_value_error();
-                } else if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_NORMAL) {
+                #elif MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_NORMAL
                     mp_raise_ValueError("bad conversion specifier");
-                } else {
+                #else
                     if (str >= top) {
                         mp_raise_ValueError(
                             "end of format while looking for conversion specifier");
                     } else {
                         mp_raise_ValueError_varg("unknown conversion specifier %c", *str);
                     }
-                }
+                #endif
             }
         }
 
@@ -2057,13 +2065,13 @@ bool mp_obj_str_equal(mp_obj_t s1, mp_obj_t s2) {
 }
 
 STATIC void bad_implicit_conversion(mp_obj_t self_in) {
-    if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+    #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
         mp_raise_TypeError("can't convert to str implicitly");
-    } else {
+    #else
         mp_raise_TypeError_varg(
             "can't convert '%s' object to str implicitly",
             mp_obj_get_type_str(self_in));
-    }
+    #endif
 }
 
 // use this if you will anyway convert the string to a qstr

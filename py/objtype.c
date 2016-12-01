@@ -313,12 +313,12 @@ mp_obj_t mp_obj_instance_make_new(const mp_obj_type_t *self, size_t n_args, size
             m_del(mp_obj_t, args2, 2 + n_args + 2 * n_kw);
         }
         if (init_ret != mp_const_none) {
-            if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+            #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
                 mp_raise_TypeError("__init__() should return None");
-            } else {
+            #else
                 mp_raise_TypeError_varg("__init__() should return None, not '%s'",
                     mp_obj_get_type_str(init_ret));
-            }
+            #endif
         }
 
     }
@@ -712,12 +712,12 @@ mp_obj_t mp_obj_instance_call(mp_obj_t self_in, size_t n_args, size_t n_kw, cons
     mp_obj_t member[2] = {MP_OBJ_NULL, MP_OBJ_NULL};
     mp_obj_t call = mp_obj_instance_get_call(self_in, member);
     if (call == MP_OBJ_NULL) {
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_TypeError("object not callable");
-        } else {
+        #else
             mp_raise_TypeError_varg("'%s' object is not callable",
                 mp_obj_get_type_str(self_in));
-        }
+        #endif
     }
     mp_obj_instance_t *self = MP_OBJ_TO_PTR(self_in);
     if (call == MP_OBJ_SENTINEL) {
@@ -805,11 +805,11 @@ STATIC mp_obj_t type_call(mp_obj_t self_in, size_t n_args, size_t n_kw, const mp
     mp_obj_type_t *self = MP_OBJ_TO_PTR(self_in);
 
     if (self->make_new == NULL) {
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_TypeError("cannot create instance");
-        } else {
+        #else
             mp_raise_TypeError_varg("cannot create '%q' instances", self->name);
-        }
+        #endif
     }
 
     // make new instance
@@ -892,12 +892,12 @@ mp_obj_t mp_obj_new_type(qstr name, mp_obj_t bases_tuple, mp_obj_t locals_dict) 
         mp_obj_type_t *t = MP_OBJ_TO_PTR(items[i]);
         // TODO: Verify with CPy, tested on function type
         if (t->make_new == NULL) {
-            if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+            #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
                 mp_raise_TypeError("type is not an acceptable base type");
-            } else {
+            #else
                 mp_raise_TypeError_varg(
                     "type '%q' is not an acceptable base type", t->name);
-            }
+            #endif
         }
     }
 

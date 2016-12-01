@@ -228,12 +228,12 @@ mp_int_t mp_obj_get_int(mp_const_obj_t arg) {
     } else if (MP_OBJ_IS_TYPE(arg, &mp_type_int)) {
         return mp_obj_int_get_checked(arg);
     } else {
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_TypeError("can't convert to int");
-        } else {
+        #else
             mp_raise_TypeError_varg(
                 "can't convert %s to int", mp_obj_get_type_str(arg));
-        }
+        #endif
     }
 }
 
@@ -278,12 +278,12 @@ mp_float_t mp_obj_get_float(mp_obj_t arg) {
     } else if (mp_obj_is_float(arg)) {
         return mp_obj_float_get(arg);
     } else {
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_TypeError("can't convert to float");
-        } else {
+        #else
             mp_raise_TypeError_varg(
                 "can't convert %s to float", mp_obj_get_type_str(arg));
-        }
+        #endif
     }
 }
 
@@ -309,12 +309,12 @@ void mp_obj_get_complex(mp_obj_t arg, mp_float_t *real, mp_float_t *imag) {
     } else if (MP_OBJ_IS_TYPE(arg, &mp_type_complex)) {
         mp_obj_complex_get(arg, real, imag);
     } else {
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_TypeError("can't convert to complex");
-        } else {
+        #else
             mp_raise_TypeError_varg(
                 "can't convert %s to complex", mp_obj_get_type_str(arg));
-        }
+        #endif
     }
 }
 #endif
@@ -327,12 +327,12 @@ void mp_obj_get_array(mp_obj_t o, mp_uint_t *len, mp_obj_t **items) {
     } else if (MP_OBJ_IS_TYPE(o, &mp_type_list)) {
         mp_obj_list_get(o, len, items);
     } else {
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_TypeError("expected tuple/list");
-        } else {
+        #else
             mp_raise_TypeError_varg(
                 "object '%s' is not a tuple or list", mp_obj_get_type_str(o));
-        }
+        #endif
     }
 }
 
@@ -341,12 +341,12 @@ void mp_obj_get_array_fixed_n(mp_obj_t o, mp_uint_t len, mp_obj_t **items) {
     mp_uint_t seq_len;
     mp_obj_get_array(o, &seq_len, items);
     if (seq_len != len) {
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_ValueError("tuple/list has wrong length");
-        } else {
+        #else
             mp_raise_ValueError_varg("requested length %d but object has length %d",
                 (int)len, (int)seq_len);
-        }
+        #endif
     }
 }
 
@@ -356,13 +356,13 @@ mp_uint_t mp_get_index(const mp_obj_type_t *type, mp_uint_t len, mp_obj_t index,
     if (MP_OBJ_IS_SMALL_INT(index)) {
         i = MP_OBJ_SMALL_INT_VALUE(index);
     } else if (!mp_obj_get_int_maybe(index, &i)) {
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_TypeError("indices must be integers");
-        } else {
+        #else
             mp_raise_TypeError_varg(
                 "%q indices must be integers, not %s",
                 type->name, mp_obj_get_type_str(index));
-        }
+        #endif
     }
 
     if (i < 0) {
@@ -376,12 +376,12 @@ mp_uint_t mp_get_index(const mp_obj_type_t *type, mp_uint_t len, mp_obj_t index,
         }
     } else {
         if (i < 0 || (mp_uint_t)i >= len) {
-            if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+            #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
                 mp_raise_IndexError("index out of range");
-            } else {
+            #else
                 mp_raise_msg_varg(&mp_type_IndexError,
                     "%q index out of range", type->name);
-            }
+            #endif
         }
     }
     return i;
@@ -409,12 +409,12 @@ mp_obj_t mp_obj_id(mp_obj_t o_in) {
 mp_obj_t mp_obj_len(mp_obj_t o_in) {
     mp_obj_t len = mp_obj_len_maybe(o_in);
     if (len == MP_OBJ_NULL) {
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_TypeError("object has no len");
-        } else {
+        #else
             mp_raise_TypeError_varg(
                 "object of type '%s' has no len()", mp_obj_get_type_str(o_in));
-        }
+        #endif
     } else {
         return len;
     }
@@ -450,26 +450,26 @@ mp_obj_t mp_obj_subscr(mp_obj_t base, mp_obj_t index, mp_obj_t value) {
         // TODO: call base classes here?
     }
     if (value == MP_OBJ_NULL) {
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_TypeError("object does not support item deletion");
-        } else {
+        #else
             mp_raise_TypeError_varg(
                 "'%s' object does not support item deletion", mp_obj_get_type_str(base));
-        }
+        #endif
     } else if (value == MP_OBJ_SENTINEL) {
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_TypeError("object is not subscriptable");
-        } else {
+        #else
             mp_raise_TypeError_varg(
                 "'%s' object is not subscriptable", mp_obj_get_type_str(base));
-        }
+        #endif
     } else {
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_TypeError("object does not support item assignment");
-        } else {
+        #else
             mp_raise_TypeError_varg(
                 "'%s' object does not support item assignment", mp_obj_get_type_str(base));
-        }
+        #endif
     }
 }
 

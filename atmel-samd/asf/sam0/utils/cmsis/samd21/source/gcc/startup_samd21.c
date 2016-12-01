@@ -282,7 +282,10 @@ void HardFault_Handler(void)
     // loop below.
     REG_MTB_MASTER = 0x00000000 + 6;
 #endif
-    while(true) {}
+    __asm volatile (
+        "1:                    \n"
+        "b.n       1b          \n" // while(true) {}
+    );
 }
 
 /**

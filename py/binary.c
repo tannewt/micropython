@@ -225,22 +225,28 @@ mp_obj_t mp_binary_get_val(char struct_type, char val_type, byte **ptr) {
 }
 
 void mp_binary_set_int(mp_uint_t val_sz, bool big_endian, byte *dest, mp_uint_t val) {
-    if (MP_ENDIANNESS_LITTLE && !big_endian) {
+    #if MP_ENDIANNESS_LITTLE
+    if (!big_endian) {
         memcpy(dest, &val, val_sz);
-    } else if (MP_ENDIANNESS_BIG && big_endian) {
+    #endif
+    #if MP_ENDIANNESS_BIG
+    } else if (big_endian) {
         // only copy the least-significant val_sz bytes
         memcpy(dest, (byte*)&val + sizeof(mp_uint_t) - val_sz, val_sz);
     } else {
+    #endif
         const byte *src;
-        if (MP_ENDIANNESS_LITTLE) {
+        #if MP_ENDIANNESS_LITTLE
             src = (const byte*)&val + val_sz;
-        } else {
+        #else
             src = (const byte*)&val + sizeof(mp_uint_t);
-        }
+        #endif
         while (val_sz--) {
             *dest++ = *--src;
         }
+    #if MP_ENDIANNESS_LITTLE || MP_ENDIANNESS_BIG
     }
+    #endif
 }
 
 void mp_binary_set_val(char struct_type, char val_type, mp_obj_t val_in, byte **ptr) {
@@ -251,11 +257,11 @@ void mp_binary_set_val(char struct_type, char val_type, mp_obj_t val_in, byte **
     if (struct_type == '@') {
         // Make pointer aligned
         p = (byte*)MP_ALIGN(p, (size_t)align);
-        if (MP_ENDIANNESS_LITTLE) {
+        #if MP_ENDIANNESS_LITTLE
             struct_type = '<';
-        } else {
+        #else
             struct_type = '>';
-        }
+        #endif
     }
     *ptr = p + size;
 
@@ -273,15 +279,15 @@ void mp_binary_set_val(char struct_type, char val_type, mp_obj_t val_in, byte **
         }
         case 'd': {
             union { uint64_t i64; uint32_t i32[2]; double f; } fp_dp;
-            fp_dp.f = mp_obj_get_float(val_in);
-            if (BYTES_PER_WORD == 8) {
+            fp_dp.f = (double) mp_obj_get_float(val_in);
+            #if BYTES_PER_WORD == 8
                 val = fp_dp.i64;
-            } else {
+            #else
                 int be = struct_type == '>';
                 mp_binary_set_int(sizeof(uint32_t), be, p, fp_dp.i32[MP_ENDIANNESS_BIG ^ be]);
                 p += sizeof(uint32_t);
                 val = fp_dp.i32[MP_ENDIANNESS_LITTLE ^ be];
-            }
+            #endif
             break;
         }
 #endif
@@ -312,7 +318,7 @@ void mp_binary_set_val_array(char typecode, void *p, mp_uint_t index, mp_obj_t v
             ((float*)p)[index] = mp_obj_get_float(val_in);
             break;
         case 'd':
-            ((double*)p)[index] = mp_obj_get_float(val_in);
+            ((double*)p)[index] = (double) mp_obj_get_float(val_in);
             break;
 #endif
         // Extension to CPython: array of objects

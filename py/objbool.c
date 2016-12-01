@@ -37,19 +37,23 @@ typedef struct _mp_obj_bool_t {
 
 STATIC void bool_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
     mp_obj_bool_t *self = MP_OBJ_TO_PTR(self_in);
-    if (MICROPY_PY_UJSON && kind == PRINT_JSON) {
+    #if MICROPY_PY_UJSON
+    if (kind == PRINT_JSON) {
         if (self->value) {
             mp_print_str(print, "true");
         } else {
             mp_print_str(print, "false");
         }
     } else {
+    #endif
         if (self->value) {
             mp_print_str(print, "True");
         } else {
             mp_print_str(print, "False");
         }
+    #if MICROPY_PY_UJSON
     }
+    #endif
 }
 
 STATIC mp_obj_t bool_make_new(const mp_obj_type_t *type_in, size_t n_args, size_t n_kw, const mp_obj_t *args) {

@@ -941,14 +941,14 @@ void system_clock_init(uint16_t dfll_fine_calibration)
 
 #  if CONF_CLOCK_DFLL_ENABLE == true
 	/* Enable DFLL reference clock if in closed loop mode */
-	if (CONF_CLOCK_DFLL_LOOP_MODE == SYSTEM_CLOCK_DFLL_LOOP_MODE_CLOSED) {
+	#if defined(SYSTEM_CLOCK_DFLL_LOOP_MODE_CLOSED) && CONF_CLOCK_DFLL_LOOP_MODE == SYSTEM_CLOCK_DFLL_LOOP_MODE_CLOSED
 		struct system_gclk_chan_config dfll_gclk_chan_conf;
 
 		system_gclk_chan_get_config_defaults(&dfll_gclk_chan_conf);
 		dfll_gclk_chan_conf.source_generator = CONF_CLOCK_DFLL_SOURCE_GCLK_GENERATOR;
 		system_gclk_chan_set_config(SYSCTRL_GCLK_ID_DFLL48, &dfll_gclk_chan_conf);
 		system_gclk_chan_enable(SYSCTRL_GCLK_ID_DFLL48);
-	}
+	#endif
 #  endif
 
 #  if CONF_CLOCK_DPLL_ENABLE == true

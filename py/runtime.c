@@ -154,12 +154,12 @@ mp_obj_t mp_load_global(qstr qst) {
         #endif
         elem = mp_map_lookup((mp_map_t*)&mp_module_builtins_globals.map, MP_OBJ_NEW_QSTR(qst), MP_MAP_LOOKUP);
         if (elem == NULL) {
-            if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+            #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
                 mp_raise_msg(&mp_type_NameError, "name not defined");
-            } else {
+            #else
                 nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_NameError,
                     "name '%q' is not defined", qst));
-            }
+            #endif
         }
     }
     return elem->value;
@@ -245,13 +245,13 @@ mp_obj_t mp_unary_op(mp_uint_t op, mp_obj_t arg) {
                 return result;
             }
         }
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_TypeError("unsupported type for operator");
-        } else {
+        #else
             mp_raise_TypeError_varg(
                 "unsupported type for %q: '%s'",
                 mp_unary_op_method_name[op], mp_obj_get_type_str(arg));
-        }
+        #endif
     }
 }
 
@@ -529,12 +529,12 @@ mp_obj_t mp_binary_op(mp_uint_t op, mp_obj_t lhs, mp_obj_t rhs) {
             return mp_const_false;
         }
 
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_TypeError("object not iterable");
-        } else {
+        #else
             mp_raise_TypeError_varg(
                 "'%s' object is not iterable", mp_obj_get_type_str(rhs));
-        }
+        #endif
     }
 
     // generic binary_op supplied by type
@@ -551,12 +551,14 @@ generic_binary_op:
     // TODO implement dispatch for reverse binary ops
 
 unsupported_op:
-    if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+    {
+    #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
         mp_raise_TypeError("unsupported type for operator");
-    } else {
+    #else
         mp_raise_TypeError_varg(
             "unsupported types for %q: '%s', '%s'",
             mp_binary_op_method_name[op], mp_obj_get_type_str(lhs), mp_obj_get_type_str(rhs));
+    #endif
     }
 
 zero_division:
@@ -593,11 +595,11 @@ mp_obj_t mp_call_function_n_kw(mp_obj_t fun_in, mp_uint_t n_args, mp_uint_t n_kw
         return type->call(fun_in, n_args, n_kw, args);
     }
 
-    if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+    #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
         mp_raise_TypeError("object not callable");
-    } else {
+    #else
         mp_raise_TypeError_varg("'%s' object is not callable", mp_obj_get_type_str(fun_in));
-    }
+    #endif
 }
 
 // args contains: fun  self/NULL  arg(0)  ...  arg(n_args-2)  arg(n_args-1)  kw_key(0)  kw_val(0)  ... kw_key(n_kw-1)  kw_val(n_kw-1)
@@ -823,18 +825,22 @@ void mp_unpack_sequence(mp_obj_t seq_in, mp_uint_t num, mp_obj_t *items) {
     return;
 
 too_short:
-    if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+    {
+    #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
         mp_raise_ValueError("wrong number of values to unpack");
-    } else {
+    #else
         mp_raise_ValueError_varg("need more than %d values to unpack",
             (int)seq_len);
+    #endif
     }
 too_long:
-    if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+    {
+    #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
         mp_raise_ValueError("wrong number of values to unpack");
-    } else {
+    #else
         mp_raise_ValueError_varg("too many values to unpack (expected %d)",
             (int)num);
+    #endif
     }
 }
 
@@ -896,11 +902,13 @@ void mp_unpack_ex(mp_obj_t seq_in, mp_uint_t num_in, mp_obj_t *items) {
     return;
 
 too_short:
-    if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+    {
+    #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
         mp_raise_ValueError("wrong number of values to unpack");
-    } else {
+    #else
         mp_raise_ValueError_varg("need more than %d values to unpack",
             (int)seq_len);
+    #endif
     }
 }
 
@@ -1073,9 +1081,9 @@ void mp_load_method(mp_obj_t base, qstr attr, mp_obj_t *dest) {
 
     if (dest[0] == MP_OBJ_NULL) {
         // no attribute/method called attr
-        if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+        #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
             mp_raise_AttributeError("no such attribute");
-        } else {
+        #else
             // following CPython, we give a more detailed error message for type objects
             if (MP_OBJ_IS_TYPE(base, &mp_type_type)) {
                 nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_AttributeError,
@@ -1086,7 +1094,7 @@ void mp_load_method(mp_obj_t base, qstr attr, mp_obj_t *dest) {
                     "'%s' object has no attribute '%q'",
                     mp_obj_get_type_str(base), attr));
             }
-        }
+        #endif
     }
 }
 
@@ -1130,13 +1138,13 @@ void mp_store_attr(mp_obj_t base, qstr attr, mp_obj_t value) {
         }
     #endif
     }
-    if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+    #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
         mp_raise_AttributeError("no such attribute");
-    } else {
+    #else
         nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_AttributeError,
             "'%s' object has no attribute '%q'",
             mp_obj_get_type_str(base), attr));
-    }
+    #endif
 }
 
 mp_obj_t mp_getiter(mp_obj_t o_in) {
@@ -1160,12 +1168,12 @@ mp_obj_t mp_getiter(mp_obj_t o_in) {
     }
 
     // object not iterable
-    if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+    #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
         mp_raise_TypeError("object not iterable");
-    } else {
+    #else
         mp_raise_TypeError_varg(
             "'%s' object is not iterable", mp_obj_get_type_str(o_in));
-    }
+    #endif
 }
 
 // may return MP_OBJ_STOP_ITERATION as an optimisation instead of raise StopIteration()
@@ -1182,12 +1190,12 @@ mp_obj_t mp_iternext_allow_raise(mp_obj_t o_in) {
             // __next__ exists, call it and return its result
             return mp_call_method_n_kw(0, 0, dest);
         } else {
-            if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+            #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
                 mp_raise_TypeError("object not an iterator");
-            } else {
+            #else
                 mp_raise_TypeError_varg("'%s' object is not an iterator",
                     mp_obj_get_type_str(o_in));
-            }
+            #endif
         }
     }
 }
@@ -1218,12 +1226,12 @@ mp_obj_t mp_iternext(mp_obj_t o_in) {
                 }
             }
         } else {
-            if (MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE) {
+            #if MICROPY_ERROR_REPORTING == MICROPY_ERROR_REPORTING_TERSE
                 mp_raise_TypeError("object not an iterator");
-            } else {
+            #else
                 mp_raise_TypeError_varg("'%s' object is not an iterator",
                     mp_obj_get_type_str(o_in));
-            }
+            #endif
         }
     }
 }
@@ -1422,13 +1430,18 @@ mp_obj_t mp_parse_compile_execute(mp_lexer_t *lex, mp_parse_input_kind_t parse_i
         mp_obj_t module_fun = mp_compile(&parse_tree, source_name, MP_EMIT_OPT_NONE, false);
 
         mp_obj_t ret;
-        if (MICROPY_PY_BUILTINS_COMPILE && globals == NULL) {
+        #if MICROPY_PY_BUILTINS_COMPILE
+        if (globals == NULL) {
             // for compile only, return value is the module function
             ret = module_fun;
         } else {
+        #else
             // execute module function and get return value
             ret = mp_call_function_0(module_fun);
+        #endif
+        #if MICROPY_PY_BUILTINS_COMPILE
         }
+        #endif
 
         // finish nlr block, restore context and return value
         nlr_pop();
