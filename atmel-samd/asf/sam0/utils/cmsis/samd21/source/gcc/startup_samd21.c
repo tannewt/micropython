@@ -284,7 +284,7 @@ void HardFault_Handler(void)
 #endif
     __asm volatile (
         "1:                    \n"
-        "b.n       1b          \n" // while(true) {}
+        "b       1b          \n" // while(true) {}
     );
 }
 

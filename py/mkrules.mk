@@ -133,7 +133,7 @@ $(PROG): $(OBJ)
 	$(STEPECHO) "LINK $@"
 # Do not pass COPT here - it's *C* compiler optimizations. For example,
 # we may want to compile using Thumb, but link with non-Thumb libc.
-	$(Q)$(CC) -o $@ $^ $(LIB) $(LDFLAGS)
+	$(Q)$(LD) -o $@ $^ $(LIB) $(LDFLAGS)
 ifndef DEBUG
 	$(Q)$(STRIP) $(STRIPFLAGS_EXTRA) $(PROG)
 endif

@@ -90,7 +90,7 @@ NORETURN __attribute__((naked)) void nlr_jump(void *val) {
     "ldr    r4, [r3, #8]        \n" // nlr_buf_t *top = *top_ptr;
     "movs   r5, r3              \n" //
     "cmp    r4, #0              \n" // if (top == NULL) {
-    "bne.n  1f                 \n" //
+    "bne    1f                 \n" //
     "bl     nlr_jump_fail       \n" // nlr_jump_fail(val);
     "1:                       \n"
     "ldr    r3, [r4, #0]        \n" //

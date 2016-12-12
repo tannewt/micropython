@@ -22,7 +22,21 @@ QSTR_DEFS = qstrdefsport.h
 include ../py/py.mk
 
 CROSS_COMPILE = arm-none-eabi-
-CC = /usr/local/opt/llvm/bin/clang
+CC = /usr/local/Cellar/llvm/HEAD-7af3278/bin/clang
+COMPILER_CFLAGS = \
+	-target armv6m-none-eabi \
+	-Wno-int-to-void-pointer-cast \
+	-Wno-expansion-to-defined \
+
+LD = /usr/local/Cellar/llvm/HEAD-7af3278/bin/ld.lld
+
+
+GCC_CFLAGS = \
+	-mthumb \
+	-mabi=aapcs-linux \
+	-mcpu=cortex-m0plus \
+	-mfloat-abi=soft \
+# COMPILER_CFLAGS = GCC_CFLAGS
 
 BOSSAC := tools/bossac_osx
 
@@ -80,7 +94,7 @@ INC += -Ifreetouch/
 INC += -I$(BUILD)
 
 CFLAGS_CORTEX_M0 = \
-	-target armv6m-none-eabi \
+	$(COMPILER_CFLAGS) \
 	-msoft-float \
 	-fno-strict-aliasing \
 	-fomit-frame-pointer \
@@ -100,8 +114,6 @@ CFLAGS_CORTEX_M0 = \
 	-Wnested-externs \
 	-Wunreachable-code \
 	-Wcast-align \
-	-Wno-int-to-void-pointer-cast \
-	-Wno-expansion-to-defined \
 	-D__$(CHIP_VARIANT)__ \
 	-DUSB_DEVICE_PRODUCT_ID=$(USB_PID) \
 	-DUSB_DEVICE_VENDOR_ID=$(USB_VID) \
@@ -154,10 +166,10 @@ LDFLAGS = -mthumb -mcpu=cortex-m0plus -Lasf/thirdparty/CMSIS/Lib/GCC/ -LQTouch/ 
 LIBS = -larm_cortexM0l_math -lsamd21_qtouch_gcc -lm -lgcc -lc
 
 # old
-#LIBGCC_FILE_NAME = $(shell arm-none-eabi-gcc $(CFLAGS) -print-libgcc-file-name)
-#LIBM_FILE_NAME   = $(shell arm-none-eabi-gcc $(CFLAGS) -print-file-name=libm.a)
-#LDFLAGS = -Lasf/thirdparty/CMSIS/Lib/GCC/ -L $(dir $(LIBGCC_FILE_NAME)) -L $(dir $(LIBM_FILE_NAME)) -nostdlib -T $(LD_FILE) -Map=$@.map --cref --gc-sections
-#LIBS = -larm_cortexM0l_math -lm -lgcc -lc
+# LIBGCC_FILE_NAME = $(shell arm-none-eabi-gcc $(GCC_CFLAGS) -print-libgcc-file-name)
+# LIBM_FILE_NAME   = $(shell arm-none-eabi-gcc $(GCC_CFLAGS) -print-file-name=libm.a)
+# LDFLAGS = -Lasf/thirdparty/CMSIS/Lib/GCC/ -L $(dir $(LIBGCC_FILE_NAME)) -L $(dir $(LIBM_FILE_NAME)) -nostdlib -T $(LD_FILE) -Map=$@.map --cref --gc-sections
+# LIBS = -larm_cortexM0l_math -lm -lgcc -lc
 
 SRC_ASF = $(addprefix asf/sam0/,\
 	drivers/adc/adc_sam_d_r/adc.c \

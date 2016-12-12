@@ -167,7 +167,7 @@ STATIC void mp_obj_float_divmod(mp_float_t *x, mp_float_t *y) {
     } else {
         if ((mod < 0.0f) != (*y < 0.0f)) {
             mod += *y;
-            div -= 1.0;
+            div -= 1.0f;
         }
     }
 
@@ -179,7 +179,7 @@ STATIC void mp_obj_float_divmod(mp_float_t *x, mp_float_t *y) {
         // Python specs require that x == (x//y)*y + (x%y)
         floordiv = MICROPY_FLOAT_C_FUN(floor)(div);
         if (div - floordiv > 0.5f) {
-            floordiv += 1.0;
+            floordiv += 1.0f;
         }
     }
 
