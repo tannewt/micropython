@@ -40,6 +40,8 @@ typedef struct _mp_rom_obj_tuple_t {
     mp_rom_obj_t items[];
 } mp_rom_obj_tuple_t;
 
+extern const mp_obj_type_t mp_type_tuple;
+
 void mp_obj_tuple_print(const mp_print_t *print, mp_obj_t o_in, mp_print_kind_t kind);
 mp_obj_t mp_obj_tuple_unary_op(mp_uint_t op, mp_obj_t self_in);
 mp_obj_t mp_obj_tuple_binary_op(mp_uint_t op, mp_obj_t lhs, mp_obj_t rhs);
