@@ -29,7 +29,7 @@ extern char serial_number[USB_DEVICE_GET_SERIAL_NAME_LENGTH];
 //! Control endpoint size
 #define  USB_DEVICE_EP_CTRL_SIZE       64
 
-//! Two interfaces for this device (CDC COM + CDC DATA + MSC + HID mouse + HID kbd)
+//! Interfaces for this device (CDC COM + CDC DATA + MSC + HID mouse + HID kbd)
 #define  USB_DEVICE_NB_INTERFACE       5
 
 // (3 | USB_EP_DIR_IN)  // CDC Notify endpoint
