@@ -22,13 +22,15 @@ QSTR_DEFS = qstrdefsport.h
 include ../py/py.mk
 
 CROSS_COMPILE = arm-none-eabi-
-CC = /usr/local/Cellar/llvm/HEAD-7af3278/bin/clang
+CC = /usr/local/opt/llvm/bin/clang
 COMPILER_CFLAGS = \
 	-target armv6m-none-eabi \
+	-mcpu=cortex-m0plus \
 	-Wno-int-to-void-pointer-cast \
 	-Wno-expansion-to-defined \
 
-LD = /usr/local/Cellar/llvm/HEAD-7af3278/bin/ld.lld
+#LD = /usr/local/opt/llvm/bin/ld.lld
+LD = /usr/local/opt/llvm/bin/clang
 
 
 GCC_CFLAGS = \
@@ -42,8 +44,8 @@ BOSSAC := tools/bossac_osx
 
 HAL_DIR=hal/$(MCU_SERIES)
 
-INC += -I/usr/local/Caskroom/gcc-arm-embedded/5_4-2016q3,20160926/gcc-arm-none-eabi-5_4-2016q3/arm-none-eabi/include/
-INC += -I/usr/local/Caskroom/gcc-arm-embedded/5_4-2016q3,20160926/gcc-arm-none-eabi-5_4-2016q3/lib/gcc/arm-none-eabi/5.4.1/include-fixed/
+INC += -I/usr/local/Caskroom/gcc-arm-embedded/6-2017-q1/gcc-arm-none-eabi-6-2017-q1-update/arm-none-eabi/include/
+INC += -I/usr/local/Caskroom/gcc-arm-embedded/6-2017-q1/gcc-arm-none-eabi-6-2017-q1-update/lib/gcc/arm-none-eabi/6.3.1/include-fixed/
 INC += -I.
 INC += -I..
 INC += -I../lib/mp-readline
@@ -95,6 +97,7 @@ INC += -I$(BUILD)
 
 CFLAGS_CORTEX_M0 = \
 	$(COMPILER_CFLAGS) \
+	-flto \
 	-msoft-float \
 	-fno-strict-aliasing \
 	-fomit-frame-pointer \
@@ -162,7 +165,7 @@ endif
 
 # new
 LIBM_FILE_NAME   = $(shell $(CC) $(CFLAGS) -print-file-name=libm.a)
-LDFLAGS = -mthumb -mcpu=cortex-m0plus -Lasf/thirdparty/CMSIS/Lib/GCC/ -LQTouch/ -L$(dir $(LIBM_FILE_NAME)) -Wl,-nostdlib -Wl,-T,$(LD_FILE) -Wl,-Map=$@.map -Wl,-cref -Wl,-gc-sections -specs=nano.specs
+LDFLAGS = -v -target armv6m-none-eabi -fuse-ld=lld -mcpu=cortex-m0plus -Lasf/thirdparty/CMSIS/Lib/GCC/ -LQTouch/ -L$(dir $(LIBM_FILE_NAME)) -Wl,-T,$(LD_FILE) -Wl,-Map,$@.map -Wl,--cref -Wl,-gc-sections -specs=nano.specs
 LIBS = -larm_cortexM0l_math -lsamd21_qtouch_gcc -lm -lgcc -lc
 
 # old
@@ -294,7 +297,7 @@ all: $(BUILD)/firmware.bin
 
 $(BUILD)/firmware.elf: $(OBJ)
 	$(STEPECHO) "LINK $@"
-	$(Q)$(CC) -o $@ $(LDFLAGS) $^ -Wl,--start-group $(LIBS) -Wl,--end-group
+	$(Q)PATH="/usr/local/opt/llvm/bin" $(CC) -o $@ -v -fuse-ld=lld -target armv6m-none-eabi -march=thumb -mcpu=cortex-m0plus $^
 	$(Q)$(SIZE) $@ | python3 ../tools/build_memory_info.py $(LD_FILE)
 
 $(BUILD)/firmware.bin: $(BUILD)/firmware.elf
