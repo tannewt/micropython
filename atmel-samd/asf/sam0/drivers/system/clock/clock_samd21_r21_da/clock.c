@@ -904,6 +904,8 @@ void system_clock_init(uint16_t dfll_fine_calibration)
 	dfll_conf.coarse_max_step = CONF_CLOCK_DFLL_MAX_COARSE_STEP_SIZE;
 	dfll_conf.fine_max_step   = CONF_CLOCK_DFLL_MAX_FINE_STEP_SIZE;
 
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wunreachable-code"
 	if (CONF_CLOCK_DFLL_LOOP_MODE == SYSTEM_CLOCK_DFLL_LOOP_MODE_USB_RECOVERY) {
 		dfll_conf.fine_max_step   = 10;
 		dfll_conf.fine_value   = dfll_fine_calibration;
@@ -914,6 +916,7 @@ void system_clock_init(uint16_t dfll_fine_calibration)
 
 		dfll_conf.multiply_factor = 48000;
 	}
+    #pragma clang diagnostic pop
 
 	system_clock_source_dfll_set_config(&dfll_conf);
 #endif

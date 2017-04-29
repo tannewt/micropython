@@ -22,7 +22,7 @@ QSTR_DEFS = qstrdefsport.h
 include ../py/py.mk
 
 CROSS_COMPILE = arm-none-eabi-
-CC = /usr/local/opt/llvm/bin/clang
+CC = ~/repos/llvm/build/bin/clang
 COMPILER_CFLAGS = \
 	-target armv6m-none-eabi \
 	-mcpu=cortex-m0plus \
@@ -147,7 +147,7 @@ CFLAGS = $(INC) -Wall -Werror -std=gnu11 -nostdlib $(CFLAGS_CORTEX_M0) $(COPT)
 ifeq ($(DEBUG), 1)
 CFLAGS += -Os -ggdb -DNDEBUG -DENABLE_MICRO_TRACE_BUFFER
 else
-CFLAGS += -Os -DNDEBUG
+CFLAGS += -Os -DNDEBUG -flto
 endif
 
 ifneq ($(FROZEN_DIR),)
@@ -165,7 +165,7 @@ endif
 
 # new
 LIBM_FILE_NAME   = $(shell $(CC) $(CFLAGS) -print-file-name=libm.a)
-LDFLAGS = -v -target armv6m-none-eabi -fuse-ld=lld -mcpu=cortex-m0plus -Lasf/thirdparty/CMSIS/Lib/GCC/ -LQTouch/ -L$(dir $(LIBM_FILE_NAME)) -Wl,-T,$(LD_FILE) -Wl,-Map,$@.map -Wl,--cref -Wl,-gc-sections -specs=nano.specs
+LDFLAGS = -v -target armv6m-none-eabi -fuse-ld=ld.lld -mcpu=cortex-m0plus -Lasf/thirdparty/CMSIS/Lib/GCC/ -LQTouch/ -L$(dir $(LIBM_FILE_NAME)) -Wl,-T,$(LD_FILE) -Wl,-Map,$@.map -Wl,--cref -Wl,-gc-sections -specs=nano.specs
 LIBS = -larm_cortexM0l_math -lsamd21_qtouch_gcc -lm -lgcc -lc
 
 # old
@@ -297,7 +297,7 @@ all: $(BUILD)/firmware.bin
 
 $(BUILD)/firmware.elf: $(OBJ)
 	$(STEPECHO) "LINK $@"
-	$(Q)PATH="/usr/local/opt/llvm/bin" $(CC) -o $@ -v -fuse-ld=lld -target armv6m-none-eabi -march=thumb -mcpu=cortex-m0plus $^
+	$(Q)PATH="/usr/local/opt/llvm/bin" $(CC) -flto -o $@ -v -fuse-ld=lld -target armv6m-none-eabi -march=thumb -mcpu=cortex-m0plus $^
 	$(Q)$(SIZE) $@ | python3 ../tools/build_memory_info.py $(LD_FILE)
 
 $(BUILD)/firmware.bin: $(BUILD)/firmware.elf
