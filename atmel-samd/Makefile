@@ -297,7 +297,7 @@ all: $(BUILD)/firmware.bin
 
 $(BUILD)/firmware.elf: $(OBJ)
 	$(STEPECHO) "LINK $@"
-	$(Q)PATH="/usr/local/opt/llvm/bin" $(CC) -flto -o $@ -v -fuse-ld=lld -target armv6m-none-eabi -march=thumb -mcpu=cortex-m0plus $^
+	$(Q)~/repos/llvm/build/bin/ld.lld --lto-O0 --nostdlib -o $@ -v $^
 	$(Q)$(SIZE) $@ | python3 ../tools/build_memory_info.py $(LD_FILE)
 
 $(BUILD)/firmware.bin: $(BUILD)/firmware.elf
