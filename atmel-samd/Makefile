@@ -299,7 +299,7 @@ all: $(BUILD)/firmware.bin
 
 $(BUILD)/firmware.elf: $(OBJ)
 	$(STEPECHO) "LINK $@"
-	$(Q)~/repos/llvm/build/bin/ld.lld --lto-O0 -Lasf/thirdparty/CMSIS/Lib/GCC/ -L /Users/tannewt/Downloads/gcc-arm-none-eabi-6-2017-q1-update/arm-none-eabi/lib/ -L /Users/tannewt/Downloads/gcc-arm-none-eabi-6-2017-q1-update/lib/gcc/arm-none-eabi/6.3.1/ -larm_cortexM0l_math -lm -lc -lgcc --nostdlib -o $@ -v $^
+	$(Q)~/repos/llvm/build/bin/ld.lld --lto-O0 -Lasf/thirdparty/CMSIS/Lib/GCC/ --script $(LD_FILE) -L /Users/tannewt/Downloads/gcc-arm-none-eabi-6-2017-q1-update/arm-none-eabi/lib/ -L /Users/tannewt/Downloads/gcc-arm-none-eabi-6-2017-q1-update/lib/gcc/arm-none-eabi/6.3.1/ -larm_cortexM0l_math -lm -lc -lgcc -Map=$@.map --nostdlib -o $@ -v $^
 	$(Q)$(SIZE) $@ | python3 ../tools/build_memory_info.py $(LD_FILE)
 
 $(BUILD)/firmware.bin: $(BUILD)/firmware.elf
