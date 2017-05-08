@@ -26,6 +26,9 @@ CC = ~/repos/llvm/build/bin/clang
 COMPILER_CFLAGS = \
 	-target armv6m-none-eabi \
 	-mcpu=cortex-m0plus \
+	-mthumb \
+	-mabi=aapcs-linux \
+	-mfloat-abi=soft \
 	-Wno-int-to-void-pointer-cast \
 	-Wno-expansion-to-defined \
 
@@ -238,7 +241,6 @@ SRC_C = \
 	lib/utils/pyexec.c \
 	lib/utils/pyhelp.c \
 	lib/utils/stdout_helpers.c \
-	lib/libc/string0.c \
 	lib/mp-readline/readline.c
 
 STM_SRC_C = $(addprefix stmhal/,\
@@ -297,7 +299,7 @@ all: $(BUILD)/firmware.bin
 
 $(BUILD)/firmware.elf: $(OBJ)
 	$(STEPECHO) "LINK $@"
-	$(Q)~/repos/llvm/build/bin/ld.lld --lto-O0 --nostdlib -o $@ -v $^
+	$(Q)~/repos/llvm/build/bin/ld.lld --lto-O0 -Lasf/thirdparty/CMSIS/Lib/GCC/ -L /Users/tannewt/Downloads/gcc-arm-none-eabi-6-2017-q1-update/arm-none-eabi/lib/ -L /Users/tannewt/Downloads/gcc-arm-none-eabi-6-2017-q1-update/lib/gcc/arm-none-eabi/6.3.1/ -larm_cortexM0l_math -lm -lc -lgcc --nostdlib -o $@ -v $^
 	$(Q)$(SIZE) $@ | python3 ../tools/build_memory_info.py $(LD_FILE)
 
 $(BUILD)/firmware.bin: $(BUILD)/firmware.elf
