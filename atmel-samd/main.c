@@ -590,6 +590,7 @@ mp_import_stat_t mp_import_stat(const char *path) {
 }
 
 void nlr_jump_fail(void *val) {
+    while (1);
 }
 
 void NORETURN __fatal_error(const char *msg) {

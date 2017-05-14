@@ -280,7 +280,7 @@ void HardFault_Handler(void)
 #ifdef ENABLE_MICRO_TRACE_BUFFER
     // Turn off the micro trace buffer so we don't fill it up in the infinite
     // loop below.
-    REG_MTB_MASTER = 0x00000000 + 6;
+    //REG_MTB_MASTER = 0x00000000 + 6;
 #endif
     __asm volatile (
         "1:                    \n"

@@ -6,7 +6,7 @@
 MEMORY
 {
     FLASH (rx) : ORIGIN = 0x00000000 + 0x2000, LENGTH = 0x00040000 - 0x2000 /* Leave 8KiB for the bootloader. */
-    RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 0x008000 /* 32 KiB */
+    RAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 0x008000 /* 32 KiB */
 }
 
 /* top end of the stack */
@@ -28,7 +28,7 @@ SECTIONS
 
         . = ALIGN(4);
         _etext = .;        /* define a global symbol at end of code */
-    } >FLASH
+    } > FLASH
 
     .ARM.exidx :
     {
@@ -41,7 +41,7 @@ SECTIONS
     The program executes knowing that the data is in the RAM
     but the loader puts the initial values in the FLASH (inidata).
     It is one task of the startup to copy the initial values from FLASH to RAM. */
-    .data : AT ( _sidata )
+    .data :
     {
         . = ALIGN(4);
         _srelocate = .;        /* create a global symbol at data start; used by startup code in order to initialise the .data section in RAM */
@@ -49,10 +49,11 @@ SECTIONS
         *(.ramfunc*)
         *(.data)           /* .data sections */
         *(.data*)          /* .data* sections */
+        *(.ARM.extab*)
 
         . = ALIGN(4);
         _erelocate = .;        /* define a global symbol at data end; used by startup code in order to initialise the .data section in RAM */
-    } >RAM
+    } > RAM
 
     /* Uninitialized data section */
     .bss :
@@ -67,7 +68,8 @@ SECTIONS
         . = ALIGN(4);
         _ezero = .;         /* define a global symbol at bss end; used by startup code */
         _ebss = .;
-    } >RAM
+        _end = .;
+    } > RAM
 
     /* this just checks there is enough RAM for a minimal stack */
     .stack :
@@ -75,7 +77,7 @@ SECTIONS
         . = ALIGN(4);
         . = . + 0x800; /* Reserve a minimum of 2K for the stack. */
         . = ALIGN(4);
-    } >RAM
+    } > RAM
 
     .ARM.attributes 0 : { *(.ARM.attributes) }
 }

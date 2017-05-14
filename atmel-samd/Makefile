@@ -148,7 +148,7 @@ CFLAGS = $(INC) -Wall -Werror -std=gnu11 -nostdlib $(CFLAGS_CORTEX_M0) $(COPT)
 # TODO(tannewt): Figure out what NDEBUG does. Adding it to the debug build
 # reduces code size pretty dramatically.
 ifeq ($(DEBUG), 1)
-CFLAGS += -Os -ggdb -DNDEBUG -DENABLE_MICRO_TRACE_BUFFER
+CFLAGS += -Os -ggdb -DNDEBUG -DENABLE_MICRO_TRACE_BUFFER -flto
 else
 CFLAGS += -Os -DNDEBUG -flto
 endif
@@ -299,7 +299,7 @@ all: $(BUILD)/firmware.bin
 
 $(BUILD)/firmware.elf: $(OBJ)
 	$(STEPECHO) "LINK $@"
-	$(Q)~/repos/llvm/build/bin/ld.lld --lto-O0 -Lasf/thirdparty/CMSIS/Lib/GCC/ --script $(LD_FILE) -L /Users/tannewt/Downloads/gcc-arm-none-eabi-6-2017-q1-update/arm-none-eabi/lib/ -L /Users/tannewt/Downloads/gcc-arm-none-eabi-6-2017-q1-update/lib/gcc/arm-none-eabi/6.3.1/ -larm_cortexM0l_math -lm -lc -lgcc -Map=$@.map --nostdlib -o $@ -v $^
+	$(Q)~/repos/llvm/build/bin/ld.lld --lto-O3 -Lasf/thirdparty/CMSIS/Lib/GCC/ --script $(LD_FILE) -L /Users/tannewt/Downloads/gcc-arm-none-eabi-6-2017-q1-update/arm-none-eabi/lib/ -L /Users/tannewt/Downloads/gcc-arm-none-eabi-6-2017-q1-update/lib/gcc/arm-none-eabi/6.3.1/ -larm_cortexM0l_math -lm -lc -lgcc -Map=$@.map --nostdlib -o $@ -v $^
 	$(Q)$(SIZE) $@ | python3 ../tools/build_memory_info.py $(LD_FILE)
 
 $(BUILD)/firmware.bin: $(BUILD)/firmware.elf
