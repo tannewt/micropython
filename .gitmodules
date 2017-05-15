@@ -17,3 +17,6 @@
 [submodule "tools/uf2"]
 	path = tools/uf2
 	url = https://github.com/Microsoft/uf2.git
+[submodule "sifive-freedom-e/freedom-e-sdk"]
+	path = sifive-freedom-e/freedom-e-sdk
+	url = https://github.com/sifive/freedom-e-sdk.git
