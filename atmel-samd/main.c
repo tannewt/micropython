@@ -568,6 +568,27 @@ safe_mode_t samd21_init(void) {
         return USER_SAFE_MODE;
     }
 
+    #if CIRCUITPY_INTERNAL_NVM_SIZE > 0
+    // Upgrade the nvm flash to include one sector for eeprom emulation.
+    struct nvm_fusebits fuses;
+    if (nvm_get_fuses(&fuses) == STATUS_OK &&
+            fuses.eeprom_size == NVM_EEPROM_EMULATOR_SIZE_0) {
+        #ifdef INTERNAL_FLASH_FS
+        // Shift the internal file system up one row.
+        for (uint8_t row = 0; row < TOTAL_INTERNAL_FLASH_SIZE / NVMCTRL_ROW_SIZE; row++) {
+            uint32_t new_row_address = INTERNAL_FLASH_MEM_SEG1_START_ADDR + row * NVMCTRL_ROW_SIZE;
+            nvm_erase_row(new_row_address);
+            nvm_write_buffer(new_row_address,
+                             (uint8_t*) (new_row_address + CIRCUITPY_INTERNAL_EEPROM_SIZE),
+                             NVMCTRL_ROW_SIZE);
+        }
+        #endif
+        // Mark the last section as eeprom now.
+        fuses.eeprom_size = NVM_EEPROM_EMULATOR_SIZE_256;
+        nvm_set_fuses(&fuses);
+    }
+    #endif
+
     return NO_SAFE_MODE;
 }
 
