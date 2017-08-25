@@ -40,7 +40,7 @@ bool common_hal_nvm_bytearray_set_bytes(nvm_bytearray_obj_t *self,
     uint32_t total_written = 0;
     for (uint32_t i = 0; i < self->len / NVMCTRL_ROW_SIZE; i++) {
         uint32_t row_start = NVMCTRL_ROW_SIZE * i;
-        if (row_start < start_index || start_index + len < row_start) {
+        if (row_start + NVMCTRL_ROW_SIZE < start_index || start_index + len < row_start) {
             continue;
         }
         uint8_t temp_row[NVMCTRL_ROW_SIZE];
@@ -59,8 +59,10 @@ bool common_hal_nvm_bytearray_set_bytes(nvm_bytearray_obj_t *self,
             data_start = start_index - row_start;
         }
         uint32_t data_len = len;
-        if (data_len - total_written > NVMCTRL_ROW_SIZE - data_start) {
-            data_len = NVMCTRL_ROW_SIZE - data_start;
+        uint32_t data_remaining = data_len - total_written;
+        uint32_t row_remaining = NVMCTRL_ROW_SIZE - data_start;
+        if (data_remaining > row_remaining) {
+            data_len = row_remaining;
         }
         memcpy(temp_row + data_start,
                values + total_written,

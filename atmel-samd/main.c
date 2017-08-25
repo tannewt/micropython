@@ -34,19 +34,19 @@
 #include "common-hal/pulseio/PWMOut.h"
 #include "common-hal/usb_hid/__init__.h"
 
-#ifdef EXPRESS_BOARD
-#include "common-hal/touchio/TouchIn.h"
-#define INTERNAL_CIRCUITPY_CONFIG_START_ADDR (0x00040000 - 0x100)
-#else
-#define INTERNAL_CIRCUITPY_CONFIG_START_ADDR (0x00040000 - 0x010000 - 0x100)
-#endif
-
 #include "autoreload.h"
 #include "flash_api.h"
 #include "mpconfigboard.h"
 #include "rgb_led_status.h"
 #include "shared_dma.h"
 #include "tick.h"
+
+#ifdef EXPRESS_BOARD
+#include "common-hal/touchio/TouchIn.h"
+#define INTERNAL_CIRCUITPY_CONFIG_START_ADDR (0x00040000 - 0x100 - CIRCUITPY_INTERNAL_NVM_SIZE)
+#else
+#define INTERNAL_CIRCUITPY_CONFIG_START_ADDR (0x00040000 - 0x010000 - 0x100 - CIRCUITPY_INTERNAL_NVM_SIZE)
+#endif
 
 fs_user_mount_t fs_user_mount_flash;
 mp_vfs_mount_t mp_vfs_mount_flash;
@@ -583,9 +583,17 @@ safe_mode_t samd21_init(void) {
                              NVMCTRL_ROW_SIZE);
         }
         #endif
-        // Mark the last section as eeprom now.
-        fuses.eeprom_size = NVM_EEPROM_EMULATOR_SIZE_256;
-        nvm_set_fuses(&fuses);
+        uint32_t nvm_size = CIRCUITPY_INTERNAL_NVM_SIZE;
+        uint8_t enum_value = 6;
+        while (nvm_size > 256 && enum_value != 255) {
+            nvm_size /= 2;
+            enum_value -= 1;
+        }
+        if (enum_value != 255 && nvm_size == 256) {
+            // Mark the last section as eeprom now.
+            fuses.eeprom_size = (enum nvm_eeprom_emulator_size) enum_value;
+            nvm_set_fuses(&fuses);
+        }
     }
     #endif
 

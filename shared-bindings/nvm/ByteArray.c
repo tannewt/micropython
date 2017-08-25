@@ -27,6 +27,7 @@
 #include "py/binary.h"
 #include "py/objproperty.h"
 #include "py/runtime.h"
+#include "py/runtime0.h"
 #include "shared-bindings/nvm/ByteArray.h"
 
 //| .. currentmodule:: nvm
@@ -34,7 +35,7 @@
 //| :class:`ByteArray` -- Presents a stretch of non-volatile memory as a bytearray.
 //| ================================================================================
 //|
-//| Non-volatile memory is avialble as a byte array that persists over reloads
+//| Non-volatile memory is available as a byte array that persists over reloads
 //| and power cycles.
 //|
 //| Usage::
@@ -56,15 +57,17 @@ STATIC mp_obj_t nvm_bytearray_make_new(const mp_obj_type_t *type,
 //|
 //|     Return the length. This is used by (`len`)
 //|
-STATIC mp_obj_t nvm_bytearray___len__(mp_obj_t self_in) {
+STATIC mp_obj_t nvm_bytearray_unary_op(mp_uint_t op, mp_obj_t self_in) {
     nvm_bytearray_obj_t *self = MP_OBJ_TO_PTR(self_in);
-
-    return MP_OBJ_NEW_SMALL_INT(common_hal_nvm_bytearray_get_length(self));
+    uint16_t len = common_hal_nvm_bytearray_get_length(self);
+    switch (op) {
+        case MP_UNARY_OP_BOOL: return mp_obj_new_bool(len != 0);
+        case MP_UNARY_OP_LEN: return MP_OBJ_NEW_SMALL_INT(len);
+        default: return MP_OBJ_NULL; // op not supported
+    }
 }
-MP_DEFINE_CONST_FUN_OBJ_1(nvm_bytearray___len___obj, nvm_bytearray___len__);
 
 STATIC const mp_rom_map_elem_t nvm_bytearray_locals_dict_table[] = {
-    { MP_ROM_QSTR(MP_QSTR___len__),    MP_ROM_PTR(&nvm_bytearray___len___obj) },
 };
 
 STATIC MP_DEFINE_CONST_DICT(nvm_bytearray_locals_dict, nvm_bytearray_locals_dict_table);
@@ -150,6 +153,7 @@ const mp_obj_type_t nvm_bytearray_type = {
     .name = MP_QSTR_ByteArray,
     .make_new = nvm_bytearray_make_new,
     .subscr = nvm_bytearray_subscr,
+    .unary_op = nvm_bytearray_unary_op,
     .print = NULL,
     .locals_dict = (mp_obj_t)&nvm_bytearray_locals_dict,
 };
