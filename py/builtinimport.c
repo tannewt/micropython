@@ -190,7 +190,7 @@ STATIC void do_load(mp_obj_t module_obj, vstr_t *file) {
     char *file_str = vstr_null_terminated_str(file);
     #endif
 
-    #if MICROPY_MODULE_FROZEN || MICROPY_PERSISTENT_CODE_LOAD
+    #if MICROPY_MODULE_FROZEN || MICROPY_MODULE_FROZEN_MPY
     if (strncmp(MP_FROZEN_FAKE_DIR_SLASH,
                 file_str,
                 MP_FROZEN_FAKE_DIR_SLASH_LENGTH) == 0) {
@@ -219,17 +219,18 @@ STATIC void do_load(mp_obj_t module_obj, vstr_t *file) {
         }
         #endif
 
-        // If we support loading .mpy files then check if the file extension is of
-        // the correct format and, if so, load and execute the file.
-        #if MICROPY_PERSISTENT_CODE_LOAD
-        if (file_str[file->len - 3] == 'm') {
-            mp_raw_code_t *raw_code = mp_raw_code_load_file(file_str + MP_FROZEN_FAKE_DIR_SLASH_LENGTH);
-            do_execute_raw_code(module_obj, raw_code);
-            return;
-        }
-        #endif
     }
-    #endif // MICROPY_MODULE_FROZEN || MICROPY_PERSISTENT_CODE_LOAD
+    #endif // MICROPY_MODULE_FROZEN || MICROPY_MODULE_FROZEN_MPY
+
+    // If we support loading .mpy files then check if the file extension is of
+    // the correct format and, if so, load and execute the file.
+    #if MICROPY_PERSISTENT_CODE_LOAD
+    if (file_str[file->len - 3] == 'm') {
+        mp_raw_code_t *raw_code = mp_raw_code_load_file(file_str);
+        do_execute_raw_code(module_obj, raw_code);
+        return;
+    }
+    #endif
 
     // If we can compile scripts then load the file and compile and execute it.
     #if MICROPY_ENABLE_COMPILER
