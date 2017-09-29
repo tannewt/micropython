@@ -46,11 +46,8 @@ void SysTick_Handler(void) {
 
 void tick_init() {
     uint32_t ticks_per_ms = common_hal_mcu_processor_get_frequency() / 1000;
-    SysTick->LOAD = ((ticks_per_ms - 1) << SysTick_LOAD_RELOAD_Pos);
+    SysTick_Config(ticks_per_ms);
     NVIC_EnableIRQ(SysTick_IRQn);
-    SysTick->CTRL = (1 << SysTick_CTRL_ENABLE_Pos) |
-                    (1 << SysTick_CTRL_TICKINT_Pos)|
-                    (1 << SysTick_CTRL_CLKSOURCE_Pos);
 }
 
 void tick_delay(uint32_t us) {
