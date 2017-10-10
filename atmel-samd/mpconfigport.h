@@ -103,8 +103,8 @@
 
 // Track stack usage on a debug build. Expose results via ustack module.
 #ifdef MICROPY_DEBUG_MODULES
-#endif
 #define MICROPY_MAX_STACK_USAGE       (1)
+#endif
 
 // This port is intended to be 32-bit, but unfortunately, int32_t for
 // different targets may be defined in different ways - either as int
