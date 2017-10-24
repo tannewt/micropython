@@ -168,7 +168,7 @@ static bool write_complete(const uint8_t ep,
     if (rc != USB_XFER_DONE) {
         return false; // No errors.
     }
-    // This is called after writed are finished.
+    // This is called after writes are finished.
     usb_transmitting = false;
     /* No error. */
     return false;
@@ -293,6 +293,7 @@ void usb_write(const char* buffer, uint32_t len) {
         //   * When our given buffer isn't aligned on word boundaries.
         if (output_len <= 64 || ((uint32_t) buffer) % 4 != 0) {
             output_buffer = cdc_output_buffer;
+            output_len = output_len > 64 ? 64 : output_len;
             memcpy(cdc_output_buffer, buffer, output_len);
         } else {
             output_len = 64;
