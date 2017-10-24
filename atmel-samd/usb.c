@@ -275,7 +275,8 @@ int usb_read(void) {
 
 // TODO(tannewt): See if we can disable the internal CDC IN cache since we
 // we manage this one ourselves.
-COMPILER_ALIGNED(4) uint8_t cdc_output_buffer[64];
+#define CDC_BULKIN_SIZE CONF_USB_COMPOSITE_CDC_ACM_DATA_BULKIN_MAXPKSZ
+COMPILER_ALIGNED(4) uint8_t cdc_output_buffer[CDC_BULKIN_SIZE];
 
 void usb_write(const char* buffer, uint32_t len) {
     if (!cdc_enabled()) {
@@ -291,12 +292,12 @@ void usb_write(const char* buffer, uint32_t len) {
         //   * When we're at the end of a transmission and we'll return before
         //     the given buffer is actually transferred to the USB device.
         //   * When our given buffer isn't aligned on word boundaries.
-        if (output_len <= 64 || ((uint32_t) buffer) % 4 != 0) {
+        if (output_len <= CDC_BULKIN_SIZE || ((uint32_t) buffer) % 4 != 0) {
             output_buffer = cdc_output_buffer;
-            output_len = output_len > 64 ? 64 : output_len;
+            output_len = output_len > CDC_BULKIN_SIZE ? CDC_BULKIN_SIZE : output_len;
             memcpy(cdc_output_buffer, buffer, output_len);
         } else {
-            output_len = 64;
+            output_len = CDC_BULKIN_SIZE;
         }
         usb_transmitting = true;
         cdcdf_acm_write(output_buffer, output_len);
