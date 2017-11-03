@@ -88,7 +88,46 @@ safe_mode_t port_init(void) {
 //
 //     load_serial_number();
 
+    // Output clocks for debugging.
+    #ifdef SAMD51
+    gpio_set_pin_function(PIN_PA10, GPIO_PIN_FUNCTION_M); // GCLK4, D3
+    gpio_set_pin_function(PIN_PA11, GPIO_PIN_FUNCTION_M); // GCLK5, A4
+    gpio_set_pin_function(PIN_PB14, GPIO_PIN_FUNCTION_M); // GCLK0, D5
+    gpio_set_pin_function(PIN_PB15, GPIO_PIN_FUNCTION_M); // GCLK1, D6
+    #endif
+
     init_mcu();
+
+    #ifdef SAMD51
+    // Set up TC3[0] for D7 PA14
+    gpio_set_pin_function(PIN_PA14, GPIO_PIN_FUNCTION_E); // D7
+    // TC3[0]
+    hri_gclk_write_PCHCTRL_reg(GCLK, TC3_GCLK_ID, GCLK_PCHCTRL_GEN_GCLK1_Val | GCLK_PCHCTRL_CHEN);
+    hri_mclk_set_APBBMASK_TC3_bit(MCLK);
+    TC3->COUNT8.CTRLA.bit.MODE = TC_CTRLA_MODE_COUNT8_Val;
+    TC3->COUNT8.WAVE.bit.WAVEGEN = TC_WAVE_WAVEGEN_NPWM_Val;
+    TC3->COUNT8.CTRLA.bit.ENABLE = true;
+    TC3->COUNT8.PER.bit.PER = 199;
+    while (TC3->COUNT8.SYNCBUSY.bit.ENABLE == 1) {}
+    TC3->COUNT8.CC[0].bit.CC = 99;
+    while (TC3->COUNT8.SYNCBUSY.bit.CC0 == 1) {}
+
+    #endif
+
+    #ifdef SAMD21
+    // Set up TCC0[7] for D7 PA21
+    gpio_set_pin_function(PIN_PA21, GPIO_PIN_FUNCTION_F); // D7
+    _pm_enable_bus_clock(PM_BUS_APBC, TCC0);
+    _gclk_enable_channel(TCC0_GCLK_ID, GCLK_CLKCTRL_GEN_GCLK0_Val);
+    TCC0->WAVE.bit.WAVEGEN = TCC_WAVE_WAVEGEN_NPWM_Val;
+    TCC0->CTRLA.bit.ENABLE = true;
+    TCC0->PER.bit.PER = 199;
+    while (TCC0->SYNCBUSY.bit.ENABLE == 1) {}
+    TCC0->CC[3].bit.CC = 99;
+    while (TCC0->SYNCBUSY.bit.CC0 == 1) {}
+    TCC0->CTRLBSET.bit.CMD = 0x1; // START
+
+    #endif
 
     board_init();
 
@@ -103,13 +142,6 @@ safe_mode_t port_init(void) {
     // port_pin_set_config(MICROPY_HW_LED1, &pin_conf);
     // port_pin_set_output_level(MICROPY_HW_LED1, false);
 
-    // Output clocks for debugging.
-    #ifdef SAMD51
-    gpio_set_pin_function(PIN_PA10, GPIO_PIN_FUNCTION_M); // GCLK4, D3
-    gpio_set_pin_function(PIN_PA11, GPIO_PIN_FUNCTION_M); // GCLK5, A4
-    gpio_set_pin_function(PIN_PB14, GPIO_PIN_FUNCTION_M); // GCLK0, D5
-    gpio_set_pin_function(PIN_PB15, GPIO_PIN_FUNCTION_M); // GCLK1, D6
-    #endif
 
     // Init the nvm controller.
     // struct nvm_config config_nvm;

@@ -209,6 +209,10 @@ int32_t usb_msc_new_read(uint8_t lun, uint32_t addr, uint32_t nblocks) {
     active_nblocks = nblocks;
     active_read = true;
 
+    // if (nblocks == 8) {
+    //     asm("bkpt");
+    // }
+
     return ERR_NONE;
 }
 
@@ -280,8 +284,8 @@ void usb_msc_background(void) {
         fs_user_mount_t * vfs = get_vfs(active_lun);
         disk_read(vfs, sector_buffer, active_addr, 1);
         // TODO(tannewt): Check the read result.
-        mscdf_xfer_blocks(true, sector_buffer, 1);
-        usb_busy = true;
+        int32_t result = mscdf_xfer_blocks(true, sector_buffer, 1);
+        usb_busy = result == ERR_NONE;
     }
     if (active_write && !usb_busy) {
         if (sector_loaded) {
