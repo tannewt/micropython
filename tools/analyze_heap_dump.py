@@ -19,8 +19,10 @@ MICROPY_QSTR_BYTES_IN_LEN = 1
 MP_OBJ_NULL = 0
 MP_OBJ_SENTINEL = 4
 
-last_pool = 0x200031b0
+# These change every run
+last_pool = 0x20002170
 heap_start = 0x20000406
+dict_main_table = 0x20000a20
 
 tuple_type = 0x321c4
 type_type = 0x32470
@@ -29,6 +31,9 @@ dict_type = 0x30504
 property_type = 0x31440
 str_type = 0x32040
 function_types = [0x30cd8, 0x30d14, 0x30d50, 0x30d8c, 0x30dc8, 0x30c9c] # make sure and add mp_type_fun_bc
+bytearray_type = 0x300d4
+
+dynamic_type = 0x40000000 # placeholder, doesn't match any memory
 
 pool_shift = heap_start % BYTES_PER_BLOCK
 
@@ -102,6 +107,8 @@ for i in range(atb_length):
                             node.attr["fillcolor"] = "skyblue"
                         elif potential_type == str_type:
                             node.attr["fillcolor"] = "pink"
+                        elif potential_type == bytearray_type:
+                            node.attr["fillcolor"] = "purple"
                         else:
                             print("unknown type", hex(potential_type))
 
@@ -120,6 +127,14 @@ for i in range(atb_length):
                     if 0x20000000 < word < 0x20040000:
                         ownership_graph.add_edge(address, word)
                         #print("  0x{:08x}".format(word))
+                        if k == 0:
+                            potential_type = dynamic_type
+
+                    if potential_type == dynamic_type:
+                        if k == 0:
+                            node.attr["fillcolor"] = "plum"
+                        if k == 3 and 0x20000000 < word < 0x20040000:
+                            map_element_blocks.append(word)
 
 
             current_allocation = 0
@@ -143,19 +158,21 @@ def find_qstr(qstr_index):
         return "object"
     qstr_index >>= 3
     while pool_ptr != 0:
+        #print(hex(pool_ptr))
         if pool_ptr in block_data:
             pool = block_data[pool_ptr]
-            #print(pool)
             prev, total_prev_len, alloc, length = struct.unpack_from("<IIII", pool)
         else:
             rom_offset = pool_ptr - rom_start
             prev, total_prev_len, alloc, length = struct.unpack_from("<IIII", rom[rom_offset:rom_offset+32])
             pool = rom[rom_offset:rom_offset+length*4]
+            #print("rom pool")
         #print(hex(prev), total_prev_len, alloc, length)
-        #print(qstr_index)
+        #print(qstr_index, total_prev_len)
         if qstr_index >= total_prev_len:
-            offset = qstr_index - total_prev_len + 32
+            offset = (qstr_index - total_prev_len) * 4 + 16
             start = struct.unpack_from("<I", pool, offset=offset)[0]
+            #print(hex(start))
             if start < heap_start:
                 start -= rom_start
                 if start > len(rom):
@@ -180,18 +197,33 @@ def format(obj):
     else:
         return "0x{:08x}".format(obj)
 
-#for block in sorted(map_element_blocks):
-for block in [0x20001a60]:
+for block in sorted(map_element_blocks):
+#for block in [dict_main_table]:
     node = ownership_graph.get_node(block)
-    node.attr["fillcolor"] = "purple"
+    node.attr["fillcolor"] = "gold"
     data = block_data[block]
     print("0x{:08x}".format(block))
+    cells = []
     for i in range(len(data) // 8):
         key, value = struct.unpack_from("<II", data, offset=(i * 8))
         if key == MP_OBJ_NULL or key == MP_OBJ_SENTINEL:
             print("  <empty slot>")
+            cells.append(("", " "))
         else:
             print("  {}, {}".format(format(key), format(value)))
+            cells.append((key, format(key)))
+            if value in block_data:
+                edge = ownership_graph.get_edge(block, value)
+                edge.attr["tailport"] = str(key)
+    rows = ""
+    for i in range(len(cells) // 2):
+        rows += "<tr><td port=\"{}\">{}</td><td port=\"{}\">{}</td></tr>".format(
+            cells[2*i][0],
+            cells[2*i][1],
+            cells[2*i+1][0],
+            cells[2*i+1][1])
+    node.attr["shape"] = "plaintext"
+    node.attr["label"] = "<<table><tr><td colspan=\"2\">0x{:08x}</td></tr>{}</table>>".format(block, rows)
 
 for block in string_blocks:
     node = ownership_graph.get_node(block)
@@ -200,6 +232,9 @@ for block in string_blocks:
 
 print("Total free space:", BYTES_PER_BLOCK * total_free)
 print("Longest free space:", BYTES_PER_BLOCK * longest_free)
+
+with open("heap.dot", "w") as f:
+    f.write(ownership_graph.string())
 
 ownership_graph.layout(prog="dot")
 ownership_graph.draw("heap.png")
