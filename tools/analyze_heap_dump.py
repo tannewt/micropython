@@ -8,6 +8,7 @@ import struct
 import sys
 import pygraphviz as pgv
 import io
+import html
 
 from analyze_mpy import Prelude
 
@@ -172,7 +173,15 @@ pool = heap[-pool_length-pool_shift:]
 map_element_blocks = [dict_main_table, imports_table]
 string_blocks = []
 bytecode_blocks = []
+qstr_pools = []
+qstr_chunks = []
 block_data = {}
+
+# Find all the qtr pool addresses.
+prev_pool = last_pool
+while prev_pool > ram_start:
+    qstr_pools.append(prev_pool)
+    prev_pool = load_pointer(prev_pool)
 
 longest_free = 0
 current_free = 0
@@ -198,7 +207,7 @@ for i in range(atb_length):
             for k in range(current_allocation - 1):
                 rows += "<tr>"
                 for l in range(4):
-                    rows += "<td port=\"{}\" height=\"18\" width=\"40\"></td>".format(4 * (k + 1) + l)
+                    rows += "<td port=\"{}\" height=\"18\" width=\"20\"></td>".format(4 * (k + 1) + l)
                 rows += "</tr>"
             table = "<<table bgcolor=\"gray\" border=\"1\" cellpadding=\"0\" cellspacing=\"0\"><tr><td colspan=\"4\" port=\"0\" height=\"18\" width=\"80\">0x{:08x}</td></tr>{}</table>>".format(address, rows)
 
@@ -208,10 +217,12 @@ for i in range(atb_length):
             block_data[address] = data
             for k in range(len(data) // 4):
                 word = struct.unpack_from("<I", data, offset=(k * 4))[0]
-                if word < 0x00040000 and k == 0:
+                if word < 0x00040000 and k == 0 or address in qstr_pools:
                     potential_type = word
                     bgcolor = "gray"
-                    if potential_type in function_types:
+                    if address in qstr_pools:
+                        bgcolor = "tomato"
+                    elif potential_type in function_types:
                         bgcolor = "green"
                     elif potential_type in type_colors:
                         bgcolor = type_colors[potential_type]
@@ -228,14 +239,18 @@ for i in range(atb_length):
                     if k == 3:
                         map_element_blocks.append(word)
 
-                if 0x20000000 < word < 0x20040000 and word % 16 == 0:
+                if ram_start < word < (ram_start + len(ram)) and word % 16 == 0:
                     port = k
                     if k < 4:
                         port = 0
                     ownership_graph.add_edge(address, word, tailport=str(port)+":_")
                     #print("  0x{:08x}".format(word))
+                    if address in qstr_pools:
+                        if k > 0:
+                            qstr_chunks.append(word)
                     if k == 0:
                         potential_type = dynamic_type
+
 
                 if potential_type == dynamic_type:
                     if k == 0:
@@ -390,6 +405,31 @@ for block in bytecode_blocks:
     for i in range(remaining_bytecode // 16):
         rows += "<tr><td colspan=\"16\" bgcolor=\"seagreen\" height=\"18\" width=\"80\"></td></tr>"
     node.attr["label"] = "<<table border=\"1\" cellspacing=\"0\"><tr><td colspan=\"16\" bgcolor=\"lightseagreen\" height=\"18\" width=\"80\">0x{:08x}</td></tr>{}</table>>".format(block, rows)
+
+for block in qstr_chunks:
+    if block not in block_data:
+        ownership_graph.delete_node(block)
+        continue
+    data = block_data[block]
+    string = ""
+    offset = 0
+    while offset < len(data) - 1:
+        qstr_hash, qstr_len = struct.unpack_from("<BB", data, offset=offset)
+        if qstr_hash == 0:
+            string += " " * (len(data) - offset)
+            offset = len(data)
+            continue
+        offset += 2 + qstr_len + 1
+        string += "  " + data[offset - qstr_len - 1: offset - 1].decode("utf-8")
+    #print(string)
+    wrapped = []
+    for i in range(0, len(string), 16):
+        wrapped.append(html.escape(string[i:i+16]))
+    node = ownership_graph.get_node(block)
+    node.attr["label"] = "<<table border=\"1\" cellspacing=\"0\" bgcolor=\"lightsalmon\" width=\"80\"><tr><td height=\"18\" >0x{:08x}</td></tr><tr><td height=\"{}\" >{}</td></tr></table>>".format(block, 18 * (len(wrapped) - 1), "<br/>".join(wrapped))
+    node.attr["fontname"] = "FiraCode-Medium"
+    node.attr["fontpath"] = "/Users/tannewt/Library/Fonts/"
+    node.attr["fontsize"] = 8
 
 print("Total free space:", BYTES_PER_BLOCK * total_free)
 print("Longest free space:", BYTES_PER_BLOCK * longest_free)
