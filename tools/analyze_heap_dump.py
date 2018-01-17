@@ -214,6 +214,7 @@ for i in range(atb_length):
             ownership_graph.add_node(address, label=table, style="invisible", shape="plaintext")
             potential_type = None
             node = ownership_graph.get_node(address)
+            node.attr["height"] = 0.25 * current_allocation
             block_data[address] = data
             for k in range(len(data) // 4):
                 word = struct.unpack_from("<I", data, offset=(k * 4))[0]
@@ -382,6 +383,7 @@ for block in string_blocks:
     node.attr["fontname"] = "FiraCode-Medium"
     node.attr["fontpath"] = "/Users/tannewt/Library/Fonts/"
     node.attr["fontsize"] = 8
+    node.attr["height"] = len(wrapped) * 0.25
 
 for block in bytecode_blocks:
     node = ownership_graph.get_node(block)
@@ -437,5 +439,57 @@ print("Longest free space:", BYTES_PER_BLOCK * longest_free)
 with open("heap.dot", "w") as f:
     f.write(ownership_graph.string())
 
-ownership_graph.layout(prog="dot")
-ownership_graph.draw("heap.png")
+# First render the graph of objects on the heap.
+# ownership_graph.layout(prog="dot")
+# ownership_graph.draw("heap.png")
+
+# Second, render the heap layout in memory order.
+for node in ownership_graph:
+    try:
+        address = int(node.name)
+    except ValueError:
+        ownership_graph.remove_node(node)
+        continue
+    block = (address - pool_start) // 16
+    x = block // 64
+    y = 64 - block % 64
+    try:
+        height = float(node.attr["height"])
+    except:
+        height = 0.25
+    print(hex(address), block, len(block_data[address]), x, y, height)
+    node.attr["pos"] = "{},{}!".format(x * 1.25, y * 0.25 - height / 2) # in inches
+
+# Reformat block nodes so they are the correct size and do not have keys in them.
+for block in sorted(map_element_blocks):
+    try:
+        node = ownership_graph.get_node(block)
+    except KeyError:
+        print("Unable to find memory block for 0x{:08x}. Is there something running?".format(block))
+        continue
+    #node.attr["fillcolor"] = "gold"
+    data = block_data[block]
+    #print("0x{:08x}".format(block))
+    cells = []
+    for i in range(len(data) // 8):
+        key, value = struct.unpack_from("<II", data, offset=(i * 8))
+        if key == MP_OBJ_NULL or key == MP_OBJ_SENTINEL:
+            #print("  <empty slot>")
+            cells.append(("", " "))
+        else:
+            #print("  {}, {}".format(format(key), format(value)))
+            cells.append((key, ""))
+            if value in block_data:
+                edge = ownership_graph.get_edge(block, value)
+                edge.attr["tailport"] = str(key)
+    rows = ""
+    for i in range(len(cells) // 2):
+        rows += "<tr><td port=\"{}\" height=\"18\" width=\"40\">{}</td><td port=\"{}\" height=\"18\" width=\"40\">{}</td></tr>".format(
+            cells[2*i][0],
+            cells[2*i][1],
+            cells[2*i+1][0],
+            cells[2*i+1][1])
+    node.attr["label"] = "<<table bgcolor=\"gold\" border=\"1\" cellpadding=\"0\" cellspacing=\"0\">{}</table>>".format(rows)
+
+ownership_graph.layout(prog="neato")
+ownership_graph.draw("heap_layout.png")
