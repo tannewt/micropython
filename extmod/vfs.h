@@ -31,19 +31,19 @@
 
 // return values of mp_vfs_lookup_path
 // ROOT is 0 so that the default current directory is the root directory
-#define MP_VFS_NONE ((mp_vfs_mount_t*)1)
-#define MP_VFS_ROOT ((mp_vfs_mount_t*)0)
+#define MP_VFS_NONE ((mp_vfs_mount_t *) 1)
+#define MP_VFS_ROOT ((mp_vfs_mount_t *) 0)
 
 // MicroPython's port-standardized versions of stat constants
 #define MP_S_IFDIR (0x4000)
 #define MP_S_IFREG (0x8000)
 
 // constants for block protocol ioctl
-#define BP_IOCTL_INIT           (1)
-#define BP_IOCTL_DEINIT         (2)
-#define BP_IOCTL_SYNC           (3)
-#define BP_IOCTL_SEC_COUNT      (4)
-#define BP_IOCTL_SEC_SIZE       (5)
+#define BP_IOCTL_INIT (1)
+#define BP_IOCTL_DEINIT (2)
+#define BP_IOCTL_SYNC (3)
+#define BP_IOCTL_SEC_COUNT (4)
+#define BP_IOCTL_SEC_SIZE (5)
 
 typedef struct _mp_vfs_mount_t {
     const char *str; // mount point with leading /

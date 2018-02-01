@@ -24,26 +24,26 @@
  * THE SOFTWARE.
  */
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
+#include "py/builtin.h"
 #include "py/runtime.h"
 #include "py/stream.h"
-#include "py/builtin.h"
 #ifdef MICROPY_PY_WEBREPL_DELAY
-#include "py/mphal.h"
+#    include "py/mphal.h"
 #endif
 #include "extmod/modwebsocket.h"
 #include "genhdr/mpversion.h"
 
 #ifdef MICROPY_PY_WEBREPL
 
-#if 0 // print debugging info
-#define DEBUG_printf DEBUG_printf
-#else // don't print debugging info
-#define DEBUG_printf(...) (void)0
-#endif
+#    if 0 // print debugging info
+#        define DEBUG_printf DEBUG_printf
+#    else // don't print debugging info
+#        define DEBUG_printf(...) (void) 0
+#    endif
 
 struct webrepl_file {
     char sig[2];
@@ -76,17 +76,19 @@ STATIC char denied_prompt[] = "\r\nAccess denied\r\n";
 STATIC char webrepl_passwd[10];
 
 STATIC void write_webrepl(mp_obj_t websock, const void *buf, size_t len) {
-    const mp_stream_p_t *sock_stream = mp_get_stream_raise(websock, MP_STREAM_OP_WRITE | MP_STREAM_OP_IOCTL);
+    const mp_stream_p_t *sock_stream =
+        mp_get_stream_raise(websock, MP_STREAM_OP_WRITE | MP_STREAM_OP_IOCTL);
     int err;
     int old_opts = sock_stream->ioctl(websock, MP_STREAM_SET_DATA_OPTS, FRAME_BIN, &err);
     sock_stream->write(websock, buf, len, &err);
     sock_stream->ioctl(websock, MP_STREAM_SET_DATA_OPTS, old_opts, &err);
 }
 
-#define SSTR(s) s, sizeof(s) - 1
+#    define SSTR(s) s, sizeof(s) - 1
 STATIC void write_webrepl_str(mp_obj_t websock, const char *str, int sz) {
     int err;
-    const mp_stream_p_t *sock_stream = mp_get_stream_raise(websock, MP_STREAM_OP_WRITE | MP_STREAM_OP_IOCTL);
+    const mp_stream_p_t *sock_stream =
+        mp_get_stream_raise(websock, MP_STREAM_OP_WRITE | MP_STREAM_OP_IOCTL);
     sock_stream->write(websock, str, sz, &err);
 }
 
@@ -95,7 +97,10 @@ STATIC void write_webrepl_resp(mp_obj_t websock, uint16_t code) {
     write_webrepl(websock, buf, sizeof(buf));
 }
 
-STATIC mp_obj_t webrepl_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t webrepl_make_new(const mp_obj_type_t *type,
+                                 size_t n_args,
+                                 size_t n_kw,
+                                 const mp_obj_t *args) {
     mp_arg_check_num(n_args, n_kw, 1, 2, false);
     mp_get_stream_raise(args[0], MP_STREAM_OP_READ | MP_STREAM_OP_WRITE | MP_STREAM_OP_IOCTL);
     DEBUG_printf("sizeof(struct webrepl_file) = %lu\n", sizeof(struct webrepl_file));
@@ -110,8 +115,8 @@ STATIC mp_obj_t webrepl_make_new(const mp_obj_type_t *type, size_t n_args, size_
 }
 
 STATIC int write_file_chunk(mp_obj_webrepl_t *self) {
-    const mp_stream_p_t *file_stream =
-        mp_get_stream_raise(self->cur_file, MP_STREAM_OP_READ | MP_STREAM_OP_WRITE | MP_STREAM_OP_IOCTL);
+    const mp_stream_p_t *file_stream = mp_get_stream_raise(
+        self->cur_file, MP_STREAM_OP_READ | MP_STREAM_OP_WRITE | MP_STREAM_OP_IOCTL);
     byte readbuf[2 + 256];
     int err;
     mp_uint_t out_sz = file_stream->read(self->cur_file, readbuf + 2, sizeof(readbuf) - 2, &err);
@@ -131,7 +136,8 @@ STATIC void handle_op(mp_obj_webrepl_t *self) {
 
     switch (self->hdr.type) {
         case GET_VER: {
-            static char ver[] = {MICROPY_VERSION_MAJOR, MICROPY_VERSION_MINOR, MICROPY_VERSION_MICRO};
+            static char ver[] = {MICROPY_VERSION_MAJOR, MICROPY_VERSION_MINOR,
+                                 MICROPY_VERSION_MICRO};
             write_webrepl(self->sock, ver, sizeof(ver));
             self->hdr_to_recv = sizeof(struct webrepl_file);
             return;
@@ -140,23 +146,21 @@ STATIC void handle_op(mp_obj_webrepl_t *self) {
 
     // Handle operations requiring opened file
 
-    mp_obj_t open_args[2] = {
-        mp_obj_new_str(self->hdr.fname, strlen(self->hdr.fname), false),
-        MP_OBJ_NEW_QSTR(MP_QSTR_rb)
-    };
+    mp_obj_t open_args[2] = {mp_obj_new_str(self->hdr.fname, strlen(self->hdr.fname), false),
+                             MP_OBJ_NEW_QSTR(MP_QSTR_rb)};
 
     if (self->hdr.type == PUT_FILE) {
         open_args[1] = MP_OBJ_NEW_QSTR(MP_QSTR_wb);
     }
 
-    self->cur_file = mp_builtin_open(2, open_args, (mp_map_t*)&mp_const_empty_map);
+    self->cur_file = mp_builtin_open(2, open_args, (mp_map_t *) &mp_const_empty_map);
 
-    #if 0
+#    if 0
     struct mp_stream_seek_t seek = { .offset = self->hdr.offset, .whence = 0 };
     int err;
     mp_uint_t res = file_stream->ioctl(self->cur_file, MP_STREAM_SEEK, (uintptr_t)&seek, &err);
     assert(res != MP_STREAM_ERROR);
-    #endif
+#    endif
 
     write_webrepl_resp(self->sock, 0);
 
@@ -183,13 +187,13 @@ STATIC mp_uint_t _webrepl_read(mp_obj_t self_in, void *buf, mp_uint_t size, int 
     mp_obj_webrepl_t *self = self_in;
     const mp_stream_p_t *sock_stream = mp_get_stream_raise(self->sock, MP_STREAM_OP_READ);
     mp_uint_t out_sz = sock_stream->read(self->sock, buf, size, errcode);
-    //DEBUG_printf("webrepl: Read %d initial bytes from websocket\n", out_sz);
+    // DEBUG_printf("webrepl: Read %d initial bytes from websocket\n", out_sz);
     if (out_sz == 0 || out_sz == MP_STREAM_ERROR) {
         return out_sz;
     }
 
     if (self->state == STATE_PASSWD) {
-        char c = *(char*)buf;
+        char c = *(char *) buf;
         if (c == '\r' || c == '\n') {
             self->hdr.fname[self->data_to_recv] = 0;
             DEBUG_printf("webrepl: entered password: %s\n", self->hdr.fname);
@@ -214,11 +218,12 @@ STATIC mp_uint_t _webrepl_read(mp_obj_t self_in, void *buf, mp_uint_t size, int 
         return out_sz;
     }
 
-    DEBUG_printf("webrepl: received bin data, hdr_to_recv: %d, data_to_recv=%d\n", self->hdr_to_recv, self->data_to_recv);
+    DEBUG_printf("webrepl: received bin data, hdr_to_recv: %d, data_to_recv=%d\n",
+                 self->hdr_to_recv, self->data_to_recv);
 
     if (self->hdr_to_recv != 0) {
-        char *p = (char*)&self->hdr + sizeof(self->hdr) - self->hdr_to_recv;
-        *p++ = *(char*)buf;
+        char *p = (char *) &self->hdr + sizeof(self->hdr) - self->hdr_to_recv;
+        *p++ = *(char *) buf;
         if (--self->hdr_to_recv != 0) {
             mp_uint_t hdr_sz = sock_stream->read(self->sock, p, self->hdr_to_recv, errcode);
             if (hdr_sz == MP_STREAM_ERROR) {
@@ -230,7 +235,8 @@ STATIC mp_uint_t _webrepl_read(mp_obj_t self_in, void *buf, mp_uint_t size, int 
             }
         }
 
-        DEBUG_printf("webrepl: op: %d, file: %s, chunk @%x, sz=%d\n", self->hdr.type, self->hdr.fname, (uint32_t)self->hdr.offset, self->hdr.size);
+        DEBUG_printf("webrepl: op: %d, file: %s, chunk @%x, sz=%d\n", self->hdr.type,
+                     self->hdr.fname, (uint32_t) self->hdr.offset, self->hdr.size);
 
         handle_op(self);
 
@@ -239,7 +245,7 @@ STATIC mp_uint_t _webrepl_read(mp_obj_t self_in, void *buf, mp_uint_t size, int 
 
     if (self->data_to_recv != 0) {
         static byte filebuf[512];
-        filebuf[0] = *(byte*)buf;
+        filebuf[0] = *(byte *) buf;
         mp_uint_t buf_sz = 1;
         if (--self->data_to_recv != 0) {
             size_t to_read = MIN(sizeof(filebuf) - 1, self->data_to_recv);
@@ -275,13 +281,13 @@ STATIC mp_uint_t _webrepl_read(mp_obj_t self_in, void *buf, mp_uint_t size, int 
             write_webrepl_resp(self->sock, 0);
         }
 
-        #ifdef MICROPY_PY_WEBREPL_DELAY
+#    ifdef MICROPY_PY_WEBREPL_DELAY
         // Some platforms may have broken drivers and easily gets
         // overloaded with modest traffic WebREPL file transfers
         // generate. The basic workaround is a crude rate control
         // done in such way.
         mp_hal_delay_ms(MICROPY_PY_WEBREPL_DELAY);
-        #endif
+#    endif
     }
 
     return -2;
@@ -316,10 +322,10 @@ STATIC mp_obj_t webrepl_set_password(mp_obj_t passwd_in) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(webrepl_set_password_obj, webrepl_set_password);
 
 STATIC const mp_rom_map_elem_t webrepl_locals_dict_table[] = {
-    { MP_ROM_QSTR(MP_QSTR_read), MP_ROM_PTR(&mp_stream_read_obj) },
-    { MP_ROM_QSTR(MP_QSTR_readinto), MP_ROM_PTR(&mp_stream_readinto_obj) },
-    { MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&mp_stream_write_obj) },
-    { MP_ROM_QSTR(MP_QSTR_close), MP_ROM_PTR(&webrepl_close_obj) },
+    {MP_ROM_QSTR(MP_QSTR_read), MP_ROM_PTR(&mp_stream_read_obj)},
+    {MP_ROM_QSTR(MP_QSTR_readinto), MP_ROM_PTR(&mp_stream_readinto_obj)},
+    {MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&mp_stream_write_obj)},
+    {MP_ROM_QSTR(MP_QSTR_close), MP_ROM_PTR(&webrepl_close_obj)},
 };
 STATIC MP_DEFINE_CONST_DICT(webrepl_locals_dict, webrepl_locals_dict_table);
 
@@ -329,24 +335,24 @@ STATIC const mp_stream_p_t webrepl_stream_p = {
 };
 
 STATIC const mp_obj_type_t webrepl_type = {
-    { &mp_type_type },
+    {&mp_type_type},
     .name = MP_QSTR__webrepl,
     .make_new = webrepl_make_new,
     .protocol = &webrepl_stream_p,
-    .locals_dict = (mp_obj_dict_t*)&webrepl_locals_dict,
+    .locals_dict = (mp_obj_dict_t *) &webrepl_locals_dict,
 };
 
 STATIC const mp_rom_map_elem_t webrepl_module_globals_table[] = {
-    { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR__webrepl) },
-    { MP_ROM_QSTR(MP_QSTR__webrepl), MP_ROM_PTR(&webrepl_type) },
-    { MP_ROM_QSTR(MP_QSTR_password), MP_ROM_PTR(&webrepl_set_password_obj) },
+    {MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR__webrepl)},
+    {MP_ROM_QSTR(MP_QSTR__webrepl), MP_ROM_PTR(&webrepl_type)},
+    {MP_ROM_QSTR(MP_QSTR_password), MP_ROM_PTR(&webrepl_set_password_obj)},
 };
 
 STATIC MP_DEFINE_CONST_DICT(webrepl_module_globals, webrepl_module_globals_table);
 
 const mp_obj_module_t mp_module_webrepl = {
-    .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&webrepl_module_globals,
+    .base = {&mp_type_module},
+    .globals = (mp_obj_dict_t *) &webrepl_module_globals,
 };
 
 #endif // MICROPY_PY_WEBREPL

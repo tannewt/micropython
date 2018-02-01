@@ -27,12 +27,12 @@
 #include "py/mpconfig.h"
 #if MICROPY_PY_MACHINE
 
-#include <string.h>
+#    include <string.h>
 
-#include "py/obj.h"
-#include "py/runtime.h"
-#include "extmod/virtpin.h"
-#include "extmod/machine_signal.h"
+#    include "extmod/machine_signal.h"
+#    include "extmod/virtpin.h"
+#    include "py/obj.h"
+#    include "py/runtime.h"
 
 // Signal class
 
@@ -42,16 +42,19 @@ typedef struct _machine_signal_t {
     bool invert;
 } machine_signal_t;
 
-STATIC mp_obj_t signal_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t signal_make_new(const mp_obj_type_t *type,
+                                size_t n_args,
+                                size_t n_kw,
+                                const mp_obj_t *args) {
     mp_obj_t pin = args[0];
     bool invert = false;
 
-    #if defined(MICROPY_PY_MACHINE_PIN_MAKE_NEW)
+#    if defined(MICROPY_PY_MACHINE_PIN_MAKE_NEW)
     mp_pin_p_t *pin_p = NULL;
 
     if (MP_OBJ_IS_OBJ(pin)) {
-        mp_obj_base_t *pin_base = (mp_obj_base_t*)MP_OBJ_TO_PTR(args[0]);
-        pin_p = (mp_pin_p_t*)pin_base->type->protocol;
+        mp_obj_base_t *pin_base = (mp_obj_base_t *) MP_OBJ_TO_PTR(args[0]);
+        pin_p = (mp_pin_p_t *) pin_base->type->protocol;
     }
 
     if (pin_p == NULL) {
@@ -81,16 +84,16 @@ STATIC mp_obj_t signal_make_new(const mp_obj_type_t *type, size_t n_args, size_t
         }
 
         if (invert && sig_value != NULL) {
-            *sig_value = mp_obj_is_true(*sig_value) ? MP_OBJ_NEW_SMALL_INT(0) : MP_OBJ_NEW_SMALL_INT(1);
+            *sig_value =
+                mp_obj_is_true(*sig_value) ? MP_OBJ_NEW_SMALL_INT(0) : MP_OBJ_NEW_SMALL_INT(1);
         }
 
         // Here we pass NULL as a type, hoping that mp_pin_make_new()
         // will just ignore it as set a concrete type. If not, we'd need
         // to expose port's "default" pin type too.
         pin = MICROPY_PY_MACHINE_PIN_MAKE_NEW(NULL, n_args, n_kw, pin_args);
-    }
-    else
-    #endif
+    } else
+#    endif
     // Otherwise there should be 1 or 2 args
     {
         if (n_args == 1) {
@@ -114,7 +117,7 @@ STATIC mp_obj_t signal_make_new(const mp_obj_type_t *type, size_t n_args, size_t
 }
 
 STATIC mp_uint_t signal_ioctl(mp_obj_t self_in, mp_uint_t request, uintptr_t arg, int *errcode) {
-    (void)errcode;
+    (void) errcode;
     machine_signal_t *self = MP_OBJ_TO_PTR(self_in);
 
     switch (request) {
@@ -160,9 +163,9 @@ STATIC mp_obj_t signal_off(mp_obj_t self_in) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(signal_off_obj, signal_off);
 
 STATIC const mp_rom_map_elem_t signal_locals_dict_table[] = {
-    { MP_ROM_QSTR(MP_QSTR_value), MP_ROM_PTR(&signal_value_obj) },
-    { MP_ROM_QSTR(MP_QSTR_on), MP_ROM_PTR(&signal_on_obj) },
-    { MP_ROM_QSTR(MP_QSTR_off), MP_ROM_PTR(&signal_off_obj) },
+    {MP_ROM_QSTR(MP_QSTR_value), MP_ROM_PTR(&signal_value_obj)},
+    {MP_ROM_QSTR(MP_QSTR_on), MP_ROM_PTR(&signal_on_obj)},
+    {MP_ROM_QSTR(MP_QSTR_off), MP_ROM_PTR(&signal_off_obj)},
 };
 
 STATIC MP_DEFINE_CONST_DICT(signal_locals_dict, signal_locals_dict_table);
@@ -172,12 +175,8 @@ STATIC const mp_pin_p_t signal_pin_p = {
 };
 
 const mp_obj_type_t machine_signal_type = {
-    { &mp_type_type },
-    .name = MP_QSTR_Signal,
-    .make_new = signal_make_new,
-    .call = signal_call,
-    .protocol = &signal_pin_p,
-    .locals_dict = (void*)&signal_locals_dict,
+    {&mp_type_type},     .name = MP_QSTR_Signal,    .make_new = signal_make_new,
+    .call = signal_call, .protocol = &signal_pin_p, .locals_dict = (void *) &signal_locals_dict,
 };
 
 #endif // MICROPY_PY_MACHINE

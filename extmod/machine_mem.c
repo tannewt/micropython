@@ -24,8 +24,8 @@
  * THE SOFTWARE.
  */
 
-#include "py/runtime.h"
 #include "extmod/machine_mem.h"
+#include "py/runtime.h"
 
 #if MICROPY_PY_MACHINE
 
@@ -38,24 +38,25 @@
 // It is expected that the modmachine.c file for a given port will provide the
 // implementations, if the default implementation isn't used.
 
-#if !defined(MICROPY_MACHINE_MEM_GET_READ_ADDR) || !defined(MICROPY_MACHINE_MEM_GET_WRITE_ADDR)
+#    if !defined(MICROPY_MACHINE_MEM_GET_READ_ADDR) || !defined(MICROPY_MACHINE_MEM_GET_WRITE_ADDR)
 STATIC uintptr_t machine_mem_get_addr(mp_obj_t addr_o, uint align) {
     uintptr_t addr = mp_obj_int_get_truncated(addr_o);
     if ((addr & (align - 1)) != 0) {
-        nlr_raise(mp_obj_new_exception_msg_varg(&mp_type_ValueError, "address %08x is not aligned to %d bytes", addr, align));
+        nlr_raise(mp_obj_new_exception_msg_varg(
+            &mp_type_ValueError, "address %08x is not aligned to %d bytes", addr, align));
     }
     return addr;
 }
-#if !defined(MICROPY_MACHINE_MEM_GET_READ_ADDR)
-#define MICROPY_MACHINE_MEM_GET_READ_ADDR machine_mem_get_addr
-#endif
-#if !defined(MICROPY_MACHINE_MEM_GET_WRITE_ADDR)
-#define MICROPY_MACHINE_MEM_GET_WRITE_ADDR machine_mem_get_addr
-#endif
-#endif
+#        if !defined(MICROPY_MACHINE_MEM_GET_READ_ADDR)
+#            define MICROPY_MACHINE_MEM_GET_READ_ADDR machine_mem_get_addr
+#        endif
+#        if !defined(MICROPY_MACHINE_MEM_GET_WRITE_ADDR)
+#            define MICROPY_MACHINE_MEM_GET_WRITE_ADDR machine_mem_get_addr
+#        endif
+#    endif
 
 STATIC void machine_mem_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
-    (void)kind;
+    (void) kind;
     machine_mem_obj_t *self = MP_OBJ_TO_PTR(self_in);
     mp_printf(print, "<%u-bit memory>", 8 * self->elem_size);
 }
@@ -71,9 +72,15 @@ STATIC mp_obj_t machine_mem_subscr(mp_obj_t self_in, mp_obj_t index, mp_obj_t va
         uintptr_t addr = MICROPY_MACHINE_MEM_GET_READ_ADDR(index, self->elem_size);
         uint32_t val;
         switch (self->elem_size) {
-            case 1: val = (*(uint8_t*)addr); break;
-            case 2: val = (*(uint16_t*)addr); break;
-            default: val = (*(uint32_t*)addr); break;
+            case 1:
+                val = (*(uint8_t *) addr);
+                break;
+            case 2:
+                val = (*(uint16_t *) addr);
+                break;
+            default:
+                val = (*(uint32_t *) addr);
+                break;
         }
         return mp_obj_new_int(val);
     } else {
@@ -81,16 +88,22 @@ STATIC mp_obj_t machine_mem_subscr(mp_obj_t self_in, mp_obj_t index, mp_obj_t va
         uintptr_t addr = MICROPY_MACHINE_MEM_GET_WRITE_ADDR(index, self->elem_size);
         uint32_t val = mp_obj_get_int_truncated(value);
         switch (self->elem_size) {
-            case 1: (*(uint8_t*)addr) = val; break;
-            case 2: (*(uint16_t*)addr) = val; break;
-            default: (*(uint32_t*)addr) = val; break;
+            case 1:
+                (*(uint8_t *) addr) = val;
+                break;
+            case 2:
+                (*(uint16_t *) addr) = val;
+                break;
+            default:
+                (*(uint32_t *) addr) = val;
+                break;
         }
         return mp_const_none;
     }
 }
 
 const mp_obj_type_t machine_mem_type = {
-    { &mp_type_type },
+    {&mp_type_type},
     .name = MP_QSTR_mem,
     .print = machine_mem_print,
     .subscr = machine_mem_subscr,

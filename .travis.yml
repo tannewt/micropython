@@ -3,21 +3,29 @@ dist: trusty
 language: c
 compiler:
   - gcc
-env:
-  - TRAVIS_BOARD=arduino_zero
-  - TRAVIS_BOARD=circuitplayground_express
-  - TRAVIS_BOARD=feather_m0_basic
-  - TRAVIS_BOARD=feather_m0_adalogger
-  - TRAVIS_BOARD=feather_m0_rfm69
-  - TRAVIS_BOARD=feather_m0_rfm9x
-  - TRAVIS_BOARD=feather_m0_express
-  - TRAVIS_BOARD=metro_m0_express
-  - TRAVIS_BOARD=metro_m4_express
-  - TRAVIS_BOARD=trinket_m0
-  - TRAVIS_BOARD=gemma_m0
-  - TRAVIS_BOARD=feather52
-  - TRAVIS_TEST=qemu
-  - TRAVIS_TEST=unix
+matrix:
+  include:
+    - env: TRAVIS_BOARD=arduino_zero
+    - env: TRAVIS_BOARD=circuitplayground_express
+    - env: TRAVIS_BOARD=feather_m0_basic
+    - env: TRAVIS_BOARD=feather_m0_adalogger
+    - env: TRAVIS_BOARD=feather_m0_rfm69
+    - env: TRAVIS_BOARD=feather_m0_rfm9x
+    - env: TRAVIS_BOARD=feather_m0_express
+    - env: TRAVIS_BOARD=metro_m0_express
+    - env: TRAVIS_BOARD=metro_m4_express
+    - env: TRAVIS_BOARD=trinket_m0
+    - env: TRAVIS_BOARD=gemma_m0
+    - env: TRAVIS_BOARD=feather52
+    - env: TRAVIS_TEST=qemu
+    - env: TRAVIS_TEST=unix
+    - env: TRAVIS_TEST=style
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-6.0
+          packages:
+            - clang-format-6.0
 
 addons:
   artifacts:
@@ -26,12 +34,6 @@ addons:
     target_paths: /
 
 notifications:
-  webhooks:
-    urls:
-      - https://webhooks.gitter.im/e/c38b3bb3a3e131d955a1
-    on_success: change  # options: [always|never|change] default: always
-    on_failure: always  # options: [always|never|change] default: always
-    on_start: never     # options: [always|never|change] default: always
   webhooks:
     urls:
       - https://rosie-ci.ngrok.io/travis
@@ -43,8 +45,9 @@ notifications:
 
 before_script:
   - sudo dpkg --add-architecture i386
-  - sudo apt-get install -y python3 gcc-multilib pkg-config libffi-dev libffi-dev:i386 qemu-system
-  - ([[ -z "$TRAVIS_TEST" ]] || sudo apt-get install -y qemu-system)
+  - sudo apt-get install -y python3 gcc-multilib pkg-config libffi-dev libffi-dev:i386
+  - ([[ $TRAVIS_TEST != "style" ]] || (sudo add-apt-repository ppa:ubuntu-toolchain-r/test && sudo apt-get update))
+  - ([[ -z "$TRAVIS_TEST" ]] || sudo apt-get install -y qemu-system )
   - ([[ -z "$TRAVIS_BOARD" ]] || (wget https://s3.amazonaws.com/adafruit-circuit-python/gcc-arm-embedded_7-2017q4-1~trusty3_amd64.deb && sudo dpkg -i gcc-arm-embedded*_amd64.deb))
   - ([[ $TRAVIS_TEST != "qemu" ]] || (wget https://s3.amazonaws.com/adafruit-circuit-python/gcc-arm-embedded_7-2017q4-1~trusty3_amd64.deb && sudo dpkg -i gcc-arm-embedded*_amd64.deb))
 
@@ -95,12 +98,13 @@ script:
   - ([[ $TRAVIS_TEST != "unix" ]] || (cd tests && MICROPY_CPYTHON3=python3.4 MICROPY_MICROPYTHON=../ports/unix/micropython_coverage ./run-tests --emit native))
   - echo -en 'travis_fold:end:test_native\\r'
 
-  - (echo 'Testing with mpy' && echo -en 'travis_fold:start:test_mpy\\r')
+  - ([[ $TRAVIS_TEST != "unix" ]] || (echo 'Testing with mpy' && echo -en 'travis_fold:start:test_mpy\\r'))
   - ([[ $TRAVIS_TEST != "unix" ]] || (cd tests && MICROPY_CPYTHON3=python3.4 MICROPY_MICROPYTHON=../ports/unix/micropython_coverage ./run-tests --via-mpy -d basics float))
-  - echo -en 'travis_fold:end:test_mpy\\r'
+  - ([[ $TRAVIS_TEST != "unix" ]] || echo -en 'travis_fold:end:test_mpy\\r')
 
-  # run coveralls coverage analysis (try to, even if some builds/tests failed)
-  #- (cd ports/unix && coveralls --root ../.. --build-root . --gcov $(which gcov) --gcov-options '\-o build-coverage/' --include py --include extmod)
+  - ([[ $TRAVIS_TEST != "style" ]] || (echo 'Running clang-format' && echo -en 'travis_fold:start:test_style\\r'))
+  - ([[ $TRAVIS_TEST != "style" ]] || (bash tools/clang-format.sh -i && git diff --exit-code))
+  - ([[ $TRAVIS_TEST != "style" ]] || echo -en 'travis_fold:end:test_style\\r')
 
 after_failure:
   - (cd tests && for exp in *.exp; do testbase=$(basename $exp .exp); echo -e "\nFAILURE $testbase"; diff -u $testbase.exp $testbase.out; done)

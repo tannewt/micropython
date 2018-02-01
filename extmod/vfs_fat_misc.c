@@ -27,11 +27,11 @@
 #include "py/mpconfig.h"
 #if MICROPY_VFS_FAT
 
-#include <string.h>
-#include "py/runtime.h"
-#include "lib/oofatfs/ff.h"
-#include "extmod/vfs_fat.h"
-#include "py/lexer.h"
+#    include "extmod/vfs_fat.h"
+#    include "lib/oofatfs/ff.h"
+#    include "py/lexer.h"
+#    include "py/runtime.h"
+#    include <string.h>
 
 typedef struct _mp_vfs_fat_ilistdir_it_t {
     mp_obj_base_t base;
@@ -59,7 +59,7 @@ STATIC mp_obj_t mp_vfs_fat_ilistdir_it_iternext(mp_obj_t self_in) {
         if (self->is_str) {
             t->items[0] = mp_obj_new_str(fn, strlen(fn), false);
         } else {
-            t->items[0] = mp_obj_new_bytes((const byte*)fn, strlen(fn));
+            t->items[0] = mp_obj_new_bytes((const byte *) fn, strlen(fn));
         }
         if (fno.fattrib & AM_DIR) {
             // dir

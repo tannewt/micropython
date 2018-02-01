@@ -27,10 +27,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "drivers/memory/spiflash.h"
+#include "extmod/machine_spi.h"
 #include "py/mperrno.h"
 #include "py/mphal.h"
-#include "extmod/machine_spi.h"
-#include "drivers/memory/spiflash.h"
 
 #define CMD_WRITE (0x02)
 #define CMD_READ (0x03)
@@ -50,20 +50,21 @@ void mp_spiflash_init(mp_spiflash_t *self) {
     mp_hal_pin_write(self->cs, 1);
     mp_hal_pin_output(self->cs);
     const mp_machine_spi_p_t *protocol = self->spi->type->protocol;
-    protocol->init(self->spi, 0, NULL, (mp_map_t*)&mp_const_empty_map);
+    protocol->init(self->spi, 0, NULL, (mp_map_t *) &mp_const_empty_map);
 }
 
 STATIC void mp_spiflash_acquire_bus(mp_spiflash_t *self) {
     // can be used for actions needed to acquire bus
-    (void)self;
+    (void) self;
 }
 
 STATIC void mp_spiflash_release_bus(mp_spiflash_t *self) {
     // can be used for actions needed to release bus
-    (void)self;
+    (void) self;
 }
 
-STATIC void mp_spiflash_transfer(mp_spiflash_t *self, size_t len, const uint8_t *src, uint8_t *dest) {
+STATIC void
+mp_spiflash_transfer(mp_spiflash_t *self, size_t len, const uint8_t *src, uint8_t *dest) {
     const mp_machine_spi_p_t *protocol = self->spi->type->protocol;
     protocol->transfer(self->spi, len, src, dest);
 }

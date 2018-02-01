@@ -30,25 +30,25 @@
 #include "py/mpconfig.h"
 #if MICROPY_VFS && MICROPY_VFS_FAT
 
-#include <stdint.h>
-#include <stdio.h>
+#    include <stdint.h>
+#    include <stdio.h>
 
-#include "py/mphal.h"
+#    include "py/mphal.h"
 
-#include "py/runtime.h"
-#include "lib/oofatfs/ff.h"
-#include "lib/oofatfs/diskio.h"
-#include "extmod/vfs_fat.h"
+#    include "extmod/vfs_fat.h"
+#    include "lib/oofatfs/diskio.h"
+#    include "lib/oofatfs/ff.h"
+#    include "py/runtime.h"
 
-#if _MAX_SS == _MIN_SS
-#define SECSIZE(fs) (_MIN_SS)
-#else
-#define SECSIZE(fs) ((fs)->ssize)
-#endif
+#    if _MAX_SS == _MIN_SS
+#        define SECSIZE(fs) (_MIN_SS)
+#    else
+#        define SECSIZE(fs) ((fs)->ssize)
+#    endif
 
 typedef void *bdev_t;
 STATIC fs_user_mount_t *disk_get_device(void *bdev) {
-    return (fs_user_mount_t*)bdev;
+    return (fs_user_mount_t *) bdev;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -56,10 +56,8 @@ STATIC fs_user_mount_t *disk_get_device(void *bdev) {
 /*-----------------------------------------------------------------------*/
 
 STATIC
-DSTATUS disk_initialize (
-    bdev_t pdrv              /* Physical drive nmuber (0..) */
-)
-{
+DSTATUS disk_initialize(bdev_t pdrv /* Physical drive nmuber (0..) */
+) {
     fs_user_mount_t *vfs = disk_get_device(pdrv);
     if (vfs == NULL) {
         return STA_NOINIT;
@@ -88,10 +86,8 @@ DSTATUS disk_initialize (
 /*-----------------------------------------------------------------------*/
 
 STATIC
-DSTATUS disk_status (
-    bdev_t pdrv      /* Physical drive nmuber (0..) */
-)
-{
+DSTATUS disk_status(bdev_t pdrv /* Physical drive nmuber (0..) */
+) {
     fs_user_mount_t *vfs = disk_get_device(pdrv);
     if (vfs == NULL) {
         return STA_NOINIT;
@@ -99,8 +95,7 @@ DSTATUS disk_status (
 
     // This is used to determine the writeability of the disk from MicroPython.
     // So, if its USB writable we make it read-only from MicroPython.
-    if (vfs->writeblocks[0] == MP_OBJ_NULL ||
-        (vfs->flags & FSUSER_USB_WRITABLE) != 0) {
+    if (vfs->writeblocks[0] == MP_OBJ_NULL || (vfs->flags & FSUSER_USB_WRITABLE) != 0) {
         return STA_PROTECT;
     } else {
         return 0;
@@ -111,20 +106,18 @@ DSTATUS disk_status (
 /* Read Sector(s)                                                        */
 /*-----------------------------------------------------------------------*/
 
-DRESULT disk_read (
-    bdev_t pdrv,      /* Physical drive nmuber (0..) */
-    BYTE *buff,        /* Data buffer to store read data */
-    DWORD sector,    /* Sector address (LBA) */
-    UINT count        /* Number of sectors to read (1..128) */
-)
-{
+DRESULT disk_read(bdev_t pdrv, /* Physical drive nmuber (0..) */
+                  BYTE *buff, /* Data buffer to store read data */
+                  DWORD sector, /* Sector address (LBA) */
+                  UINT count /* Number of sectors to read (1..128) */
+) {
     fs_user_mount_t *vfs = disk_get_device(pdrv);
     if (vfs == NULL) {
         return RES_PARERR;
     }
 
     if (vfs->flags & FSUSER_NATIVE) {
-        mp_uint_t (*f)(uint8_t*, uint32_t, uint32_t) = (void*)(uintptr_t)vfs->readblocks[2];
+        mp_uint_t (*f)(uint8_t *, uint32_t, uint32_t) = (void *) (uintptr_t) vfs->readblocks[2];
         if (f(buff, sector, count) != 0) {
             return RES_ERROR;
         }
@@ -142,13 +135,11 @@ DRESULT disk_read (
 /* Write Sector(s)                                                       */
 /*-----------------------------------------------------------------------*/
 
-DRESULT disk_write (
-    bdev_t pdrv,          /* Physical drive nmuber (0..) */
-    const BYTE *buff,    /* Data to be written */
-    DWORD sector,        /* Sector address (LBA) */
-    UINT count            /* Number of sectors to write (1..128) */
-)
-{
+DRESULT disk_write(bdev_t pdrv, /* Physical drive nmuber (0..) */
+                   const BYTE *buff, /* Data to be written */
+                   DWORD sector, /* Sector address (LBA) */
+                   UINT count /* Number of sectors to write (1..128) */
+) {
     fs_user_mount_t *vfs = disk_get_device(pdrv);
     if (vfs == NULL) {
         return RES_PARERR;
@@ -160,13 +151,15 @@ DRESULT disk_write (
     }
 
     if (vfs->flags & FSUSER_NATIVE) {
-        mp_uint_t (*f)(const uint8_t*, uint32_t, uint32_t) = (void*)(uintptr_t)vfs->writeblocks[2];
+        mp_uint_t (*f)(const uint8_t *, uint32_t, uint32_t) =
+            (void *) (uintptr_t) vfs->writeblocks[2];
         if (f(buff, sector, count) != 0) {
             return RES_ERROR;
         }
     } else {
         vfs->writeblocks[2] = MP_OBJ_NEW_SMALL_INT(sector);
-        vfs->writeblocks[3] = mp_obj_new_bytearray_by_ref(count * SECSIZE(&vfs->fatfs), (void*)buff);
+        vfs->writeblocks[3] =
+            mp_obj_new_bytearray_by_ref(count * SECSIZE(&vfs->fatfs), (void *) buff);
         mp_call_method_n_kw(2, 0, vfs->writeblocks);
         // TODO handle error return
     }
@@ -174,17 +167,14 @@ DRESULT disk_write (
     return RES_OK;
 }
 
-
 /*-----------------------------------------------------------------------*/
 /* Miscellaneous Functions                                               */
 /*-----------------------------------------------------------------------*/
 
-DRESULT disk_ioctl (
-    bdev_t pdrv,      /* Physical drive nmuber (0..) */
-    BYTE cmd,        /* Control code */
-    void *buff        /* Buffer to send/receive control data */
-)
-{
+DRESULT disk_ioctl(bdev_t pdrv, /* Physical drive nmuber (0..) */
+                   BYTE cmd, /* Control code */
+                   void *buff /* Buffer to send/receive control data */
+) {
     fs_user_mount_t *vfs = disk_get_device(pdrv);
     if (vfs == NULL) {
         return RES_PARERR;
@@ -203,7 +193,7 @@ DRESULT disk_ioctl (
                 vfs->u.ioctl[2] = MP_OBJ_NEW_SMALL_INT(BP_IOCTL_SEC_COUNT);
                 vfs->u.ioctl[3] = MP_OBJ_NEW_SMALL_INT(0); // unused
                 mp_obj_t ret = mp_call_method_n_kw(2, 0, vfs->u.ioctl);
-                *((DWORD*)buff) = mp_obj_get_int(ret);
+                *((DWORD *) buff) = mp_obj_get_int(ret);
                 return RES_OK;
             }
 
@@ -213,27 +203,27 @@ DRESULT disk_ioctl (
                 mp_obj_t ret = mp_call_method_n_kw(2, 0, vfs->u.ioctl);
                 if (ret == mp_const_none) {
                     // Default sector size
-                    *((WORD*)buff) = 512;
+                    *((WORD *) buff) = 512;
                 } else {
-                    *((WORD*)buff) = mp_obj_get_int(ret);
+                    *((WORD *) buff) = mp_obj_get_int(ret);
                 }
-                #if _MAX_SS != _MIN_SS
+#    if _MAX_SS != _MIN_SS
                 // need to store ssize because we use it in disk_read/disk_write
-                vfs->fatfs.ssize = *((WORD*)buff);
-                #endif
+                vfs->fatfs.ssize = *((WORD *) buff);
+#    endif
                 return RES_OK;
             }
 
             case GET_BLOCK_SIZE:
-                *((DWORD*)buff) = 1; // erase block size in units of sector size
+                *((DWORD *) buff) = 1; // erase block size in units of sector size
                 return RES_OK;
 
             case IOCTL_INIT:
-                *((DSTATUS*)buff) = disk_initialize(pdrv);
+                *((DSTATUS *) buff) = disk_initialize(pdrv);
                 return RES_OK;
 
             case IOCTL_STATUS:
-                *((DSTATUS*)buff) = disk_status(pdrv);
+                *((DSTATUS *) buff) = disk_status(pdrv);
                 return RES_OK;
 
             default:
@@ -250,28 +240,28 @@ DRESULT disk_ioctl (
 
             case GET_SECTOR_COUNT: {
                 mp_obj_t ret = mp_call_method_n_kw(0, 0, vfs->u.old.count);
-                *((DWORD*)buff) = mp_obj_get_int(ret);
+                *((DWORD *) buff) = mp_obj_get_int(ret);
                 return RES_OK;
             }
 
             case GET_SECTOR_SIZE:
-                *((WORD*)buff) = 512; // old protocol had fixed sector size
-                #if _MAX_SS != _MIN_SS
+                *((WORD *) buff) = 512; // old protocol had fixed sector size
+#    if _MAX_SS != _MIN_SS
                 // need to store ssize because we use it in disk_read/disk_write
                 vfs->fatfs.ssize = 512;
-                #endif
+#    endif
                 return RES_OK;
 
             case GET_BLOCK_SIZE:
-                *((DWORD*)buff) = 1; // erase block size in units of sector size
+                *((DWORD *) buff) = 1; // erase block size in units of sector size
                 return RES_OK;
 
             case IOCTL_INIT:
-                *((DSTATUS*)buff) = disk_initialize(pdrv);
+                *((DSTATUS *) buff) = disk_initialize(pdrv);
                 return RES_OK;
 
             case IOCTL_STATUS:
-                *((DSTATUS*)buff) = disk_status(pdrv);
+                *((DSTATUS *) buff) = disk_status(pdrv);
                 return RES_OK;
 
             default:

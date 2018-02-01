@@ -27,20 +27,20 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "py/runtime.h"
-#include "py/objstr.h"
-#include "py/mperrno.h"
 #include "extmod/vfs.h"
+#include "py/mperrno.h"
+#include "py/objstr.h"
+#include "py/runtime.h"
 
 #if MICROPY_VFS
 
-#if MICROPY_VFS_FAT
-#include "extmod/vfs_fat.h"
-#endif
+#    if MICROPY_VFS_FAT
+#        include "extmod/vfs_fat.h"
+#    endif
 
-// For mp_vfs_proxy_call, the maximum number of additional args that can be passed.
-// A fixed maximum size is used to avoid the need for a costly variable array.
-#define PROXY_MAX_ARGS (2)
+    // For mp_vfs_proxy_call, the maximum number of additional args that can be passed.
+    // A fixed maximum size is used to avoid the need for a costly variable array.
+#    define PROXY_MAX_ARGS (2)
 
 // path is the path to lookup and *path_out holds the path within the VFS
 // object (starts with / if an absolute path).
@@ -94,13 +94,16 @@ STATIC mp_vfs_mount_t *lookup_path(mp_obj_t path_in, mp_obj_t *path_out) {
     const char *p_out;
     mp_vfs_mount_t *vfs = mp_vfs_lookup_path(path, &p_out);
     if (vfs != MP_VFS_NONE && vfs != MP_VFS_ROOT) {
-        *path_out = mp_obj_new_str_of_type(mp_obj_get_type(path_in),
-            (const byte*)p_out, strlen(p_out));
+        *path_out =
+            mp_obj_new_str_of_type(mp_obj_get_type(path_in), (const byte *) p_out, strlen(p_out));
     }
     return vfs;
 }
 
-STATIC mp_obj_t mp_vfs_proxy_call(mp_vfs_mount_t *vfs, qstr meth_name, size_t n_args, const mp_obj_t *args) {
+STATIC mp_obj_t mp_vfs_proxy_call(mp_vfs_mount_t *vfs,
+                                  qstr meth_name,
+                                  size_t n_args,
+                                  const mp_obj_t *args) {
     assert(n_args <= PROXY_MAX_ARGS);
     if (vfs == MP_VFS_NONE) {
         // mount point not found
@@ -124,12 +127,12 @@ mp_import_stat_t mp_vfs_import_stat(const char *path) {
     if (vfs == MP_VFS_NONE || vfs == MP_VFS_ROOT) {
         return MP_IMPORT_STAT_NO_EXIST;
     }
-    #if MICROPY_VFS_FAT
+#    if MICROPY_VFS_FAT
     // fast paths for known VFS types
     if (mp_obj_get_type(vfs->obj) == &mp_fat_vfs_type) {
         return fat_vfs_import_stat(MP_OBJ_TO_PTR(vfs->obj), path_out);
     }
-    #endif
+#    endif
     // TODO delegate to vfs.stat() method
     return MP_IMPORT_STAT_NO_EXIST;
 }
@@ -137,13 +140,14 @@ mp_import_stat_t mp_vfs_import_stat(const char *path) {
 mp_obj_t mp_vfs_mount(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_readonly, ARG_mkfs };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_readonly, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_false} },
-        { MP_QSTR_mkfs, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_false} },
+        {MP_QSTR_readonly, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_false}},
+        {MP_QSTR_mkfs, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_false}},
     };
 
     // parse args
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
-    mp_arg_parse_all(n_args - 2, pos_args + 2, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
+    mp_arg_parse_all(n_args - 2, pos_args + 2, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args,
+                     args);
 
     // get the mount point
     size_t mnt_len;
@@ -154,12 +158,12 @@ mp_obj_t mp_vfs_mount(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args
     mp_obj_t dest[2];
     mp_load_method_maybe(vfs_obj, MP_QSTR_mount, dest);
     if (dest[0] == MP_OBJ_NULL) {
-        // Input object has no mount method, assume it's a block device and try to
-        // auto-detect the filesystem and create the corresponding VFS entity.
-        // (At the moment we only support FAT filesystems.)
-        #if MICROPY_VFS_FAT
+    // Input object has no mount method, assume it's a block device and try to
+    // auto-detect the filesystem and create the corresponding VFS entity.
+    // (At the moment we only support FAT filesystems.)
+#    if MICROPY_VFS_FAT
         vfs_obj = mp_fat_vfs_type.make_new(&mp_fat_vfs_type, 1, 0, &vfs_obj);
-        #endif
+#    endif
     }
 
     // create new object
@@ -170,7 +174,7 @@ mp_obj_t mp_vfs_mount(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args
     vfs->next = NULL;
 
     // call the underlying object to do any mounting operation
-    mp_vfs_proxy_call(vfs, MP_QSTR_mount, 2, (mp_obj_t*)&args);
+    mp_vfs_proxy_call(vfs, MP_QSTR_mount, 2, (mp_obj_t *) &args);
 
     // check that the destination mount point is unused
     const char *path_out;
@@ -208,8 +212,10 @@ mp_obj_t mp_vfs_umount(mp_obj_t mnt_in) {
     if (MP_OBJ_IS_STR(mnt_in)) {
         mnt_str = mp_obj_str_get_data(mnt_in, &mnt_len);
     }
-    for (mp_vfs_mount_t **vfsp = &MP_STATE_VM(vfs_mount_table); *vfsp != NULL; vfsp = &(*vfsp)->next) {
-        if ((mnt_str != NULL && !memcmp(mnt_str, (*vfsp)->str, mnt_len + 1)) || (*vfsp)->obj == mnt_in) {
+    for (mp_vfs_mount_t **vfsp = &MP_STATE_VM(vfs_mount_table); *vfsp != NULL;
+         vfsp = &(*vfsp)->next) {
+        if ((mnt_str != NULL && !memcmp(mnt_str, (*vfsp)->str, mnt_len + 1)) ||
+            (*vfsp)->obj == mnt_in) {
             vfs = *vfsp;
             *vfsp = (*vfsp)->next;
             break;
@@ -236,18 +242,18 @@ MP_DEFINE_CONST_FUN_OBJ_1(mp_vfs_umount_obj, mp_vfs_umount);
 mp_obj_t mp_vfs_open(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     enum { ARG_file, ARG_mode, ARG_encoding };
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_file, MP_ARG_OBJ | MP_ARG_REQUIRED, {.u_rom_obj = MP_ROM_PTR(&mp_const_none_obj)} },
-        { MP_QSTR_mode, MP_ARG_OBJ, {.u_rom_obj = MP_ROM_QSTR(MP_QSTR_r)} },
-        { MP_QSTR_buffering, MP_ARG_INT, {.u_int = -1} },
-        { MP_QSTR_encoding, MP_ARG_OBJ, {.u_rom_obj = MP_ROM_PTR(&mp_const_none_obj)} },
+        {MP_QSTR_file, MP_ARG_OBJ | MP_ARG_REQUIRED, {.u_rom_obj = MP_ROM_PTR(&mp_const_none_obj)}},
+        {MP_QSTR_mode, MP_ARG_OBJ, {.u_rom_obj = MP_ROM_QSTR(MP_QSTR_r)}},
+        {MP_QSTR_buffering, MP_ARG_INT, {.u_int = -1}},
+        {MP_QSTR_encoding, MP_ARG_OBJ, {.u_rom_obj = MP_ROM_PTR(&mp_const_none_obj)}},
     };
 
     // parse args
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    mp_vfs_mount_t *vfs = lookup_path((mp_obj_t)args[ARG_file].u_rom_obj, &args[ARG_file].u_obj);
-    return mp_vfs_proxy_call(vfs, MP_QSTR_open, 2, (mp_obj_t*)&args);
+    mp_vfs_mount_t *vfs = lookup_path((mp_obj_t) args[ARG_file].u_rom_obj, &args[ARG_file].u_obj);
+    return mp_vfs_proxy_call(vfs, MP_QSTR_open, 2, (mp_obj_t *) &args);
 }
 MP_DEFINE_CONST_FUN_OBJ_KW(mp_vfs_open_obj, 0, mp_vfs_open);
 
@@ -314,9 +320,8 @@ mp_obj_t mp_vfs_ilistdir_it_iternext(mp_obj_t self_in) {
         } else {
             // a mounted directory
             mp_obj_tuple_t *t = MP_OBJ_TO_PTR(mp_obj_new_tuple(3, NULL));
-            t->items[0] = mp_obj_new_str_of_type(
-                self->is_str ? &mp_type_str : &mp_type_bytes,
-                (const byte*)vfs->str + 1, vfs->len - 1);
+            t->items[0] = mp_obj_new_str_of_type(self->is_str ? &mp_type_str : &mp_type_bytes,
+                                                 (const byte *) vfs->str + 1, vfs->len - 1);
             t->items[1] = MP_OBJ_NEW_SMALL_INT(MP_S_IFDIR);
             t->items[2] = MP_OBJ_NEW_SMALL_INT(0); // no inode number
             return MP_OBJ_FROM_PTR(t);
@@ -406,7 +411,8 @@ mp_obj_t mp_vfs_stat(mp_obj_t path_in) {
         mp_obj_tuple_t *t = MP_OBJ_TO_PTR(mp_obj_new_tuple(10, NULL));
         t->items[0] = MP_OBJ_NEW_SMALL_INT(MP_S_IFDIR); // st_mode
         for (int i = 1; i <= 9; ++i) {
-            t->items[i] = MP_OBJ_NEW_SMALL_INT(0); // dev, nlink, uid, gid, size, atime, mtime, ctime
+            t->items[i] =
+                MP_OBJ_NEW_SMALL_INT(0); // dev, nlink, uid, gid, size, atime, mtime, ctime
         }
         return MP_OBJ_FROM_PTR(t);
     }

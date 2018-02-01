@@ -4,14 +4,13 @@
 
 #include "re1.5.h"
 
-#define INSERT_CODE(at, num, pc) \
-    ((code ? memmove(code + at + num, code + at, pc - at) : (void)0), pc += num)
+#define INSERT_CODE(at, num, pc)                                                                   \
+    ((code ? memmove(code + at + num, code + at, pc - at) : (void) 0), pc += num)
 #define REL(at, to) (to - at - 2)
-#define EMIT(at, byte) (code ? (code[at] = byte) : (void)(at))
+#define EMIT(at, byte) (code ? (code[at] = byte) : (void) (at))
 #define PC (prog->bytelen)
 
-static const char *_compilecode(const char *re, ByteProg *prog, int sizecode)
-{
+static const char *_compilecode(const char *re, ByteProg *prog, int sizecode) {
     char *code = sizecode ? NULL : prog->insts;
     int start = PC;
     int term = PC;
@@ -19,139 +18,145 @@ static const char *_compilecode(const char *re, ByteProg *prog, int sizecode)
 
     for (; *re && *re != ')'; re++) {
         switch (*re) {
-        case '\\':
-            re++;
-            if (!*re) return NULL; // Trailing backslash
-            if ((*re | 0x20) == 'd' || (*re | 0x20) == 's' || (*re | 0x20) == 'w') {
+            case '\\':
+                re++;
+                if (!*re)
+                    return NULL; // Trailing backslash
+                if ((*re | 0x20) == 'd' || (*re | 0x20) == 's' || (*re | 0x20) == 'w') {
+                    term = PC;
+                    EMIT(PC++, NamedClass);
+                    EMIT(PC++, *re);
+                    prog->len++;
+                    break;
+                }
+            default:
                 term = PC;
-                EMIT(PC++, NamedClass);
+                EMIT(PC++, Char);
                 EMIT(PC++, *re);
                 prog->len++;
                 break;
-            }
-        default:
-            term = PC;
-            EMIT(PC++, Char);
-            EMIT(PC++, *re);
-            prog->len++;
-            break;
-        case '.':
-            term = PC;
-            EMIT(PC++, Any);
-            prog->len++;
-            break;
-        case '[': {
-            int cnt;
-            term = PC;
-            re++;
-            if (*re == '^') {
-                EMIT(PC++, ClassNot);
+            case '.':
+                term = PC;
+                EMIT(PC++, Any);
+                prog->len++;
+                break;
+            case '[': {
+                int cnt;
+                term = PC;
                 re++;
-            } else {
-                EMIT(PC++, Class);
+                if (*re == '^') {
+                    EMIT(PC++, ClassNot);
+                    re++;
+                } else {
+                    EMIT(PC++, Class);
+                }
+                PC++; // Skip # of pair byte
+                prog->len++;
+                for (cnt = 0; *re != ']'; re++, cnt++) {
+                    if (!*re)
+                        return NULL;
+                    EMIT(PC++, *re);
+                    if (re[1] == '-' && re[2] != ']') {
+                        re += 2;
+                    }
+                    EMIT(PC++, *re);
+                }
+                EMIT(term + 1, cnt);
+                break;
             }
-            PC++; // Skip # of pair byte
-            prog->len++;
-            for (cnt = 0; *re != ']'; re++, cnt++) {
-                if (!*re) return NULL;
-                EMIT(PC++, *re);
-                if (re[1] == '-' && re[2] != ']') {
+            case '(': {
+                term = PC;
+                int sub = 0;
+                int capture = re[1] != '?' || re[2] != ':';
+
+                if (capture) {
+                    sub = ++prog->sub;
+                    EMIT(PC++, Save);
+                    EMIT(PC++, 2 * sub);
+                    prog->len++;
+                } else {
                     re += 2;
                 }
-                EMIT(PC++, *re);
-            }
-            EMIT(term + 1, cnt);
-            break;
-        }
-        case '(': {
-            term = PC;
-            int sub = 0;
-            int capture = re[1] != '?' || re[2] != ':';
 
-            if (capture) {
-                sub = ++prog->sub;
-                EMIT(PC++, Save);
-                EMIT(PC++, 2 * sub);
+                re = _compilecode(re + 1, prog, sizecode);
+                if (re == NULL || *re != ')')
+                    return NULL; // error, or no matching paren
+
+                if (capture) {
+                    EMIT(PC++, Save);
+                    EMIT(PC++, 2 * sub + 1);
+                    prog->len++;
+                }
+
+                break;
+            }
+            case '?':
+                if (PC == term)
+                    return NULL; // nothing to repeat
+                INSERT_CODE(term, 2, PC);
+                if (re[1] == '?') {
+                    EMIT(term, RSplit);
+                    re++;
+                } else {
+                    EMIT(term, Split);
+                }
+                EMIT(term + 1, REL(term, PC));
                 prog->len++;
-            } else {
-                    re += 2;
-            }
-
-            re = _compilecode(re + 1, prog, sizecode);
-            if (re == NULL || *re != ')') return NULL; // error, or no matching paren
-
-            if (capture) {
-                EMIT(PC++, Save);
-                EMIT(PC++, 2 * sub + 1);
+                term = PC;
+                break;
+            case '*':
+                if (PC == term)
+                    return NULL; // nothing to repeat
+                INSERT_CODE(term, 2, PC);
+                EMIT(PC, Jmp);
+                EMIT(PC + 1, REL(PC, term));
+                PC += 2;
+                if (re[1] == '?') {
+                    EMIT(term, RSplit);
+                    re++;
+                } else {
+                    EMIT(term, Split);
+                }
+                EMIT(term + 1, REL(term, PC));
+                prog->len += 2;
+                term = PC;
+                break;
+            case '+':
+                if (PC == term)
+                    return NULL; // nothing to repeat
+                if (re[1] == '?') {
+                    EMIT(PC, Split);
+                    re++;
+                } else {
+                    EMIT(PC, RSplit);
+                }
+                EMIT(PC + 1, REL(PC, term));
+                PC += 2;
                 prog->len++;
-            }
-
-            break;
-        }
-        case '?':
-            if (PC == term) return NULL; // nothing to repeat
-            INSERT_CODE(term, 2, PC);
-            if (re[1] == '?') {
-                EMIT(term, RSplit);
-                re++;
-            } else {
-                EMIT(term, Split);
-            }
-            EMIT(term + 1, REL(term, PC));
-            prog->len++;
-            term = PC;
-            break;
-        case '*':
-            if (PC == term) return NULL; // nothing to repeat
-            INSERT_CODE(term, 2, PC);
-            EMIT(PC, Jmp);
-            EMIT(PC + 1, REL(PC, term));
-            PC += 2;
-            if (re[1] == '?') {
-                EMIT(term, RSplit);
-                re++;
-            } else {
-                EMIT(term, Split);
-            }
-            EMIT(term + 1, REL(term, PC));
-            prog->len += 2;
-            term = PC;
-            break;
-        case '+':
-            if (PC == term) return NULL; // nothing to repeat
-            if (re[1] == '?') {
-                EMIT(PC, Split);
-                re++;
-            } else {
-                EMIT(PC, RSplit);
-            }
-            EMIT(PC + 1, REL(PC, term));
-            PC += 2;
-            prog->len++;
-            term = PC;
-            break;
-        case '|':
-            if (alt_label) {
-                EMIT(alt_label, REL(alt_label, PC) + 1);
-            }
-            INSERT_CODE(start, 2, PC);
-            EMIT(PC++, Jmp);
-            alt_label = PC++;
-            EMIT(start, Split);
-            EMIT(start + 1, REL(start, PC));
-            prog->len += 2;
-            term = PC;
-            break;
-        case '^':
-            EMIT(PC++, Bol);
-            prog->len++;
-            term = PC;
-            break;
-        case '$':
-            EMIT(PC++, Eol);
-            prog->len++;
-            term = PC;
-            break;
+                term = PC;
+                break;
+            case '|':
+                if (alt_label) {
+                    EMIT(alt_label, REL(alt_label, PC) + 1);
+                }
+                INSERT_CODE(start, 2, PC);
+                EMIT(PC++, Jmp);
+                alt_label = PC++;
+                EMIT(start, Split);
+                EMIT(start + 1, REL(start, PC));
+                prog->len += 2;
+                term = PC;
+                break;
+            case '^':
+                EMIT(PC++, Bol);
+                prog->len++;
+                term = PC;
+                break;
+            case '$':
+                EMIT(PC++, Eol);
+                prog->len++;
+                term = PC;
+                break;
         }
     }
 
@@ -161,20 +166,17 @@ static const char *_compilecode(const char *re, ByteProg *prog, int sizecode)
     return re;
 }
 
-int re1_5_sizecode(const char *re)
-{
-    ByteProg dummyprog = {
-         // Save 0, Save 1, Match; more bytes for "search" (vs "match") prefix code
-        .bytelen = 5 + NON_ANCHORED_PREFIX
-    };
+int re1_5_sizecode(const char *re) {
+    ByteProg dummyprog = {// Save 0, Save 1, Match; more bytes for "search" (vs "match") prefix code
+                          .bytelen = 5 + NON_ANCHORED_PREFIX};
 
-    if (_compilecode(re, &dummyprog, /*sizecode*/1) == NULL) return -1;
+    if (_compilecode(re, &dummyprog, /*sizecode*/ 1) == NULL)
+        return -1;
 
     return dummyprog.bytelen;
 }
 
-int re1_5_compilecode(ByteProg *prog, const char *re)
-{
+int re1_5_compilecode(ByteProg *prog, const char *re) {
     prog->len = 0;
     prog->bytelen = 0;
     prog->sub = 0;
@@ -193,8 +195,9 @@ int re1_5_compilecode(ByteProg *prog, const char *re)
     prog->insts[prog->bytelen++] = 0;
     prog->len++;
 
-    re = _compilecode(re, prog, /*sizecode*/0);
-    if (re == NULL || *re) return 1;
+    re = _compilecode(re, prog, /*sizecode*/ 0);
+    if (re == NULL || *re)
+        return 1;
 
     prog->insts[prog->bytelen++] = Save;
     prog->insts[prog->bytelen++] = 1;

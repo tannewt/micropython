@@ -44,6 +44,6 @@ uintptr_t MICROPY_MACHINE_MEM_GET_READ_ADDR(mp_obj_t addr_o, uint align);
 #endif
 #if defined(MICROPY_MACHINE_MEM_GET_WRITE_ADDR)
 uintptr_t MICROPY_MACHINE_MEM_GET_WRITE_ADDR(mp_obj_t addr_o, uint align);
-#endif
+#    endif
 
 #endif // MICROPY_INCLUDED_EXTMOD_MACHINE_MEM_H

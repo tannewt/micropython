@@ -15,11 +15,11 @@
 
 /* calling convention */
 #ifndef TINFCC
- #ifdef __WATCOMC__
-  #define TINFCC __cdecl
- #else
-  #define TINFCC
- #endif
+#    ifdef __WATCOMC__
+#        define TINFCC __cdecl
+#    else
+#        define TINFCC
+#    endif
 #endif
 
 #ifdef __cplusplus
@@ -27,34 +27,34 @@ extern "C" {
 #endif
 
 /* ok status, more data produced */
-#define TINF_OK             0
+#define TINF_OK 0
 /* end of compressed stream reached */
-#define TINF_DONE           1
-#define TINF_DATA_ERROR    (-3)
-#define TINF_CHKSUM_ERROR  (-4)
-#define TINF_DICT_ERROR    (-5)
+#define TINF_DONE 1
+#define TINF_DATA_ERROR (-3)
+#define TINF_CHKSUM_ERROR (-4)
+#define TINF_DICT_ERROR (-5)
 
 /* checksum types */
-#define TINF_CHKSUM_NONE  0
+#define TINF_CHKSUM_NONE 0
 #define TINF_CHKSUM_ADLER 1
-#define TINF_CHKSUM_CRC   2
+#define TINF_CHKSUM_CRC 2
 
 /* data structures */
 
 typedef struct {
-   unsigned short table[16];  /* table of code length counts */
-   unsigned short trans[288]; /* code -> symbol translation table */
+    unsigned short table[16]; /* table of code length counts */
+    unsigned short trans[288]; /* code -> symbol translation table */
 } TINF_TREE;
 
 struct TINF_DATA;
 typedef struct TINF_DATA {
-   const unsigned char *source;
-   /* If source above is NULL, this function will be used to read
-      next byte from source stream */
-   unsigned char (*readSource)(struct TINF_DATA *data);
+    const unsigned char *source;
+    /* If source above is NULL, this function will be used to read
+       next byte from source stream */
+    unsigned char (*readSource)(struct TINF_DATA *data);
 
-   unsigned int tag;
-   unsigned int bitcount;
+    unsigned int tag;
+    unsigned int bitcount;
 
     /* Buffer start */
     unsigned char *destStart;
@@ -77,14 +77,18 @@ typedef struct TINF_DATA {
     unsigned int dict_size;
     unsigned int dict_idx;
 
-   TINF_TREE ltree; /* dynamic length/symbol tree */
-   TINF_TREE dtree; /* dynamic distance tree */
+    TINF_TREE ltree; /* dynamic length/symbol tree */
+    TINF_TREE dtree; /* dynamic distance tree */
 } TINF_DATA;
 
-#define TINF_PUT(d, c) \
-    { \
-        *d->dest++ = c; \
-        if (d->dict_ring) { d->dict_ring[d->dict_idx++] = c; if (d->dict_idx == d->dict_size) d->dict_idx = 0; } \
+#define TINF_PUT(d, c)                                                                             \
+    {                                                                                              \
+        *d->dest++ = c;                                                                            \
+        if (d->dict_ring) {                                                                        \
+            d->dict_ring[d->dict_idx++] = c;                                                       \
+            if (d->dict_idx == d->dict_size)                                                       \
+                d->dict_idx = 0;                                                                   \
+        }                                                                                          \
     }
 
 unsigned char TINFCC uzlib_get_byte(TINF_DATA *d);
@@ -93,8 +97,8 @@ unsigned char TINFCC uzlib_get_byte(TINF_DATA *d);
 
 void TINFCC uzlib_init(void);
 void TINFCC uzlib_uncompress_init(TINF_DATA *d, void *dict, unsigned int dictLen);
-int  TINFCC uzlib_uncompress(TINF_DATA *d);
-int  TINFCC uzlib_uncompress_chksum(TINF_DATA *d);
+int TINFCC uzlib_uncompress(TINF_DATA *d);
+int TINFCC uzlib_uncompress_chksum(TINF_DATA *d);
 
 int TINFCC uzlib_zlib_parse_header(TINF_DATA *d);
 int TINFCC uzlib_gzip_parse_header(TINF_DATA *d);
@@ -112,6 +116,6 @@ uint32_t TINFCC uzlib_crc32(const void *data, unsigned int length, uint32_t crc)
 
 #ifdef __cplusplus
 } /* extern "C" */
-#endif
+#    endif
 
 #endif /* TINF_H_INCLUDED */

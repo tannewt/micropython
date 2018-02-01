@@ -27,18 +27,18 @@
 #include "py/mpconfig.h"
 #if MICROPY_PY_USELECT
 
-#include <stdio.h>
+#    include <stdio.h>
 
-#include "py/ioctl.h"
-#include "py/runtime.h"
-#include "py/obj.h"
-#include "py/objlist.h"
-#include "py/stream.h"
-#include "py/mperrno.h"
-#include "py/mphal.h"
+#    include "py/ioctl.h"
+#    include "py/mperrno.h"
+#    include "py/mphal.h"
+#    include "py/obj.h"
+#    include "py/objlist.h"
+#    include "py/runtime.h"
+#    include "py/stream.h"
 
-// Flags for poll()
-#define FLAG_ONESHOT (1)
+    // Flags for poll()
+#    define FLAG_ONESHOT (1)
 
 /// \module select - Provides select function to wait for events on a stream
 ///
@@ -51,9 +51,11 @@ typedef struct _poll_obj_t {
     mp_uint_t flags_ret;
 } poll_obj_t;
 
-STATIC void poll_map_add(mp_map_t *poll_map, const mp_obj_t *obj, mp_uint_t obj_len, mp_uint_t flags, bool or_flags) {
+STATIC void poll_map_add(
+    mp_map_t *poll_map, const mp_obj_t *obj, mp_uint_t obj_len, mp_uint_t flags, bool or_flags) {
     for (mp_uint_t i = 0; i < obj_len; i++) {
-        mp_map_elem_t *elem = mp_map_lookup(poll_map, mp_obj_id(obj[i]), MP_MAP_LOOKUP_ADD_IF_NOT_FOUND);
+        mp_map_elem_t *elem =
+            mp_map_lookup(poll_map, mp_obj_id(obj[i]), MP_MAP_LOOKUP_ADD_IF_NOT_FOUND);
         if (elem->value == NULL) {
             // object not found; get its ioctl and add it to the poll list
             const mp_stream_p_t *stream_p = mp_get_stream_raise(obj[i], MP_STREAM_OP_IOCTL);
@@ -66,9 +68,9 @@ STATIC void poll_map_add(mp_map_t *poll_map, const mp_obj_t *obj, mp_uint_t obj_
         } else {
             // object exists; update its flags
             if (or_flags) {
-                ((poll_obj_t*)elem->value)->flags |= flags;
+                ((poll_obj_t *) elem->value)->flags |= flags;
             } else {
-                ((poll_obj_t*)elem->value)->flags = flags;
+                ((poll_obj_t *) elem->value)->flags = flags;
             }
         }
     }
@@ -82,7 +84,7 @@ STATIC mp_uint_t poll_map_poll(mp_map_t *poll_map, mp_uint_t *rwx_num) {
             continue;
         }
 
-        poll_obj_t *poll_obj = (poll_obj_t*)poll_map->table[i].value;
+        poll_obj_t *poll_obj = (poll_obj_t *) poll_map->table[i].value;
         int errcode;
         mp_int_t ret = poll_obj->ioctl(poll_obj->obj, MP_STREAM_POLL, poll_obj->flags, &errcode);
         poll_obj->flags_ret = ret;
@@ -124,14 +126,14 @@ STATIC mp_obj_t select_select(uint n_args, const mp_obj_t *args) {
     mp_uint_t timeout = -1;
     if (n_args == 4) {
         if (args[3] != mp_const_none) {
-            #if MICROPY_PY_BUILTINS_FLOAT
+#    if MICROPY_PY_BUILTINS_FLOAT
             float timeout_f = mp_obj_get_float(args[3]);
             if (timeout_f >= 0) {
                 timeout = (mp_uint_t)(timeout_f * 1000);
             }
-            #else
+#    else
             timeout = mp_obj_get_int(args[3]) * 1000;
-            #endif
+#    endif
         }
     }
 
@@ -159,15 +161,15 @@ STATIC mp_obj_t select_select(uint n_args, const mp_obj_t *args) {
                 if (!MP_MAP_SLOT_IS_FILLED(&poll_map, i)) {
                     continue;
                 }
-                poll_obj_t *poll_obj = (poll_obj_t*)poll_map.table[i].value;
+                poll_obj_t *poll_obj = (poll_obj_t *) poll_map.table[i].value;
                 if (poll_obj->flags_ret & MP_STREAM_POLL_RD) {
-                    ((mp_obj_list_t*)list_array[0])->items[rwx_len[0]++] = poll_obj->obj;
+                    ((mp_obj_list_t *) list_array[0])->items[rwx_len[0]++] = poll_obj->obj;
                 }
                 if (poll_obj->flags_ret & MP_STREAM_POLL_WR) {
-                    ((mp_obj_list_t*)list_array[1])->items[rwx_len[1]++] = poll_obj->obj;
+                    ((mp_obj_list_t *) list_array[1])->items[rwx_len[1]++] = poll_obj->obj;
                 }
                 if ((poll_obj->flags_ret & ~(MP_STREAM_POLL_RD | MP_STREAM_POLL_WR)) != 0) {
-                    ((mp_obj_list_t*)list_array[2])->items[rwx_len[2]++] = poll_obj->obj;
+                    ((mp_obj_list_t *) list_array[2])->items[rwx_len[2]++] = poll_obj->obj;
                 }
             }
             mp_map_deinit(&poll_map);
@@ -220,7 +222,7 @@ STATIC mp_obj_t poll_modify(mp_obj_t self_in, mp_obj_t obj_in, mp_obj_t eventmas
     if (elem == NULL) {
         mp_raise_OSError(MP_ENOENT);
     }
-    ((poll_obj_t*)elem->value)->flags = mp_obj_get_int(eventmask_in);
+    ((poll_obj_t *) elem->value)->flags = mp_obj_get_int(eventmask_in);
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_3(poll_modify_obj, poll_modify);
@@ -270,7 +272,7 @@ STATIC mp_obj_t poll_poll(uint n_args, const mp_obj_t *args) {
         if (!MP_MAP_SLOT_IS_FILLED(&self->poll_map, i)) {
             continue;
         }
-        poll_obj_t *poll_obj = (poll_obj_t*)self->poll_map.table[i].value;
+        poll_obj_t *poll_obj = (poll_obj_t *) self->poll_map.table[i].value;
         if (poll_obj->flags_ret != 0) {
             mp_obj_t tuple[2] = {poll_obj->obj, MP_OBJ_NEW_SMALL_INT(poll_obj->flags_ret)};
             ret_list->items[n_ready++] = mp_obj_new_tuple(2, tuple);
@@ -313,7 +315,7 @@ STATIC mp_obj_t poll_iternext(mp_obj_t self_in) {
         if (!MP_MAP_SLOT_IS_FILLED(&self->poll_map, i)) {
             continue;
         }
-        poll_obj_t *poll_obj = (poll_obj_t*)self->poll_map.table[i].value;
+        poll_obj_t *poll_obj = (poll_obj_t *) self->poll_map.table[i].value;
         if (poll_obj->flags_ret != 0) {
             mp_obj_tuple_t *t = MP_OBJ_TO_PTR(self->ret_tuple);
             t->items[0] = poll_obj->obj;
@@ -332,20 +334,20 @@ STATIC mp_obj_t poll_iternext(mp_obj_t self_in) {
 }
 
 STATIC const mp_rom_map_elem_t poll_locals_dict_table[] = {
-    { MP_ROM_QSTR(MP_QSTR_register), MP_ROM_PTR(&poll_register_obj) },
-    { MP_ROM_QSTR(MP_QSTR_unregister), MP_ROM_PTR(&poll_unregister_obj) },
-    { MP_ROM_QSTR(MP_QSTR_modify), MP_ROM_PTR(&poll_modify_obj) },
-    { MP_ROM_QSTR(MP_QSTR_poll), MP_ROM_PTR(&poll_poll_obj) },
-    { MP_ROM_QSTR(MP_QSTR_ipoll), MP_ROM_PTR(&poll_ipoll_obj) },
+    {MP_ROM_QSTR(MP_QSTR_register), MP_ROM_PTR(&poll_register_obj)},
+    {MP_ROM_QSTR(MP_QSTR_unregister), MP_ROM_PTR(&poll_unregister_obj)},
+    {MP_ROM_QSTR(MP_QSTR_modify), MP_ROM_PTR(&poll_modify_obj)},
+    {MP_ROM_QSTR(MP_QSTR_poll), MP_ROM_PTR(&poll_poll_obj)},
+    {MP_ROM_QSTR(MP_QSTR_ipoll), MP_ROM_PTR(&poll_ipoll_obj)},
 };
 STATIC MP_DEFINE_CONST_DICT(poll_locals_dict, poll_locals_dict_table);
 
 STATIC const mp_obj_type_t mp_type_poll = {
-    { &mp_type_type },
+    {&mp_type_type},
     .name = MP_QSTR_poll,
     .getiter = mp_identity_getiter,
     .iternext = poll_iternext,
-    .locals_dict = (void*)&poll_locals_dict,
+    .locals_dict = (void *) &poll_locals_dict,
 };
 
 /// \function poll()
@@ -360,20 +362,20 @@ STATIC mp_obj_t select_poll(void) {
 MP_DEFINE_CONST_FUN_OBJ_0(mp_select_poll_obj, select_poll);
 
 STATIC const mp_rom_map_elem_t mp_module_select_globals_table[] = {
-    { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_uselect) },
-    { MP_ROM_QSTR(MP_QSTR_select), MP_ROM_PTR(&mp_select_select_obj) },
-    { MP_ROM_QSTR(MP_QSTR_poll), MP_ROM_PTR(&mp_select_poll_obj) },
-    { MP_ROM_QSTR(MP_QSTR_POLLIN), MP_ROM_INT(MP_STREAM_POLL_RD) },
-    { MP_ROM_QSTR(MP_QSTR_POLLOUT), MP_ROM_INT(MP_STREAM_POLL_WR) },
-    { MP_ROM_QSTR(MP_QSTR_POLLERR), MP_ROM_INT(MP_STREAM_POLL_ERR) },
-    { MP_ROM_QSTR(MP_QSTR_POLLHUP), MP_ROM_INT(MP_STREAM_POLL_HUP) },
+    {MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_uselect)},
+    {MP_ROM_QSTR(MP_QSTR_select), MP_ROM_PTR(&mp_select_select_obj)},
+    {MP_ROM_QSTR(MP_QSTR_poll), MP_ROM_PTR(&mp_select_poll_obj)},
+    {MP_ROM_QSTR(MP_QSTR_POLLIN), MP_ROM_INT(MP_STREAM_POLL_RD)},
+    {MP_ROM_QSTR(MP_QSTR_POLLOUT), MP_ROM_INT(MP_STREAM_POLL_WR)},
+    {MP_ROM_QSTR(MP_QSTR_POLLERR), MP_ROM_INT(MP_STREAM_POLL_ERR)},
+    {MP_ROM_QSTR(MP_QSTR_POLLHUP), MP_ROM_INT(MP_STREAM_POLL_HUP)},
 };
 
 STATIC MP_DEFINE_CONST_DICT(mp_module_select_globals, mp_module_select_globals_table);
 
 const mp_obj_module_t mp_module_uselect = {
-    .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&mp_module_select_globals,
+    .base = {&mp_type_module},
+    .globals = (mp_obj_dict_t *) &mp_module_select_globals,
 };
 
 #endif // MICROPY_PY_USELECT

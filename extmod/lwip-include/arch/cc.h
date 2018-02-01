@@ -14,28 +14,29 @@ typedef int32_t s32_t;
 
 typedef u32_t mem_ptr_t;
 
-#define U16_F "hu"
-#define S16_F "hd"
-#define X16_F "hx"
-#define U32_F "u"
-#define S32_F "d"
-#define X32_F "x"
+#    define U16_F "hu"
+#    define S16_F "hd"
+#    define X16_F "hx"
+#    define U32_F "u"
+#    define S32_F "d"
+#    define X32_F "x"
 
-#define X8_F  "02x"
-#define SZT_F "u"
+#    define X8_F "02x"
+#    define SZT_F "u"
 
-#define BYTE_ORDER LITTLE_ENDIAN
+#    define BYTE_ORDER LITTLE_ENDIAN
 
-#define LWIP_CHKSUM_ALGORITHM 2
+#    define LWIP_CHKSUM_ALGORITHM 2
 
-#include <assert.h>
-#define LWIP_PLATFORM_DIAG(x)
-#define LWIP_PLATFORM_ASSERT(x)  { assert(1); }
+#    include <assert.h>
+#    define LWIP_PLATFORM_DIAG(x)
+#    define LWIP_PLATFORM_ASSERT(x)                                                                \
+        { assert(1); }
 
-//#define PACK_STRUCT_FIELD(x) x __attribute__((packed))
-#define PACK_STRUCT_FIELD(x) x
-#define PACK_STRUCT_STRUCT __attribute__((packed))
-#define PACK_STRUCT_BEGIN
-#define PACK_STRUCT_END
+    //#define PACK_STRUCT_FIELD(x) x __attribute__((packed))
+#    define PACK_STRUCT_FIELD(x) x
+#    define PACK_STRUCT_STRUCT __attribute__((packed))
+#    define PACK_STRUCT_BEGIN
+#    define PACK_STRUCT_END
 
 #endif // MICROPY_INCLUDED_EXTMOD_LWIP_INCLUDE_ARCH_CC_H

@@ -24,20 +24,20 @@
  * THE SOFTWARE.
  */
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
+#include "lib/mp-readline/readline.h"
+#include "py/mphal.h"
 #include "py/mpstate.h"
 #include "py/repl.h"
-#include "py/mphal.h"
-#include "lib/mp-readline/readline.h"
 
 #if 0 // print debugging info
-#define DEBUG_PRINT (1)
-#define DEBUG_printf printf
+#    define DEBUG_PRINT (1)
+#    define DEBUG_printf printf
 #else // don't print debugging info
-#define DEBUG_printf(...) (void)0
+#    define DEBUG_printf(...) (void) 0
 #endif
 
 #define READLINE_HIST_SIZE (MP_ARRAY_SIZE(MP_STATE_PORT(readline_hist)))
@@ -45,7 +45,7 @@
 enum { ESEQ_NONE, ESEQ_ESC, ESEQ_ESC_BRACKET, ESEQ_ESC_BRACKET_DIGIT, ESEQ_ESC_O };
 
 void readline_init0(void) {
-    memset(MP_STATE_PORT(readline_hist), 0, READLINE_HIST_SIZE * sizeof(const char*));
+    memset(MP_STATE_PORT(readline_hist), 0, READLINE_HIST_SIZE * sizeof(const char *));
 }
 
 STATIC char *str_dup_maybe(const char *str) {
@@ -60,7 +60,7 @@ STATIC char *str_dup_maybe(const char *str) {
 
 // By default assume terminal which implements VT100 commands...
 #ifndef MICROPY_HAL_HAS_VT100
-#define MICROPY_HAL_HAS_VT100 (1)
+#    define MICROPY_HAL_HAS_VT100 (1)
 #endif
 
 // ...and provide the implementation using them
@@ -81,7 +81,7 @@ STATIC void mp_hal_move_cursor_back(uint pos) {
 }
 
 STATIC void mp_hal_erase_line_from_cursor(uint n_chars_to_erase) {
-    (void)n_chars_to_erase;
+    (void) n_chars_to_erase;
     mp_hal_stdout_tx_strn("\x1b[K", 3);
 }
 #endif
@@ -110,23 +110,23 @@ int readline_process_char(int c) {
         } else if (c == CHAR_CTRL_A) {
             // CTRL-A with non-empty line is go-to-start-of-line
             goto home_key;
-        #if MICROPY_REPL_EMACS_KEYS
+#if MICROPY_REPL_EMACS_KEYS
         } else if (c == CHAR_CTRL_B) {
             // CTRL-B with non-empty line is go-back-one-char
             goto left_arrow_key;
-        #endif
+#endif
         } else if (c == CHAR_CTRL_C) {
             // CTRL-C with non-empty line is cancel
             return c;
-        #if MICROPY_REPL_EMACS_KEYS
+#if MICROPY_REPL_EMACS_KEYS
         } else if (c == CHAR_CTRL_D) {
             // CTRL-D with non-empty line is delete-at-cursor
             goto delete_key;
-        #endif
+#endif
         } else if (c == CHAR_CTRL_E) {
             // CTRL-E is go-to-end-of-line
             goto end_key;
-        #if MICROPY_REPL_EMACS_KEYS
+#if MICROPY_REPL_EMACS_KEYS
         } else if (c == CHAR_CTRL_F) {
             // CTRL-F with non-empty line is go-forward-one-char
             goto right_arrow_key;
@@ -147,7 +147,7 @@ int readline_process_char(int c) {
             // set redraw parameters
             redraw_step_back = rl.cursor_pos - rl.orig_line_len;
             redraw_from_cursor = true;
-        #endif
+#endif
         } else if (c == '\r') {
             // newline
             mp_hal_stdout_tx_str("\r\n");
@@ -159,8 +159,8 @@ int readline_process_char(int c) {
         } else if (c == 8 || c == 127) {
             // backspace/delete
             if (rl.cursor_pos > rl.orig_line_len) {
-                // work out how many chars to backspace
-                #if MICROPY_REPL_AUTO_INDENT
+// work out how many chars to backspace
+#if MICROPY_REPL_AUTO_INDENT
                 int nspace = 0;
                 for (size_t i = rl.orig_line_len; i < rl.cursor_pos; i++) {
                     if (rl.line->buf[i] != ' ') {
@@ -174,9 +174,9 @@ int readline_process_char(int c) {
                 } else {
                     nspace = 4;
                 }
-                #else
+#else
                 int nspace = 1;
-                #endif
+#endif
 
                 // do the backspace
                 vstr_cut_out_bytes(rl.line, rl.cursor_pos - nspace, nspace);
@@ -184,17 +184,20 @@ int readline_process_char(int c) {
                 redraw_step_back = nspace;
                 redraw_from_cursor = true;
             }
-        #if MICROPY_HELPER_REPL
+#if MICROPY_HELPER_REPL
         } else if (c == 9) {
             // tab magic
             const char *compl_str;
-            size_t compl_len = mp_repl_autocomplete(rl.line->buf + rl.orig_line_len, rl.cursor_pos - rl.orig_line_len, &mp_plat_print, &compl_str);
+            size_t compl_len =
+                mp_repl_autocomplete(rl.line->buf + rl.orig_line_len,
+                                     rl.cursor_pos - rl.orig_line_len, &mp_plat_print, &compl_str);
             if (compl_len == 0) {
                 // no match
             } else if (compl_len == (size_t)(-1)) {
                 // many matches
                 mp_hal_stdout_tx_str(rl.prompt);
-                mp_hal_stdout_tx_strn(rl.line->buf + rl.orig_line_len, rl.cursor_pos - rl.orig_line_len);
+                mp_hal_stdout_tx_strn(rl.line->buf + rl.orig_line_len,
+                                      rl.cursor_pos - rl.orig_line_len);
                 redraw_from_cursor = true;
             } else {
                 // one match
@@ -205,7 +208,7 @@ int readline_process_char(int c) {
                 redraw_from_cursor = true;
                 redraw_step_forward = compl_len;
             }
-        #endif
+#endif
         } else if (32 <= c && c <= 126) {
             // printable character
             vstr_ins_char(rl.line, rl.cursor_pos, c);
@@ -233,10 +236,11 @@ int readline_process_char(int c) {
             rl.escape_seq = ESEQ_NONE;
             if (c == 'A') {
 #if MICROPY_REPL_EMACS_KEYS
-up_arrow_key:
+            up_arrow_key:
 #endif
                 // up arrow
-                if (rl.hist_cur + 1 < (int)READLINE_HIST_SIZE && MP_STATE_PORT(readline_hist)[rl.hist_cur + 1] != NULL) {
+                if (rl.hist_cur + 1 < (int) READLINE_HIST_SIZE &&
+                    MP_STATE_PORT(readline_hist)[rl.hist_cur + 1] != NULL) {
                     // increase hist num
                     rl.hist_cur += 1;
                     // set line to history
@@ -249,7 +253,7 @@ up_arrow_key:
                 }
             } else if (c == 'B') {
 #if MICROPY_REPL_EMACS_KEYS
-down_arrow_key:
+            down_arrow_key:
 #endif
                 // down arrow
                 if (rl.hist_cur >= 0) {
@@ -267,7 +271,7 @@ down_arrow_key:
                 }
             } else if (c == 'C') {
 #if MICROPY_REPL_EMACS_KEYS
-right_arrow_key:
+            right_arrow_key:
 #endif
                 // right arrow
                 if (rl.cursor_pos < rl.line->len) {
@@ -275,7 +279,7 @@ right_arrow_key:
                 }
             } else if (c == 'D') {
 #if MICROPY_REPL_EMACS_KEYS
-left_arrow_key:
+            left_arrow_key:
 #endif
                 // left arrow
                 if (rl.cursor_pos > rl.orig_line_len) {
@@ -294,15 +298,15 @@ left_arrow_key:
     } else if (rl.escape_seq == ESEQ_ESC_BRACKET_DIGIT) {
         if (c == '~') {
             if (rl.escape_seq_buf[0] == '1' || rl.escape_seq_buf[0] == '7') {
-home_key:
+            home_key:
                 redraw_step_back = rl.cursor_pos - rl.orig_line_len;
             } else if (rl.escape_seq_buf[0] == '4' || rl.escape_seq_buf[0] == '8') {
-end_key:
+            end_key:
                 redraw_step_forward = rl.line->len - rl.cursor_pos;
             } else if (rl.escape_seq_buf[0] == '3') {
                 // delete
 #if MICROPY_REPL_EMACS_KEYS
-delete_key:
+            delete_key:
 #endif
                 if (rl.cursor_pos < rl.line->len) {
                     vstr_cut_out_bytes(rl.line, rl.cursor_pos, 1);
@@ -400,9 +404,9 @@ void readline_note_newline(const char *prompt) {
     rl.cursor_pos = rl.orig_line_len;
     rl.prompt = prompt;
     mp_hal_stdout_tx_str(prompt);
-    #if MICROPY_REPL_AUTO_INDENT
+#if MICROPY_REPL_AUTO_INDENT
     readline_auto_indent();
-    #endif
+#endif
 }
 
 void readline_init(vstr_t *line, const char *prompt) {
@@ -414,9 +418,9 @@ void readline_init(vstr_t *line, const char *prompt) {
     rl.cursor_pos = rl.orig_line_len;
     rl.prompt = prompt;
     mp_hal_stdout_tx_str(prompt);
-    #if MICROPY_REPL_AUTO_INDENT
+#if MICROPY_REPL_AUTO_INDENT
     readline_auto_indent();
-    #endif
+#endif
 }
 
 int readline(vstr_t *line, const char *prompt) {
@@ -431,9 +435,8 @@ int readline(vstr_t *line, const char *prompt) {
 }
 
 void readline_push_history(const char *line) {
-    if (line[0] != '\0'
-        && (MP_STATE_PORT(readline_hist)[0] == NULL
-            || strcmp(MP_STATE_PORT(readline_hist)[0], line) != 0)) {
+    if (line[0] != '\0' && (MP_STATE_PORT(readline_hist)[0] == NULL ||
+                            strcmp(MP_STATE_PORT(readline_hist)[0], line) != 0)) {
         // a line which is not empty and different from the last one
         // so update the history
         char *most_recent_hist = str_dup_maybe(line);

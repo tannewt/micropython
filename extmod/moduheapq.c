@@ -59,7 +59,8 @@ STATIC void heap_siftup(mp_obj_list_t *heap, mp_uint_t pos) {
     mp_obj_t item = heap->items[pos];
     for (mp_uint_t child_pos = 2 * pos + 1; child_pos < end_pos; child_pos = 2 * pos + 1) {
         // choose right child if it's <= left child
-        if (child_pos + 1 < end_pos && mp_binary_op(MP_BINARY_OP_LESS, heap->items[child_pos], heap->items[child_pos + 1]) == mp_const_false) {
+        if (child_pos + 1 < end_pos && mp_binary_op(MP_BINARY_OP_LESS, heap->items[child_pos],
+                                                    heap->items[child_pos + 1]) == mp_const_false) {
             child_pos += 1;
         }
         // bubble up the smaller child
@@ -104,17 +105,17 @@ STATIC mp_obj_t mod_uheapq_heapify(mp_obj_t heap_in) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_uheapq_heapify_obj, mod_uheapq_heapify);
 
 STATIC const mp_rom_map_elem_t mp_module_uheapq_globals_table[] = {
-    { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_uheapq) },
-    { MP_ROM_QSTR(MP_QSTR_heappush), MP_ROM_PTR(&mod_uheapq_heappush_obj) },
-    { MP_ROM_QSTR(MP_QSTR_heappop), MP_ROM_PTR(&mod_uheapq_heappop_obj) },
-    { MP_ROM_QSTR(MP_QSTR_heapify), MP_ROM_PTR(&mod_uheapq_heapify_obj) },
+    {MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_uheapq)},
+    {MP_ROM_QSTR(MP_QSTR_heappush), MP_ROM_PTR(&mod_uheapq_heappush_obj)},
+    {MP_ROM_QSTR(MP_QSTR_heappop), MP_ROM_PTR(&mod_uheapq_heappop_obj)},
+    {MP_ROM_QSTR(MP_QSTR_heapify), MP_ROM_PTR(&mod_uheapq_heapify_obj)},
 };
 
 STATIC MP_DEFINE_CONST_DICT(mp_module_uheapq_globals, mp_module_uheapq_globals_table);
 
 const mp_obj_module_t mp_module_uheapq = {
-    .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&mp_module_uheapq_globals,
+    .base = {&mp_type_module},
+    .globals = (mp_obj_dict_t *) &mp_module_uheapq_globals,
 };
 
-#endif //MICROPY_PY_UHEAPQ
+#endif // MICROPY_PY_UHEAPQ

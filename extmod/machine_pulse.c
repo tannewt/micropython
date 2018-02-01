@@ -24,9 +24,9 @@
  * THE SOFTWARE.
  */
 
-#include "py/runtime.h"
-#include "py/mperrno.h"
 #include "extmod/machine_pulse.h"
+#include "py/mperrno.h"
+#include "py/runtime.h"
 
 #if MICROPY_PY_MACHINE_PULSE
 
@@ -34,13 +34,13 @@ mp_uint_t machine_time_pulse_us(mp_hal_pin_obj_t pin, int pulse_level, mp_uint_t
     mp_uint_t start = mp_hal_ticks_us();
     while (mp_hal_pin_read(pin) != pulse_level) {
         if ((mp_uint_t)(mp_hal_ticks_us() - start) >= timeout_us) {
-            return (mp_uint_t)-2;
+            return (mp_uint_t) -2;
         }
     }
     start = mp_hal_ticks_us();
     while (mp_hal_pin_read(pin) == pulse_level) {
         if ((mp_uint_t)(mp_hal_ticks_us() - start) >= timeout_us) {
-            return (mp_uint_t)-1;
+            return (mp_uint_t) -1;
         }
     }
     return mp_hal_ticks_us() - start;

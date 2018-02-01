@@ -27,10 +27,10 @@
 #include "py/mpconfig.h"
 #if MICROPY_PY_MACHINE
 
-#include "py/obj.h"
-#include "py/runtime.h"
-#include "extmod/virtpin.h"
-#include "extmod/machine_pinbase.h"
+#    include "extmod/machine_pinbase.h"
+#    include "extmod/virtpin.h"
+#    include "py/obj.h"
+#    include "py/runtime.h"
 
 // PinBase class
 
@@ -42,20 +42,23 @@ typedef struct _mp_pinbase_t {
 } mp_pinbase_t;
 
 STATIC const mp_pinbase_t pinbase_singleton = {
-    .base = { &machine_pinbase_type },
+    .base = {&machine_pinbase_type},
 };
 
-STATIC mp_obj_t pinbase_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
-    (void)type;
-    (void)n_args;
-    (void)n_kw;
-    (void)args;
+STATIC mp_obj_t pinbase_make_new(const mp_obj_type_t *type,
+                                 size_t n_args,
+                                 size_t n_kw,
+                                 const mp_obj_t *args) {
+    (void) type;
+    (void) n_args;
+    (void) n_kw;
+    (void) args;
     return MP_OBJ_FROM_PTR(&pinbase_singleton);
 }
 
 mp_uint_t pinbase_ioctl(mp_obj_t obj, mp_uint_t request, uintptr_t arg, int *errcode);
 mp_uint_t pinbase_ioctl(mp_obj_t obj, mp_uint_t request, uintptr_t arg, int *errcode) {
-    (void)errcode;
+    (void) errcode;
     switch (request) {
         case MP_PIN_READ: {
             mp_obj_t dest[2];
@@ -78,7 +81,7 @@ STATIC const mp_pin_p_t pinbase_pin_p = {
 };
 
 const mp_obj_type_t machine_pinbase_type = {
-    { &mp_type_type },
+    {&mp_type_type},
     .name = MP_QSTR_PinBase,
     .make_new = pinbase_make_new,
     .protocol = &pinbase_pin_p,

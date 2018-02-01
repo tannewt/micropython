@@ -24,11 +24,11 @@
  * THE SOFTWARE.
  */
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
-#include "py/obj.h"
 #include "py/mphal.h"
+#include "py/obj.h"
 
 /******************************************************************************/
 // Low-level 1-Wire routines
@@ -126,7 +126,7 @@ STATIC mp_obj_t onewire_crc8(mp_obj_t data) {
     mp_get_buffer_raise(data, &bufinfo, MP_BUFFER_READ);
     uint8_t crc = 0;
     for (size_t i = 0; i < bufinfo.len; ++i) {
-        uint8_t byte = ((uint8_t*)bufinfo.buf)[i];
+        uint8_t byte = ((uint8_t *) bufinfo.buf)[i];
         for (int b = 0; b < 8; ++b) {
             uint8_t fb_bit = (crc ^ byte) & 0x01;
             if (fb_bit == 0x01) {
@@ -144,19 +144,19 @@ STATIC mp_obj_t onewire_crc8(mp_obj_t data) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(onewire_crc8_obj, onewire_crc8);
 
 STATIC const mp_rom_map_elem_t onewire_module_globals_table[] = {
-    { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_onewire) },
+    {MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_onewire)},
 
-    { MP_ROM_QSTR(MP_QSTR_reset), MP_ROM_PTR(&onewire_reset_obj) },
-    { MP_ROM_QSTR(MP_QSTR_readbit), MP_ROM_PTR(&onewire_readbit_obj) },
-    { MP_ROM_QSTR(MP_QSTR_readbyte), MP_ROM_PTR(&onewire_readbyte_obj) },
-    { MP_ROM_QSTR(MP_QSTR_writebit), MP_ROM_PTR(&onewire_writebit_obj) },
-    { MP_ROM_QSTR(MP_QSTR_writebyte), MP_ROM_PTR(&onewire_writebyte_obj) },
-    { MP_ROM_QSTR(MP_QSTR_crc8), MP_ROM_PTR(&onewire_crc8_obj) },
+    {MP_ROM_QSTR(MP_QSTR_reset), MP_ROM_PTR(&onewire_reset_obj)},
+    {MP_ROM_QSTR(MP_QSTR_readbit), MP_ROM_PTR(&onewire_readbit_obj)},
+    {MP_ROM_QSTR(MP_QSTR_readbyte), MP_ROM_PTR(&onewire_readbyte_obj)},
+    {MP_ROM_QSTR(MP_QSTR_writebit), MP_ROM_PTR(&onewire_writebit_obj)},
+    {MP_ROM_QSTR(MP_QSTR_writebyte), MP_ROM_PTR(&onewire_writebyte_obj)},
+    {MP_ROM_QSTR(MP_QSTR_crc8), MP_ROM_PTR(&onewire_crc8_obj)},
 };
 
 STATIC MP_DEFINE_CONST_DICT(onewire_module_globals, onewire_module_globals_table);
 
 const mp_obj_module_t mp_module_onewire = {
-    .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&onewire_module_globals,
+    .base = {&mp_type_module},
+    .globals = (mp_obj_dict_t *) &onewire_module_globals,
 };

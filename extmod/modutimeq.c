@@ -33,9 +33,9 @@
 
 #if MICROPY_PY_UTIMEQ
 
-#define MODULO MICROPY_PY_UTIME_TICKS_PERIOD
+#    define MODULO MICROPY_PY_UTIME_TICKS_PERIOD
 
-#define DEBUG 0
+#    define DEBUG 0
 
 // the algorithm here is modelled on CPython's heapq.py
 
@@ -68,13 +68,16 @@ STATIC bool time_less_than(struct qentry *item, struct qentry *parent) {
         // as for time, to avoid artifacts when id's overflow.
         return item->id < parent->id;
     }
-    if ((mp_int_t)res < 0) {
+    if ((mp_int_t) res < 0) {
         res += MODULO;
     }
     return res && res < (MODULO / 2);
 }
 
-STATIC mp_obj_t utimeq_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t utimeq_make_new(const mp_obj_type_t *type,
+                                size_t n_args,
+                                size_t n_kw,
+                                const mp_obj_t *args) {
     mp_arg_check_num(n_args, n_kw, 1, 1, false);
     mp_uint_t alloc = mp_obj_get_int(args[0]);
     mp_obj_utimeq_t *o = m_new_obj_var(mp_obj_utimeq_t, struct qentry, alloc);
@@ -122,7 +125,7 @@ STATIC void heap_siftup(mp_obj_utimeq_t *heap, mp_uint_t pos) {
 }
 
 STATIC mp_obj_t mod_utimeq_heappush(size_t n_args, const mp_obj_t *args) {
-    (void)n_args;
+    (void) n_args;
     mp_obj_t heap_in = args[0];
     mp_obj_utimeq_t *heap = get_heap(heap_in);
     if (heap->len == heap->alloc) {
@@ -175,56 +178,59 @@ STATIC mp_obj_t mod_utimeq_peektime(mp_obj_t heap_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_utimeq_peektime_obj, mod_utimeq_peektime);
 
-#if DEBUG
+#    if DEBUG
 STATIC mp_obj_t mod_utimeq_dump(mp_obj_t heap_in) {
     mp_obj_utimeq_t *heap = get_heap(heap_in);
     for (int i = 0; i < heap->len; i++) {
-        printf(UINT_FMT "\t%p\t%p\n", heap->items[i].time,
-            MP_OBJ_TO_PTR(heap->items[i].callback), MP_OBJ_TO_PTR(heap->items[i].args));
+        printf(UINT_FMT "\t%p\t%p\n", heap->items[i].time, MP_OBJ_TO_PTR(heap->items[i].callback),
+               MP_OBJ_TO_PTR(heap->items[i].args));
     }
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_utimeq_dump_obj, mod_utimeq_dump);
-#endif
+#    endif
 
 STATIC mp_obj_t utimeq_unary_op(mp_unary_op_t op, mp_obj_t self_in) {
     mp_obj_utimeq_t *self = MP_OBJ_TO_PTR(self_in);
     switch (op) {
-        case MP_UNARY_OP_BOOL: return mp_obj_new_bool(self->len != 0);
-        case MP_UNARY_OP_LEN: return MP_OBJ_NEW_SMALL_INT(self->len);
-        default: return MP_OBJ_NULL; // op not supported
+        case MP_UNARY_OP_BOOL:
+            return mp_obj_new_bool(self->len != 0);
+        case MP_UNARY_OP_LEN:
+            return MP_OBJ_NEW_SMALL_INT(self->len);
+        default:
+            return MP_OBJ_NULL; // op not supported
     }
 }
 
 STATIC const mp_rom_map_elem_t utimeq_locals_dict_table[] = {
-    { MP_ROM_QSTR(MP_QSTR_push), MP_ROM_PTR(&mod_utimeq_heappush_obj) },
-    { MP_ROM_QSTR(MP_QSTR_pop), MP_ROM_PTR(&mod_utimeq_heappop_obj) },
-    { MP_ROM_QSTR(MP_QSTR_peektime), MP_ROM_PTR(&mod_utimeq_peektime_obj) },
-    #if DEBUG
-    { MP_ROM_QSTR(MP_QSTR_dump), MP_ROM_PTR(&mod_utimeq_dump_obj) },
-    #endif
+    {MP_ROM_QSTR(MP_QSTR_push), MP_ROM_PTR(&mod_utimeq_heappush_obj)},
+    {MP_ROM_QSTR(MP_QSTR_pop), MP_ROM_PTR(&mod_utimeq_heappop_obj)},
+    {MP_ROM_QSTR(MP_QSTR_peektime), MP_ROM_PTR(&mod_utimeq_peektime_obj)},
+#    if DEBUG
+    {MP_ROM_QSTR(MP_QSTR_dump), MP_ROM_PTR(&mod_utimeq_dump_obj)},
+#    endif
 };
 
 STATIC MP_DEFINE_CONST_DICT(utimeq_locals_dict, utimeq_locals_dict_table);
 
 STATIC const mp_obj_type_t utimeq_type = {
-    { &mp_type_type },
+    {&mp_type_type},
     .name = MP_QSTR_utimeq,
     .make_new = utimeq_make_new,
     .unary_op = utimeq_unary_op,
-    .locals_dict = (void*)&utimeq_locals_dict,
+    .locals_dict = (void *) &utimeq_locals_dict,
 };
 
 STATIC const mp_rom_map_elem_t mp_module_utimeq_globals_table[] = {
-    { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_utimeq) },
-    { MP_ROM_QSTR(MP_QSTR_utimeq), MP_ROM_PTR(&utimeq_type) },
+    {MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_utimeq)},
+    {MP_ROM_QSTR(MP_QSTR_utimeq), MP_ROM_PTR(&utimeq_type)},
 };
 
 STATIC MP_DEFINE_CONST_DICT(mp_module_utimeq_globals, mp_module_utimeq_globals_table);
 
 const mp_obj_module_t mp_module_utimeq = {
-    .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&mp_module_utimeq_globals,
+    .base = {&mp_type_module},
+    .globals = (mp_obj_dict_t *) &mp_module_utimeq_globals,
 };
 
-#endif //MICROPY_PY_UTIMEQ
+#endif // MICROPY_PY_UTIMEQ

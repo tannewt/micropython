@@ -28,26 +28,29 @@
 #include "py/mpconfig.h"
 #if MICROPY_VFS_FAT
 
-#if !MICROPY_VFS
-#error "with MICROPY_VFS_FAT enabled, must also enable MICROPY_VFS"
-#endif
+#    if !MICROPY_VFS
+#        error "with MICROPY_VFS_FAT enabled, must also enable MICROPY_VFS"
+#    endif
 
-#include <string.h>
-#include "py/runtime.h"
-#include "py/mperrno.h"
-#include "lib/oofatfs/ff.h"
-#include "extmod/vfs_fat.h"
-#include "lib/timeutils/timeutils.h"
+#    include "extmod/vfs_fat.h"
+#    include "lib/oofatfs/ff.h"
+#    include "lib/timeutils/timeutils.h"
+#    include "py/mperrno.h"
+#    include "py/runtime.h"
+#    include <string.h>
 
-#if _MAX_SS == _MIN_SS
-#define SECSIZE(fs) (_MIN_SS)
-#else
-#define SECSIZE(fs) ((fs)->ssize)
-#endif
+#    if _MAX_SS == _MIN_SS
+#        define SECSIZE(fs) (_MIN_SS)
+#    else
+#        define SECSIZE(fs) ((fs)->ssize)
+#    endif
 
-#define mp_obj_fat_vfs_t fs_user_mount_t
+#    define mp_obj_fat_vfs_t fs_user_mount_t
 
-STATIC mp_obj_t fat_vfs_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
+STATIC mp_obj_t fat_vfs_make_new(const mp_obj_type_t *type,
+                                 size_t n_args,
+                                 size_t n_kw,
+                                 const mp_obj_t *args) {
     mp_arg_check_num(n_args, n_kw, 1, 1, false);
 
     // create new object
@@ -157,7 +160,6 @@ STATIC mp_obj_t fat_vfs_rename(mp_obj_t vfs_in, mp_obj_t path_in, mp_obj_t path_
     } else {
         mp_raise_OSError(fresult_to_errno_table[res]);
     }
-
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_3(fat_vfs_rename_obj, fat_vfs_rename);
 
@@ -229,13 +231,8 @@ STATIC mp_obj_t fat_vfs_stat(mp_obj_t vfs_in, mp_obj_t path_in) {
         mode |= MP_S_IFREG;
     }
     mp_int_t seconds = timeutils_seconds_since_2000(
-        1980 + ((fno.fdate >> 9) & 0x7f),
-        (fno.fdate >> 5) & 0x0f,
-        fno.fdate & 0x1f,
-        (fno.ftime >> 11) & 0x1f,
-        (fno.ftime >> 5) & 0x3f,
-        2 * (fno.ftime & 0x1f)
-    );
+        1980 + ((fno.fdate >> 9) & 0x7f), (fno.fdate >> 5) & 0x0f, fno.fdate & 0x1f,
+        (fno.ftime >> 11) & 0x1f, (fno.ftime >> 5) & 0x3f, 2 * (fno.ftime & 0x1f));
     t->items[0] = MP_OBJ_NEW_SMALL_INT(mode); // st_mode
     t->items[1] = MP_OBJ_NEW_SMALL_INT(0); // st_ino
     t->items[2] = MP_OBJ_NEW_SMALL_INT(0); // st_dev
@@ -254,7 +251,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_2(fat_vfs_stat_obj, fat_vfs_stat);
 // Get the status of a VFS.
 STATIC mp_obj_t fat_vfs_statvfs(mp_obj_t vfs_in, mp_obj_t path_in) {
     mp_obj_fat_vfs_t *self = MP_OBJ_TO_PTR(vfs_in);
-    (void)path_in;
+    (void) path_in;
 
     DWORD nclst;
     FATFS *fatfs = &self->fatfs;
@@ -318,27 +315,27 @@ STATIC mp_obj_t vfs_fat_umount(mp_obj_t self_in) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(fat_vfs_umount_obj, vfs_fat_umount);
 
 STATIC const mp_rom_map_elem_t fat_vfs_locals_dict_table[] = {
-    { MP_ROM_QSTR(MP_QSTR_mkfs), MP_ROM_PTR(&fat_vfs_mkfs_obj) },
-    { MP_ROM_QSTR(MP_QSTR_open), MP_ROM_PTR(&fat_vfs_open_obj) },
-    { MP_ROM_QSTR(MP_QSTR_ilistdir), MP_ROM_PTR(&fat_vfs_ilistdir_obj) },
-    { MP_ROM_QSTR(MP_QSTR_mkdir), MP_ROM_PTR(&fat_vfs_mkdir_obj) },
-    { MP_ROM_QSTR(MP_QSTR_rmdir), MP_ROM_PTR(&fat_vfs_rmdir_obj) },
-    { MP_ROM_QSTR(MP_QSTR_chdir), MP_ROM_PTR(&fat_vfs_chdir_obj) },
-    { MP_ROM_QSTR(MP_QSTR_getcwd), MP_ROM_PTR(&fat_vfs_getcwd_obj) },
-    { MP_ROM_QSTR(MP_QSTR_remove), MP_ROM_PTR(&fat_vfs_remove_obj) },
-    { MP_ROM_QSTR(MP_QSTR_rename), MP_ROM_PTR(&fat_vfs_rename_obj) },
-    { MP_ROM_QSTR(MP_QSTR_stat), MP_ROM_PTR(&fat_vfs_stat_obj) },
-    { MP_ROM_QSTR(MP_QSTR_statvfs), MP_ROM_PTR(&fat_vfs_statvfs_obj) },
-    { MP_ROM_QSTR(MP_QSTR_mount), MP_ROM_PTR(&vfs_fat_mount_obj) },
-    { MP_ROM_QSTR(MP_QSTR_umount), MP_ROM_PTR(&fat_vfs_umount_obj) },
+    {MP_ROM_QSTR(MP_QSTR_mkfs), MP_ROM_PTR(&fat_vfs_mkfs_obj)},
+    {MP_ROM_QSTR(MP_QSTR_open), MP_ROM_PTR(&fat_vfs_open_obj)},
+    {MP_ROM_QSTR(MP_QSTR_ilistdir), MP_ROM_PTR(&fat_vfs_ilistdir_obj)},
+    {MP_ROM_QSTR(MP_QSTR_mkdir), MP_ROM_PTR(&fat_vfs_mkdir_obj)},
+    {MP_ROM_QSTR(MP_QSTR_rmdir), MP_ROM_PTR(&fat_vfs_rmdir_obj)},
+    {MP_ROM_QSTR(MP_QSTR_chdir), MP_ROM_PTR(&fat_vfs_chdir_obj)},
+    {MP_ROM_QSTR(MP_QSTR_getcwd), MP_ROM_PTR(&fat_vfs_getcwd_obj)},
+    {MP_ROM_QSTR(MP_QSTR_remove), MP_ROM_PTR(&fat_vfs_remove_obj)},
+    {MP_ROM_QSTR(MP_QSTR_rename), MP_ROM_PTR(&fat_vfs_rename_obj)},
+    {MP_ROM_QSTR(MP_QSTR_stat), MP_ROM_PTR(&fat_vfs_stat_obj)},
+    {MP_ROM_QSTR(MP_QSTR_statvfs), MP_ROM_PTR(&fat_vfs_statvfs_obj)},
+    {MP_ROM_QSTR(MP_QSTR_mount), MP_ROM_PTR(&vfs_fat_mount_obj)},
+    {MP_ROM_QSTR(MP_QSTR_umount), MP_ROM_PTR(&fat_vfs_umount_obj)},
 };
 STATIC MP_DEFINE_CONST_DICT(fat_vfs_locals_dict, fat_vfs_locals_dict_table);
 
 const mp_obj_type_t mp_fat_vfs_type = {
-    { &mp_type_type },
+    {&mp_type_type},
     .name = MP_QSTR_VfsFat,
     .make_new = fat_vfs_make_new,
-    .locals_dict = (mp_obj_dict_t*)&fat_vfs_locals_dict,
+    .locals_dict = (mp_obj_dict_t *) &fat_vfs_locals_dict,
 };
 
 #endif // MICROPY_VFS_FAT

@@ -26,8 +26,8 @@
 #ifndef MICROPY_INCLUDED_EXTMOD_MACHINE_PULSE_H
 #define MICROPY_INCLUDED_EXTMOD_MACHINE_PULSE_H
 
-#include "py/obj.h"
 #include "py/mphal.h"
+#include "py/obj.h"
 
 mp_uint_t machine_time_pulse_us(mp_hal_pin_obj_t pin, int pulse_level, mp_uint_t timeout_us);
 

@@ -39,20 +39,19 @@
 STATIC uint32_t yasmarang_pad = 0xeda4baba, yasmarang_n = 69, yasmarang_d = 233;
 STATIC uint8_t yasmarang_dat = 0;
 
-STATIC uint32_t yasmarang(void)
-{
-   yasmarang_pad += yasmarang_dat + yasmarang_d * yasmarang_n;
-   yasmarang_pad = (yasmarang_pad<<3) + (yasmarang_pad>>29);
-   yasmarang_n = yasmarang_pad | 2;
-   yasmarang_d ^= (yasmarang_pad<<31) + (yasmarang_pad>>1);
-   yasmarang_dat ^= (char) yasmarang_pad ^ (yasmarang_d>>8) ^ 1;
+STATIC uint32_t yasmarang(void) {
+    yasmarang_pad += yasmarang_dat + yasmarang_d * yasmarang_n;
+    yasmarang_pad = (yasmarang_pad << 3) + (yasmarang_pad >> 29);
+    yasmarang_n = yasmarang_pad | 2;
+    yasmarang_d ^= (yasmarang_pad << 31) + (yasmarang_pad >> 1);
+    yasmarang_dat ^= (char) yasmarang_pad ^ (yasmarang_d >> 8) ^ 1;
 
-   return (yasmarang_pad^(yasmarang_d<<5)^(yasmarang_pad>>18)^(yasmarang_dat<<1));
-}  /* yasmarang */
+    return (yasmarang_pad ^ (yasmarang_d << 5) ^ (yasmarang_pad >> 18) ^ (yasmarang_dat << 1));
+} /* yasmarang */
 
 // End of Yasmarang
 
-#if MICROPY_PY_URANDOM_EXTRA_FUNCS
+#    if MICROPY_PY_URANDOM_EXTRA_FUNCS
 
 // returns an unsigned integer below the given argument
 // n must not be zero
@@ -68,7 +67,7 @@ STATIC uint32_t yasmarang_randbelow(uint32_t n) {
     return r;
 }
 
-#endif
+#    endif
 
 STATIC mp_obj_t mod_urandom_getrandbits(mp_obj_t num_in) {
     int n = mp_obj_get_int(num_in);
@@ -92,7 +91,7 @@ STATIC mp_obj_t mod_urandom_seed(mp_obj_t seed_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_urandom_seed_obj, mod_urandom_seed);
 
-#if MICROPY_PY_URANDOM_EXTRA_FUNCS
+#    if MICROPY_PY_URANDOM_EXTRA_FUNCS
 
 STATIC mp_obj_t mod_urandom_randrange(size_t n_args, const mp_obj_t *args) {
     mp_int_t start = mp_obj_get_int(args[0]);
@@ -157,29 +156,33 @@ STATIC mp_obj_t mod_urandom_choice(mp_obj_t seq) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(mod_urandom_choice_obj, mod_urandom_choice);
 
-#if MICROPY_PY_BUILTINS_FLOAT
+#        if MICROPY_PY_BUILTINS_FLOAT
 
 // returns a number in the range [0..1) using Yasmarang to fill in the fraction bits
 STATIC mp_float_t yasmarang_float(void) {
-    #if MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_DOUBLE
+#            if MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_DOUBLE
     typedef uint64_t mp_float_int_t;
-    #elif MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_FLOAT
+#            elif MICROPY_FLOAT_IMPL == MICROPY_FLOAT_IMPL_FLOAT
     typedef uint32_t mp_float_int_t;
-    #endif
+#            endif
     union {
         mp_float_t f;
-        #if MP_ENDIANNESS_LITTLE
-        struct { mp_float_int_t frc:MP_FLOAT_FRAC_BITS, exp:MP_FLOAT_EXP_BITS, sgn:1; } p;
-        #else
-        struct { mp_float_int_t sgn:1, exp:MP_FLOAT_EXP_BITS, frc:MP_FLOAT_FRAC_BITS; } p;
-        #endif
+#            if MP_ENDIANNESS_LITTLE
+        struct {
+            mp_float_int_t frc : MP_FLOAT_FRAC_BITS, exp : MP_FLOAT_EXP_BITS, sgn : 1;
+        } p;
+#            else
+        struct {
+            mp_float_int_t sgn : 1, exp : MP_FLOAT_EXP_BITS, frc : MP_FLOAT_FRAC_BITS;
+        } p;
+#            endif
     } u;
     u.p.sgn = 0;
     u.p.exp = (1 << (MP_FLOAT_EXP_BITS - 1)) - 1;
     if (MP_FLOAT_FRAC_BITS <= 32) {
         u.p.frc = yasmarang();
     } else {
-        u.p.frc = ((uint64_t)yasmarang() << 32) | (uint64_t)yasmarang();
+        u.p.frc = ((uint64_t) yasmarang() << 32) | (uint64_t) yasmarang();
     }
     return u.f - 1;
 }
@@ -196,30 +199,30 @@ STATIC mp_obj_t mod_urandom_uniform(mp_obj_t a_in, mp_obj_t b_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(mod_urandom_uniform_obj, mod_urandom_uniform);
 
-#endif
+#        endif
 
-#endif // MICROPY_PY_URANDOM_EXTRA_FUNCS
+#    endif // MICROPY_PY_URANDOM_EXTRA_FUNCS
 
 STATIC const mp_rom_map_elem_t mp_module_urandom_globals_table[] = {
-    { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_urandom) },
-    { MP_ROM_QSTR(MP_QSTR_getrandbits), MP_ROM_PTR(&mod_urandom_getrandbits_obj) },
-    { MP_ROM_QSTR(MP_QSTR_seed), MP_ROM_PTR(&mod_urandom_seed_obj) },
-    #if MICROPY_PY_URANDOM_EXTRA_FUNCS
-    { MP_ROM_QSTR(MP_QSTR_randrange), MP_ROM_PTR(&mod_urandom_randrange_obj) },
-    { MP_ROM_QSTR(MP_QSTR_randint), MP_ROM_PTR(&mod_urandom_randint_obj) },
-    { MP_ROM_QSTR(MP_QSTR_choice), MP_ROM_PTR(&mod_urandom_choice_obj) },
-    #if MICROPY_PY_BUILTINS_FLOAT
-    { MP_ROM_QSTR(MP_QSTR_random), MP_ROM_PTR(&mod_urandom_random_obj) },
-    { MP_ROM_QSTR(MP_QSTR_uniform), MP_ROM_PTR(&mod_urandom_uniform_obj) },
-    #endif
-    #endif
+    {MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_urandom)},
+    {MP_ROM_QSTR(MP_QSTR_getrandbits), MP_ROM_PTR(&mod_urandom_getrandbits_obj)},
+    {MP_ROM_QSTR(MP_QSTR_seed), MP_ROM_PTR(&mod_urandom_seed_obj)},
+#    if MICROPY_PY_URANDOM_EXTRA_FUNCS
+    {MP_ROM_QSTR(MP_QSTR_randrange), MP_ROM_PTR(&mod_urandom_randrange_obj)},
+    {MP_ROM_QSTR(MP_QSTR_randint), MP_ROM_PTR(&mod_urandom_randint_obj)},
+    {MP_ROM_QSTR(MP_QSTR_choice), MP_ROM_PTR(&mod_urandom_choice_obj)},
+#        if MICROPY_PY_BUILTINS_FLOAT
+    {MP_ROM_QSTR(MP_QSTR_random), MP_ROM_PTR(&mod_urandom_random_obj)},
+    {MP_ROM_QSTR(MP_QSTR_uniform), MP_ROM_PTR(&mod_urandom_uniform_obj)},
+#        endif
+#    endif
 };
 
 STATIC MP_DEFINE_CONST_DICT(mp_module_urandom_globals, mp_module_urandom_globals_table);
 
 const mp_obj_module_t mp_module_urandom = {
-    .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&mp_module_urandom_globals,
+    .base = {&mp_type_module},
+    .globals = (mp_obj_dict_t *) &mp_module_urandom_globals,
 };
 
-#endif //MICROPY_PY_URANDOM
+#endif // MICROPY_PY_URANDOM

@@ -25,14 +25,14 @@
  * THE SOFTWARE.
  */
 
-#include <string.h>
 #include "py/mpconfig.h"
+#include <string.h>
 
-#include "py/runtime.h"
-#include "py/objtuple.h"
-#include "py/objarray.h"
-#include "py/stream.h"
 #include "lib/utils/interrupt_char.h"
+#include "py/objarray.h"
+#include "py/objtuple.h"
+#include "py/runtime.h"
+#include "py/stream.h"
 
 #ifdef MICROPY_PY_OS_DUPTERM
 
@@ -73,15 +73,16 @@ int mp_uos_dupterm_rx_chr(void) {
                 mp_buffer_info_t bufinfo;
                 mp_get_buffer_raise(MP_STATE_VM(dupterm_arr_obj), &bufinfo, MP_BUFFER_READ);
                 nlr_pop();
-                if (*(byte*)bufinfo.buf == mp_interrupt_char) {
+                if (*(byte *) bufinfo.buf == mp_interrupt_char) {
                     // Signal keyboard interrupt to be raised as soon as the VM resumes
                     mp_keyboard_interrupt();
                     return -2;
                 }
-                return *(byte*)bufinfo.buf;
+                return *(byte *) bufinfo.buf;
             }
         } else {
-            mp_uos_deactivate(idx, "dupterm: Exception in read() method, deactivating: ", nlr.ret_val);
+            mp_uos_deactivate(idx,
+                              "dupterm: Exception in read() method, deactivating: ", nlr.ret_val);
         }
     }
 
@@ -101,7 +102,7 @@ void mp_uos_dupterm_tx_strn(const char *str, size_t len) {
 
             mp_obj_array_t *arr = MP_OBJ_TO_PTR(MP_STATE_VM(dupterm_arr_obj));
             void *org_items = arr->items;
-            arr->items = (void*)str;
+            arr->items = (void *) str;
             arr->len = len;
             write_m[2] = MP_STATE_VM(dupterm_arr_obj);
             mp_call_method_n_kw(1, 0, write_m);
@@ -110,7 +111,8 @@ void mp_uos_dupterm_tx_strn(const char *str, size_t len) {
             arr->len = 1;
             nlr_pop();
         } else {
-            mp_uos_deactivate(idx, "dupterm: Exception in write() method, deactivating: ", nlr.ret_val);
+            mp_uos_deactivate(idx,
+                              "dupterm: Exception in write() method, deactivating: ", nlr.ret_val);
         }
     }
 }

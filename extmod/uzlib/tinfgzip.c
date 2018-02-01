@@ -35,44 +35,45 @@
 
 #include "tinf.h"
 
-#define FTEXT    1
-#define FHCRC    2
-#define FEXTRA   4
-#define FNAME    8
+#define FTEXT 1
+#define FHCRC 2
+#define FEXTRA 4
+#define FNAME 8
 #define FCOMMENT 16
 
 void tinf_skip_bytes(TINF_DATA *d, int num);
 uint16_t tinf_get_uint16(TINF_DATA *d);
 
-void tinf_skip_bytes(TINF_DATA *d, int num)
-{
-    while (num--) uzlib_get_byte(d);
+void tinf_skip_bytes(TINF_DATA *d, int num) {
+    while (num--)
+        uzlib_get_byte(d);
 }
 
-uint16_t tinf_get_uint16(TINF_DATA *d)
-{
+uint16_t tinf_get_uint16(TINF_DATA *d) {
     unsigned int v = uzlib_get_byte(d);
     v = (uzlib_get_byte(d) << 8) | v;
     return v;
 }
 
-int uzlib_gzip_parse_header(TINF_DATA *d)
-{
+int uzlib_gzip_parse_header(TINF_DATA *d) {
     unsigned char flg;
 
     /* -- check format -- */
 
     /* check id bytes */
-    if (uzlib_get_byte(d) != 0x1f || uzlib_get_byte(d) != 0x8b) return TINF_DATA_ERROR;
+    if (uzlib_get_byte(d) != 0x1f || uzlib_get_byte(d) != 0x8b)
+        return TINF_DATA_ERROR;
 
     /* check method is deflate */
-    if (uzlib_get_byte(d) != 8) return TINF_DATA_ERROR;
+    if (uzlib_get_byte(d) != 8)
+        return TINF_DATA_ERROR;
 
     /* get flag byte */
     flg = uzlib_get_byte(d);
 
     /* check that reserved bits are zero */
-    if (flg & 0xe0) return TINF_DATA_ERROR;
+    if (flg & 0xe0)
+        return TINF_DATA_ERROR;
 
     /* -- find start of compressed data -- */
 
@@ -80,26 +81,30 @@ int uzlib_gzip_parse_header(TINF_DATA *d)
     tinf_skip_bytes(d, 6);
 
     /* skip extra data if present */
-    if (flg & FEXTRA)
-    {
-       unsigned int xlen = tinf_get_uint16(d);
-       tinf_skip_bytes(d, xlen);
+    if (flg & FEXTRA) {
+        unsigned int xlen = tinf_get_uint16(d);
+        tinf_skip_bytes(d, xlen);
     }
 
     /* skip file name if present */
-    if (flg & FNAME) { while (uzlib_get_byte(d)); }
+    if (flg & FNAME) {
+        while (uzlib_get_byte(d))
+            ;
+    }
 
     /* skip file comment if present */
-    if (flg & FCOMMENT) { while (uzlib_get_byte(d)); }
+    if (flg & FCOMMENT) {
+        while (uzlib_get_byte(d))
+            ;
+    }
 
     /* check header crc if present */
-    if (flg & FHCRC)
-    {
-       /*unsigned int hcrc =*/ tinf_get_uint16(d);
+    if (flg & FHCRC) {
+        /*unsigned int hcrc =*/tinf_get_uint16(d);
 
         // TODO: Check!
-//       if (hcrc != (tinf_crc32(src, start - src) & 0x0000ffff))
-//          return TINF_DATA_ERROR;
+        //       if (hcrc != (tinf_crc32(src, start - src) & 0x0000ffff))
+        //          return TINF_DATA_ERROR;
     }
 
     /* initialize for crc32 checksum */

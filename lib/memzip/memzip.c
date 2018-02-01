@@ -1,15 +1,15 @@
+#include "memzip.h"
+#include "py/misc.h"
+#include "py/mpconfig.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "py/mpconfig.h"
-#include "py/misc.h"
-#include "memzip.h"
 
 extern uint8_t memzip_data[];
 
 const MEMZIP_FILE_HDR *memzip_find_file_header(const char *filename) {
 
-    const MEMZIP_FILE_HDR *file_hdr = (const MEMZIP_FILE_HDR *)memzip_data;
+    const MEMZIP_FILE_HDR *file_hdr = (const MEMZIP_FILE_HDR *) memzip_data;
     uint8_t *mem_data;
 
     /* Zip file filenames don't have a leading /, so we strip it off */
@@ -18,8 +18,8 @@ const MEMZIP_FILE_HDR *memzip_find_file_header(const char *filename) {
         filename++;
     }
     while (file_hdr->signature == MEMZIP_FILE_HEADER_SIGNATURE) {
-        const char *file_hdr_filename = (const char *)&file_hdr[1];
-        mem_data = (uint8_t *)file_hdr_filename;
+        const char *file_hdr_filename = (const char *) &file_hdr[1];
+        mem_data = (uint8_t *) file_hdr_filename;
         mem_data += file_hdr->filename_len;
         mem_data += file_hdr->extra_len;
         if (!strncmp(file_hdr_filename, filename, file_hdr->filename_len)) {
@@ -27,13 +27,13 @@ const MEMZIP_FILE_HDR *memzip_find_file_header(const char *filename) {
             return file_hdr;
         }
         mem_data += file_hdr->uncompressed_size;
-        file_hdr = (const MEMZIP_FILE_HDR *)mem_data;
+        file_hdr = (const MEMZIP_FILE_HDR *) mem_data;
     }
     return NULL;
 }
 
 bool memzip_is_dir(const char *filename) {
-    const MEMZIP_FILE_HDR *file_hdr = (const MEMZIP_FILE_HDR *)memzip_data;
+    const MEMZIP_FILE_HDR *file_hdr = (const MEMZIP_FILE_HDR *) memzip_data;
     uint8_t *mem_data;
 
     if (strcmp(filename, "/") == 0) {
@@ -48,25 +48,23 @@ bool memzip_is_dir(const char *filename) {
     size_t filename_len = strlen(filename);
 
     while (file_hdr->signature == MEMZIP_FILE_HEADER_SIGNATURE) {
-        const char *file_hdr_filename = (const char *)&file_hdr[1];
+        const char *file_hdr_filename = (const char *) &file_hdr[1];
         if (filename_len < file_hdr->filename_len &&
             strncmp(file_hdr_filename, filename, filename_len) == 0 &&
             file_hdr_filename[filename_len] == '/') {
             return true;
         }
 
-        mem_data = (uint8_t *)file_hdr_filename;
+        mem_data = (uint8_t *) file_hdr_filename;
         mem_data += file_hdr->filename_len;
         mem_data += file_hdr->extra_len;
         mem_data += file_hdr->uncompressed_size;
-        file_hdr = (const MEMZIP_FILE_HDR *)mem_data;
+        file_hdr = (const MEMZIP_FILE_HDR *) mem_data;
     }
     return NULL;
-
 }
 
-MEMZIP_RESULT memzip_locate(const char *filename, void **data, size_t *len)
-{
+MEMZIP_RESULT memzip_locate(const char *filename, void **data, size_t *len) {
     const MEMZIP_FILE_HDR *file_hdr = memzip_find_file_header(filename);
     if (file_hdr == NULL) {
         return MZ_NO_FILE;
@@ -76,7 +74,7 @@ MEMZIP_RESULT memzip_locate(const char *filename, void **data, size_t *len)
     }
 
     uint8_t *mem_data;
-    mem_data = (uint8_t *)&file_hdr[1];
+    mem_data = (uint8_t *) &file_hdr[1];
     mem_data += file_hdr->filename_len;
     mem_data += file_hdr->extra_len;
 

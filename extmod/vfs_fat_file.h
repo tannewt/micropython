@@ -31,11 +31,11 @@
 
 #if MICROPY_VFS && MICROPY_VFS_FAT
 
-#include "lib/oofatfs/ff.h"
-#include "py/obj.h"
+#    include "lib/oofatfs/ff.h"
+#    include "py/obj.h"
 
-#define mp_type_fileio fatfs_type_fileio
-#define mp_type_textio fatfs_type_textio
+#    define mp_type_fileio fatfs_type_fileio
+#    define mp_type_textio fatfs_type_textio
 
 extern const mp_obj_type_t mp_type_fileio;
 extern const mp_obj_type_t mp_type_textio;
@@ -45,6 +45,6 @@ typedef struct _pyb_file_obj_t {
     FIL fp;
 } pyb_file_obj_t;
 
-#endif  // MICROPY_VFS && MICROPY_VFS_FAT
+#    endif // MICROPY_VFS && MICROPY_VFS_FAT
 
-#endif  // MICROPY_INCLUDED_EXTMOD_VFS_FAT_FILE_H
+#endif // MICROPY_INCLUDED_EXTMOD_VFS_FAT_FILE_H

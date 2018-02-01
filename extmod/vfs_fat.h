@@ -26,15 +26,15 @@
 #ifndef MICROPY_INCLUDED_EXTMOD_VFS_FAT_H
 #define MICROPY_INCLUDED_EXTMOD_VFS_FAT_H
 
+#include "extmod/vfs.h"
+#include "lib/oofatfs/ff.h"
 #include "py/lexer.h"
 #include "py/obj.h"
-#include "lib/oofatfs/ff.h"
-#include "extmod/vfs.h"
 
 // these are the values for fs_user_mount_t.flags
-#define FSUSER_NATIVE        (0x0001) // readblocks[2]/writeblocks[2] contain native func
-#define FSUSER_FREE_OBJ      (0x0002) // fs_user_mount_t obj should be freed on umount
-#define FSUSER_HAVE_IOCTL    (0x0004) // new protocol with ioctl
+#define FSUSER_NATIVE (0x0001) // readblocks[2]/writeblocks[2] contain native func
+#define FSUSER_FREE_OBJ (0x0002) // fs_user_mount_t obj should be freed on umount
+#define FSUSER_HAVE_IOCTL (0x0004) // new protocol with ioctl
 // Device is writable over USB and read-only to MicroPython.
 #define FSUSER_USB_WRITABLE (0x0008)
 
@@ -67,4 +67,4 @@ MP_DECLARE_CONST_FUN_OBJ_KW(fsuser_mount_obj);
 MP_DECLARE_CONST_FUN_OBJ_1(fsuser_umount_obj);
 MP_DECLARE_CONST_FUN_OBJ_KW(fsuser_mkfs_obj);
 
-#endif  // MICROPY_INCLUDED_EXTMOD_VFS_FAT_H
+#endif // MICROPY_INCLUDED_EXTMOD_VFS_FAT_H

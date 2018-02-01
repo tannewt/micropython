@@ -27,22 +27,22 @@
 #include "py/mpconfig.h"
 #if MICROPY_PY_USSL && MICROPY_SSL_MBEDTLS
 
-#include <stdio.h>
-#include <string.h>
-#include <errno.h> // needed because mp_is_nonblocking_error uses system error codes
+#    include <errno.h> // needed because mp_is_nonblocking_error uses system error codes
+#    include <stdio.h>
+#    include <string.h>
 
-#include "py/runtime.h"
-#include "py/stream.h"
+#    include "py/runtime.h"
+#    include "py/stream.h"
 
-// mbedtls_time_t
-#include "mbedtls/platform.h"
-#include "mbedtls/net.h"
-#include "mbedtls/ssl.h"
-#include "mbedtls/x509_crt.h"
-#include "mbedtls/pk.h"
-#include "mbedtls/entropy.h"
-#include "mbedtls/ctr_drbg.h"
-#include "mbedtls/debug.h"
+    // mbedtls_time_t
+#    include "mbedtls/ctr_drbg.h"
+#    include "mbedtls/debug.h"
+#    include "mbedtls/entropy.h"
+#    include "mbedtls/net.h"
+#    include "mbedtls/pk.h"
+#    include "mbedtls/platform.h"
+#    include "mbedtls/ssl.h"
+#    include "mbedtls/x509_crt.h"
 
 typedef struct _mp_obj_ssl_socket_t {
     mp_obj_base_t base;
@@ -65,25 +65,25 @@ struct ssl_args {
 
 STATIC const mp_obj_type_t ussl_socket_type;
 
-#ifdef MBEDTLS_DEBUG_C
+#    ifdef MBEDTLS_DEBUG_C
 STATIC void mbedtls_debug(void *ctx, int level, const char *file, int line, const char *str) {
-    (void)ctx;
-    (void)level;
+    (void) ctx;
+    (void) level;
     printf("DBG:%s:%04d: %s\n", file, line, str);
 }
-#endif
+#    endif
 
 // TODO: FIXME!
 STATIC int null_entropy_func(void *data, unsigned char *output, size_t len) {
-    (void)data;
-    (void)output;
-    (void)len;
+    (void) data;
+    (void) output;
+    (void) len;
     // enjoy random bytes
     return 0;
 }
 
 STATIC int _mbedtls_ssl_send(void *ctx, const byte *buf, size_t len) {
-    mp_obj_t sock = *(mp_obj_t*)ctx;
+    mp_obj_t sock = *(mp_obj_t *) ctx;
 
     const mp_stream_p_t *sock_stream = mp_get_stream_raise(sock, MP_STREAM_OP_WRITE);
     int err;
@@ -100,7 +100,7 @@ STATIC int _mbedtls_ssl_send(void *ctx, const byte *buf, size_t len) {
 }
 
 STATIC int _mbedtls_ssl_recv(void *ctx, byte *buf, size_t len) {
-    mp_obj_t sock = *(mp_obj_t*)ctx;
+    mp_obj_t sock = *(mp_obj_t *) ctx;
 
     const mp_stream_p_t *sock_stream = mp_get_stream_raise(sock, MP_STREAM_OP_READ);
     int err;
@@ -116,13 +116,12 @@ STATIC int _mbedtls_ssl_recv(void *ctx, byte *buf, size_t len) {
     }
 }
 
-
 STATIC mp_obj_ssl_socket_t *socket_new(mp_obj_t sock, struct ssl_args *args) {
-#if MICROPY_PY_USSL_FINALISER
+#    if MICROPY_PY_USSL_FINALISER
     mp_obj_ssl_socket_t *o = m_new_obj_with_finaliser(mp_obj_ssl_socket_t);
-#else
+#    else
     mp_obj_ssl_socket_t *o = m_new_obj(mp_obj_ssl_socket_t);
-#endif
+#    endif
     o->base.type = &ussl_socket_type;
 
     int ret;
@@ -132,32 +131,32 @@ STATIC mp_obj_ssl_socket_t *socket_new(mp_obj_t sock, struct ssl_args *args) {
     mbedtls_x509_crt_init(&o->cert);
     mbedtls_pk_init(&o->pkey);
     mbedtls_ctr_drbg_init(&o->ctr_drbg);
-    #ifdef MBEDTLS_DEBUG_C
+#    ifdef MBEDTLS_DEBUG_C
     // Debug level (0-4)
     mbedtls_debug_set_threshold(0);
-    #endif
+#    endif
 
     mbedtls_entropy_init(&o->entropy);
     const byte seed[] = "upy";
-    ret = mbedtls_ctr_drbg_seed(&o->ctr_drbg, null_entropy_func/*mbedtls_entropy_func*/, &o->entropy, seed, sizeof(seed));
+    ret = mbedtls_ctr_drbg_seed(&o->ctr_drbg, null_entropy_func /*mbedtls_entropy_func*/,
+                                &o->entropy, seed, sizeof(seed));
     if (ret != 0) {
         printf("ret=%d\n", ret);
         assert(0);
     }
 
-    ret = mbedtls_ssl_config_defaults(&o->conf,
-                    args->server_side.u_bool ? MBEDTLS_SSL_IS_SERVER : MBEDTLS_SSL_IS_CLIENT,
-                    MBEDTLS_SSL_TRANSPORT_STREAM,
-                    MBEDTLS_SSL_PRESET_DEFAULT);
+    ret = mbedtls_ssl_config_defaults(
+        &o->conf, args->server_side.u_bool ? MBEDTLS_SSL_IS_SERVER : MBEDTLS_SSL_IS_CLIENT,
+        MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
     if (ret != 0) {
         assert(0);
     }
 
     mbedtls_ssl_conf_authmode(&o->conf, MBEDTLS_SSL_VERIFY_NONE);
     mbedtls_ssl_conf_rng(&o->conf, mbedtls_ctr_drbg_random, &o->ctr_drbg);
-    #ifdef MBEDTLS_DEBUG_C
+#    ifdef MBEDTLS_DEBUG_C
     mbedtls_ssl_conf_dbg(&o->conf, mbedtls_debug, NULL);
-    #endif
+#    endif
 
     ret = mbedtls_ssl_setup(&o->ssl, &o->conf);
     if (ret != 0) {
@@ -177,13 +176,13 @@ STATIC mp_obj_ssl_socket_t *socket_new(mp_obj_t sock, struct ssl_args *args) {
 
     if (args->key.u_obj != MP_OBJ_NULL) {
         size_t key_len;
-        const byte *key = (const byte*)mp_obj_str_get_data(args->key.u_obj, &key_len);
+        const byte *key = (const byte *) mp_obj_str_get_data(args->key.u_obj, &key_len);
         // len should include terminating null
         ret = mbedtls_pk_parse_key(&o->pkey, key, key_len + 1, NULL, 0);
         assert(ret == 0);
 
         size_t cert_len;
-        const byte *cert = (const byte*)mp_obj_str_get_data(args->cert.u_obj, &cert_len);
+        const byte *cert = (const byte *) mp_obj_str_get_data(args->cert.u_obj, &cert_len);
         // len should include terminating null
         ret = mbedtls_x509_crt_parse(&o->cert, cert, cert_len + 1);
         assert(ret == 0);
@@ -194,7 +193,7 @@ STATIC mp_obj_ssl_socket_t *socket_new(mp_obj_t sock, struct ssl_args *args) {
 
     while ((ret = mbedtls_ssl_handshake(&o->ssl)) != 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-            //assert(0);
+            // assert(0);
             printf("mbedtls_ssl_handshake error: -%x\n", -ret);
             mp_raise_OSError(MP_EIO);
         }
@@ -208,13 +207,13 @@ STATIC mp_obj_t mod_ssl_getpeercert(mp_obj_t o_in, mp_obj_t binary_form) {
     if (!mp_obj_is_true(binary_form)) {
         mp_raise_NotImplementedError(NULL);
     }
-    const mbedtls_x509_crt* peer_cert = mbedtls_ssl_get_peer_cert(&o->ssl);
+    const mbedtls_x509_crt *peer_cert = mbedtls_ssl_get_peer_cert(&o->ssl);
     return mp_obj_new_bytes(peer_cert->raw.p, peer_cert->raw.len);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(mod_ssl_getpeercert_obj, mod_ssl_getpeercert);
 
 STATIC void socket_print(const mp_print_t *print, mp_obj_t self_in, mp_print_kind_t kind) {
-    (void)kind;
+    (void) kind;
     mp_obj_ssl_socket_t *self = MP_OBJ_TO_PTR(self_in);
     mp_printf(print, "<_SSLSocket %p>", self);
 }
@@ -277,16 +276,16 @@ STATIC mp_obj_t socket_close(mp_obj_t self_in) {
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(socket_close_obj, socket_close);
 
 STATIC const mp_rom_map_elem_t ussl_socket_locals_dict_table[] = {
-    { MP_ROM_QSTR(MP_QSTR_read), MP_ROM_PTR(&mp_stream_read_obj) },
-    { MP_ROM_QSTR(MP_QSTR_readinto), MP_ROM_PTR(&mp_stream_readinto_obj) },
-    { MP_ROM_QSTR(MP_QSTR_readline), MP_ROM_PTR(&mp_stream_unbuffered_readline_obj) },
-    { MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&mp_stream_write_obj) },
-    { MP_ROM_QSTR(MP_QSTR_setblocking), MP_ROM_PTR(&socket_setblocking_obj) },
-    { MP_ROM_QSTR(MP_QSTR_close), MP_ROM_PTR(&socket_close_obj) },
-#if MICROPY_PY_USSL_FINALISER
-    { MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&socket_close_obj) },
-#endif
-    { MP_ROM_QSTR(MP_QSTR_getpeercert), MP_ROM_PTR(&mod_ssl_getpeercert_obj) },
+    {MP_ROM_QSTR(MP_QSTR_read), MP_ROM_PTR(&mp_stream_read_obj)},
+    {MP_ROM_QSTR(MP_QSTR_readinto), MP_ROM_PTR(&mp_stream_readinto_obj)},
+    {MP_ROM_QSTR(MP_QSTR_readline), MP_ROM_PTR(&mp_stream_unbuffered_readline_obj)},
+    {MP_ROM_QSTR(MP_QSTR_write), MP_ROM_PTR(&mp_stream_write_obj)},
+    {MP_ROM_QSTR(MP_QSTR_setblocking), MP_ROM_PTR(&socket_setblocking_obj)},
+    {MP_ROM_QSTR(MP_QSTR_close), MP_ROM_PTR(&socket_close_obj)},
+#    if MICROPY_PY_USSL_FINALISER
+    {MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&socket_close_obj)},
+#    endif
+    {MP_ROM_QSTR(MP_QSTR_getpeercert), MP_ROM_PTR(&mod_ssl_getpeercert_obj)},
 };
 
 STATIC MP_DEFINE_CONST_DICT(ussl_socket_locals_dict, ussl_socket_locals_dict_table);
@@ -297,46 +296,46 @@ STATIC const mp_stream_p_t ussl_socket_stream_p = {
 };
 
 STATIC const mp_obj_type_t ussl_socket_type = {
-    { &mp_type_type },
+    {&mp_type_type},
     // Save on qstr's, reuse same as for module
     .name = MP_QSTR_ussl,
     .print = socket_print,
     .getiter = NULL,
     .iternext = NULL,
     .protocol = &ussl_socket_stream_p,
-    .locals_dict = (void*)&ussl_socket_locals_dict,
+    .locals_dict = (void *) &ussl_socket_locals_dict,
 };
 
 STATIC mp_obj_t mod_ssl_wrap_socket(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     // TODO: Implement more args
     static const mp_arg_t allowed_args[] = {
-        { MP_QSTR_key, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-        { MP_QSTR_cert, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL} },
-        { MP_QSTR_server_side, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false} },
-        { MP_QSTR_server_hostname, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none} },
+        {MP_QSTR_key, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
+        {MP_QSTR_cert, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = MP_OBJ_NULL}},
+        {MP_QSTR_server_side, MP_ARG_KW_ONLY | MP_ARG_BOOL, {.u_bool = false}},
+        {MP_QSTR_server_hostname, MP_ARG_KW_ONLY | MP_ARG_OBJ, {.u_obj = mp_const_none}},
     };
 
     // TODO: Check that sock implements stream protocol
     mp_obj_t sock = pos_args[0];
 
     struct ssl_args args;
-    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args,
-        MP_ARRAY_SIZE(allowed_args), allowed_args, (mp_arg_val_t*)&args);
+    mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args,
+                     (mp_arg_val_t *) &args);
 
     return MP_OBJ_FROM_PTR(socket_new(sock, &args));
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(mod_ssl_wrap_socket_obj, 1, mod_ssl_wrap_socket);
 
 STATIC const mp_rom_map_elem_t mp_module_ssl_globals_table[] = {
-    { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_ussl) },
-    { MP_ROM_QSTR(MP_QSTR_wrap_socket), MP_ROM_PTR(&mod_ssl_wrap_socket_obj) },
+    {MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_ussl)},
+    {MP_ROM_QSTR(MP_QSTR_wrap_socket), MP_ROM_PTR(&mod_ssl_wrap_socket_obj)},
 };
 
 STATIC MP_DEFINE_CONST_DICT(mp_module_ssl_globals, mp_module_ssl_globals_table);
 
 const mp_obj_module_t mp_module_ussl = {
-    .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&mp_module_ssl_globals,
+    .base = {&mp_type_module},
+    .globals = (mp_obj_dict_t *) &mp_module_ssl_globals,
 };
 
 #endif // MICROPY_PY_USSL

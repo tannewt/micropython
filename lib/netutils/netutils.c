@@ -29,8 +29,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "py/runtime.h"
 #include "lib/netutils/netutils.h"
+#include "py/runtime.h"
 
 // Takes an array with a raw IPv4 address and returns something like '192.168.0.1'.
 mp_obj_t netutils_format_ipv4_addr(uint8_t *ip, netutils_endian_t endian) {
@@ -64,7 +64,7 @@ void netutils_parse_ipv4_addr(mp_obj_t addr_in, uint8_t *out_ip, netutils_endian
     }
     const char *s = addr_str;
     const char *s_top = addr_str + addr_len;
-    for (mp_uint_t i = 3 ; ; i--) {
+    for (mp_uint_t i = 3;; i--) {
         mp_uint_t val = 0;
         for (; s < s_top && *s != '.'; s++) {
             val = val * 10 + *s - '0';

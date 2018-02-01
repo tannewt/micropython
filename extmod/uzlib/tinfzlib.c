@@ -35,32 +35,35 @@
 
 #include "tinf.h"
 
-int uzlib_zlib_parse_header(TINF_DATA *d)
-{
-   unsigned char cmf, flg;
+int uzlib_zlib_parse_header(TINF_DATA *d) {
+    unsigned char cmf, flg;
 
-   /* -- get header bytes -- */
+    /* -- get header bytes -- */
 
-   cmf = uzlib_get_byte(d);
-   flg = uzlib_get_byte(d);
+    cmf = uzlib_get_byte(d);
+    flg = uzlib_get_byte(d);
 
-   /* -- check format -- */
+    /* -- check format -- */
 
-   /* check checksum */
-   if ((256*cmf + flg) % 31) return TINF_DATA_ERROR;
+    /* check checksum */
+    if ((256 * cmf + flg) % 31)
+        return TINF_DATA_ERROR;
 
-   /* check method is deflate */
-   if ((cmf & 0x0f) != 8) return TINF_DATA_ERROR;
+    /* check method is deflate */
+    if ((cmf & 0x0f) != 8)
+        return TINF_DATA_ERROR;
 
-   /* check window size is valid */
-   if ((cmf >> 4) > 7) return TINF_DATA_ERROR;
+    /* check window size is valid */
+    if ((cmf >> 4) > 7)
+        return TINF_DATA_ERROR;
 
-   /* check there is no preset dictionary */
-   if (flg & 0x20) return TINF_DATA_ERROR;
+    /* check there is no preset dictionary */
+    if (flg & 0x20)
+        return TINF_DATA_ERROR;
 
-   /* initialize for adler32 checksum */
-   d->checksum_type = TINF_CHKSUM_ADLER;
-   d->checksum = 1;
+    /* initialize for adler32 checksum */
+    d->checksum_type = TINF_CHKSUM_ADLER;
+    d->checksum = 1;
 
-   return cmf >> 4;
+    return cmf >> 4;
 }
