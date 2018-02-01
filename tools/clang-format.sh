@@ -3,7 +3,7 @@ if [ -z "$TRAVIS_COMMIT_RANGE" ]; then
 LIST_FILES="git ls-files"
 CLANG_FORMAT="clang-format"
 else
-LIST_FILES="git diff --name-only ${TRAVIS_COMMIT_RANGE}"
+LIST_FILES="git diff --name-only ${TRAVIS_COMMIT_RANGE/.../..}"
 CLANG_FORMAT="clang-format-5.0"
 fi
 
