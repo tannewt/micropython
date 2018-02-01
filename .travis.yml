@@ -5,6 +5,15 @@ compiler:
   - gcc
 matrix:
   include:
+    - env: TRAVIS_TEST=qemu
+    - env: TRAVIS_TEST=unix
+    - env: TRAVIS_TEST=style
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-5.0
+          packages:
+            - clang-format-5.0
     - env: TRAVIS_BOARD=arduino_zero
     - env: TRAVIS_BOARD=circuitplayground_express
     - env: TRAVIS_BOARD=feather_m0_basic
@@ -17,15 +26,6 @@ matrix:
     - env: TRAVIS_BOARD=trinket_m0
     - env: TRAVIS_BOARD=gemma_m0
     - env: TRAVIS_BOARD=feather52
-    - env: TRAVIS_TEST=qemu
-    - env: TRAVIS_TEST=unix
-    - env: TRAVIS_TEST=style
-      addons:
-        apt:
-          sources:
-            - llvm-toolchain-trusty-6.0
-          packages:
-            - clang-format-6.0
 
 addons:
   artifacts:

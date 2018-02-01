@@ -4,7 +4,7 @@ LIST_FILES="git ls-files"
 CLANG_FORMAT="clang-format"
 else
 LIST_FILES="git diff --name-only ${TRAVIS_COMMIT_RANGE}"
-CLANG_FORMAT="clang-format-6.0"
+CLANG_FORMAT="clang-format-5.0"
 fi
 
 eval ${LIST_FILES} | # These files are sourced from ARM
