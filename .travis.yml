@@ -11,9 +11,7 @@ matrix:
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-5.0
-          packages:
-            - clang-format-5.0
+            - ubuntu-toolchain-r-test
     - env: TRAVIS_BOARD=arduino_zero
     - env: TRAVIS_BOARD=circuitplayground_express
     - env: TRAVIS_BOARD=feather_m0_basic
