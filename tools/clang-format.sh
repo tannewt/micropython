@@ -26,6 +26,6 @@ grep -v "^ports/nrf/device" | # These files are sourced from Nordic
 grep -v "^ports/stm32/usbdev" | # These files are sourced from ST
 grep -v "^ports/stm32/usbhost" | # These files are sourced from ST
 grep -v "^tools/tinytest" | # These files are sourced from TinyTest
-xargs ${CLANG_FORMAT} -style=file $*
+xargs -r ${CLANG_FORMAT} -style=file $*
 
 exit $?
