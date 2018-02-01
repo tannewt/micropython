@@ -7,6 +7,9 @@ LIST_FILES="git diff --name-only ${TRAVIS_COMMIT_RANGE}"
 CLANG_FORMAT="clang-format-5.0"
 fi
 
+echo $LIST_FILES
+eval ${LIST_FILES}
+
 eval ${LIST_FILES} | # These files are sourced from ARM
 grep "\.[ch]\$" |
 grep -v "^lib/cmsis" |
@@ -24,3 +27,5 @@ grep -v "^ports/stm32/usbdev" | # These files are sourced from ST
 grep -v "^ports/stm32/usbhost" | # These files are sourced from ST
 grep -v "^tools/tinytest" | # These files are sourced from TinyTest
 xargs ${CLANG_FORMAT} -style=file $*
+
+exit $?
