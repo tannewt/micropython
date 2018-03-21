@@ -4,6 +4,11 @@
 // out on connectors are labeled with their MCU name available from
 // microcontroller.pin.
 STATIC const mp_map_elem_t board_global_dict_table[] = {
+    { MP_OBJ_NEW_QSTR(MP_QSTR_FAR_LEFT_LED),  (mp_obj_t)&pin_PA15 },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_LEFT_LED),  (mp_obj_t)&pin_PB11 },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_RIGHT_LED),  (mp_obj_t)&pin_PA07 },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_FAR_RIGHT_LED),  (mp_obj_t)&pin_PA04 },
+
     { MP_OBJ_NEW_QSTR(MP_QSTR_RELAY1),  (mp_obj_t)&pin_PB03 },
     { MP_OBJ_NEW_QSTR(MP_QSTR_BUZZER),  (mp_obj_t)&pin_PB02 },
     { MP_OBJ_NEW_QSTR(MP_QSTR_RELAY2),  (mp_obj_t)&pin_PA00 },
