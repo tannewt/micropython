@@ -5,7 +5,7 @@
 
 // These are pins not to reset.
 #define MICROPY_PORT_A        (PORT_PA27)
-#define MICROPY_PORT_B        (PORT_PB02)
+#define MICROPY_PORT_B        (0)
 #define MICROPY_PORT_C        (0)
 #define MICROPY_PORT_D        (0)
 
