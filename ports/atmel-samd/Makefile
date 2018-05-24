@@ -307,6 +307,8 @@ SRC_COMMON_HAL = \
 	busio/I2C.c \
 	busio/SPI.c \
 	busio/UART.c \
+	captureio/__init__.c \
+	captureio/Capture.c \
 	digitalio/__init__.c \
 	digitalio/DigitalInOut.c \
 	displayio/ParallelBus.c \
