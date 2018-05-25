@@ -60,17 +60,11 @@
 STATIC mp_obj_t captureio_capture_make_new(const mp_obj_type_t *type,
         mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
     // check number of arguments
-    mp_arg_check_num(n_args, n_kw, 1, 1, false);
-
-    // 1st argument is the pin
-    mp_obj_t pin_obj = args[0];
-    assert_pin(pin_obj, false);
+    mp_arg_check_num(n_args, n_kw, 0, 0, false);
 
     captureio_capture_obj_t *self = m_new_obj(captureio_capture_obj_t);
     self->base.type = &captureio_capture_type;
-    const mcu_pin_obj_t *pin = MP_OBJ_TO_PTR(pin_obj);
-    assert_pin_free(pin);
-    common_hal_captureio_capture_construct(self, pin);
+    common_hal_captureio_capture_construct(self);
 
     return (mp_obj_t) self;
 }
@@ -118,7 +112,7 @@ STATIC mp_obj_t captureio_capture_capture(size_t n_args, const mp_obj_t *pos_arg
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_buffer,    MP_ARG_OBJ | MP_ARG_REQUIRED },
     };
-    audiobusio_i2sout_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
+    captureio_capture_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
     raise_error_if_deinited(common_hal_captureio_capture_deinited(self));
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);

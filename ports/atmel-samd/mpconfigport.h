@@ -213,6 +213,7 @@ extern const struct _mp_obj_module_t bitbangio_module;
 extern const struct _mp_obj_module_t audioio_module;
 extern const struct _mp_obj_module_t audiobusio_module;
 extern const struct _mp_obj_module_t analogio_module;
+extern const struct _mp_obj_module_t captureio_module;
 extern const struct _mp_obj_module_t digitalio_module;
 extern const struct _mp_obj_module_t displayio_module;
 extern const struct _mp_obj_module_t pulseio_module;
@@ -334,7 +335,7 @@ extern const struct _mp_obj_module_t pixelbuf_module;
         JSON_MODULE \
         { MP_OBJ_NEW_QSTR(MP_QSTR_rotaryio), (mp_obj_t)&rotaryio_module }, \
         { MP_OBJ_NEW_QSTR(MP_QSTR_gamepad),(mp_obj_t)&gamepad_module }, \
-        PIXELBUF_MODULE
+        { MP_OBJ_NEW_QSTR(MP_QSTR_captureio),(mp_obj_t)&captureio_module },
     #endif
     #define EXPRESS_BOARD
 
