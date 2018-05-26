@@ -35,6 +35,7 @@ extern const mp_obj_type_t captureio_capture_type;
 void common_hal_captureio_capture_construct(captureio_capture_obj_t* self);
 void common_hal_captureio_capture_deinit(captureio_capture_obj_t* self);
 bool common_hal_captureio_capture_deinited(captureio_capture_obj_t* self);
-void common_hal_captureio_capture_capture(captureio_capture_obj_t* self, uint8_t* buffer, uint32_t buffer_length);
+// Buffer length is in bytes even though the buffer is uint32_t because it'll be casted smaller.
+void common_hal_captureio_capture_capture(captureio_capture_obj_t* self, uint32_t* buffer, uint32_t buffer_length);
 
 #endif  // __MICROPY_INCLUDED_SHARED_BINDINGS_CAPTUREIO_CAPTURE_H__
