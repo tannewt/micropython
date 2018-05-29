@@ -35,18 +35,17 @@
 
 #define RESET_PIN PIN_PB22
 #define CLOCK_PIN PIN_PA04
+#define WRITE_PIN PIN_PA05
+#define HIGH_ADDRESS_PIN PIN_PB15
 
 void common_hal_captureio_capture_construct(captureio_capture_obj_t* self) {
-
-    // Put the CPU  in reset.
-    gpio_set_pin_function(RESET_PIN, GPIO_PIN_FUNCTION_OFF);
-    gpio_set_pin_direction(RESET_PIN, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(RESET_PIN, true);
-
     gpio_set_pin_function(CLOCK_PIN, GPIO_PIN_FUNCTION_A);
+    gpio_set_pin_function(WRITE_PIN, GPIO_PIN_FUNCTION_A);
+    gpio_set_pin_function(HIGH_ADDRESS_PIN, GPIO_PIN_FUNCTION_A);
 
     // Set the address bus as input
     gpio_set_port_direction(GPIO_PORTB, 0x0000ffff, GPIO_DIRECTION_IN);
+
 }
 
 bool common_hal_captureio_capture_deinited(captureio_capture_obj_t *self) {
@@ -73,7 +72,6 @@ void common_hal_captureio_capture_capture(captureio_capture_obj_t* self, uint32_
 
     uint8_t dma_channel = find_free_audio_dma_channel();
 
-
     DmacDescriptor* descriptor = dma_descriptor(dma_channel);
     descriptor->BTCTRL.reg = DMAC_BTCTRL_VALID |
                              DMAC_BTCTRL_BLOCKACT_NOACT |
@@ -87,34 +85,23 @@ void common_hal_captureio_capture_capture(captureio_capture_obj_t* self, uint32_
 
     dma_configure(dma_channel, 0, false);
 
-    MCLK->APBAMASK.bit.EIC_ = true;
-    hri_gclk_write_PCHCTRL_reg(GCLK, EIC_GCLK_ID,
-                               GCLK_PCHCTRL_GEN_GCLK1_Val | (1 << GCLK_PCHCTRL_CHEN_Pos));
-
-
-    uint8_t sense_setting = EIC_CONFIG_FILTEN0 | EIC_CONFIG_SENSE0_FALL_Val;
-
-    EIC->CTRLA.bit.ENABLE = false;
-    while (EIC->SYNCBUSY.bit.ENABLE != 0) {}
-
-    uint8_t position = 16;
-    uint32_t masked_value = EIC->CONFIG[0].reg & ~(0xf << position);
-    EIC->CONFIG[0].reg = masked_value | (sense_setting << position);
-
-    EIC->EVCTRL.reg |= 1 << 4;
-
-    EIC->CTRLA.bit.ENABLE = true;
-    while (EIC->SYNCBUSY.bit.ENABLE != 0) {}
-
-    turn_on_event_system();
-    uint8_t event_channel = find_async_event_channel();
-    init_async_event_channel(event_channel, EVSYS_ID_GEN_EIC_EXTINT_4);
+    uint8_t event_channel = find_sync_event_channel();
+    EVSYS->Channel[event_channel].CHANNEL.reg = EVSYS_CHANNEL_EVGEN(EVSYS_ID_GEN_CCL_LUTOUT_0) |
+                                                EVSYS_CHANNEL_PATH_SYNCHRONOUS |
+                                                EVSYS_CHANNEL_EDGSEL_FALLING_EDGE;
+    EVSYS->Channel[event_channel].CHINTFLAG.reg = 0;
+    EVSYS->Channel[event_channel].CHINTENSET.reg = 0;
     connect_event_user_to_channel(EVSYS_ID_USER_DMAC_CH_0 + dma_channel, event_channel);
-
-    dma_enable_channel(dma_channel);
 
     // Start the CPU
     gpio_set_pin_level(RESET_PIN, false);
+
+    // uint16_t current_address;
+    // do {
+    //     current_address = *((volatile uint16_t*) &PORT->Group[1].IN.reg);
+    // } while (current_address != 0xff26);
+    dma_enable_channel(dma_channel);
+
 
     while (dma_transfer_status(dma_channel) == 0) {}
 

@@ -221,7 +221,7 @@ void reset_port(void) {
     gamepad_reset();
 #endif
 
-    reset_event_system();
+    //reset_event_system();
 
     reset_all_pins();
 
