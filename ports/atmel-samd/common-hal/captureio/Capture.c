@@ -63,35 +63,39 @@ void common_hal_captureio_capture_capture(captureio_capture_obj_t* self, uint32_
     uint32_t buffer_length) {
 
 
+            gpio_set_pin_function(RESET_PIN, GPIO_PIN_FUNCTION_OFF);
+            gpio_set_pin_direction(RESET_PIN, GPIO_DIRECTION_OUT);
+            gpio_set_pin_level(RESET_PIN, true);
+
     // for (uint32_t i = 0; i < buffer_length / 2; i++) {
     //     ((uint16_t*) buffer)[i] = PORT->Group[1].IN.reg;
     //     for (uint32_t j = 0; j < 2000; j++) {
     //         asm("nop");
     //     }
-    // }
-
-    uint8_t dma_channel = find_free_audio_dma_channel();
-
-    DmacDescriptor* descriptor = dma_descriptor(dma_channel);
-    descriptor->BTCTRL.reg = DMAC_BTCTRL_VALID |
-                             DMAC_BTCTRL_BLOCKACT_NOACT |
-                             DMAC_BTCTRL_DSTINC |
-                             DMAC_BTCTRL_BEATSIZE_HWORD;
-
-    descriptor->BTCNT.reg = buffer_length / 2;
-    descriptor->DSTADDR.reg = ((uint32_t) buffer + buffer_length);
-    descriptor->DESCADDR.reg = 0;
-    descriptor->SRCADDR.reg = (uint32_t)&PORT->Group[1].IN.reg;
-
-    dma_configure(dma_channel, 0, false);
-
-    uint8_t event_channel = find_sync_event_channel();
-    EVSYS->Channel[event_channel].CHANNEL.reg = EVSYS_CHANNEL_EVGEN(EVSYS_ID_GEN_CCL_LUTOUT_0) |
-                                                EVSYS_CHANNEL_PATH_SYNCHRONOUS |
-                                                EVSYS_CHANNEL_EDGSEL_FALLING_EDGE;
-    EVSYS->Channel[event_channel].CHINTFLAG.reg = 0;
-    EVSYS->Channel[event_channel].CHINTENSET.reg = 0;
-    connect_event_user_to_channel(EVSYS_ID_USER_DMAC_CH_0 + dma_channel, event_channel);
+    // // }
+    //
+    // uint8_t dma_channel = find_free_audio_dma_channel();
+    //
+    // DmacDescriptor* descriptor = dma_descriptor(dma_channel);
+    // descriptor->BTCTRL.reg = DMAC_BTCTRL_VALID |
+    //                          DMAC_BTCTRL_BLOCKACT_NOACT |
+    //                          DMAC_BTCTRL_DSTINC |
+    //                          DMAC_BTCTRL_BEATSIZE_HWORD;
+    //
+    // descriptor->BTCNT.reg = buffer_length / 2;
+    // descriptor->DSTADDR.reg = ((uint32_t) buffer + buffer_length);
+    // descriptor->DESCADDR.reg = 0;
+    // descriptor->SRCADDR.reg = (uint32_t)&PORT->Group[1].IN.reg;
+    //
+    // dma_configure(dma_channel, 0, false);
+    //
+    // uint8_t event_channel = find_sync_event_channel();
+    // EVSYS->Channel[event_channel].CHANNEL.reg = EVSYS_CHANNEL_EVGEN(EVSYS_ID_GEN_CCL_LUTOUT_0) |
+    //                                             EVSYS_CHANNEL_PATH_SYNCHRONOUS |
+    //                                             EVSYS_CHANNEL_EDGSEL_FALLING_EDGE;
+    // EVSYS->Channel[event_channel].CHINTFLAG.reg = 0;
+    // EVSYS->Channel[event_channel].CHINTENSET.reg = 0;
+    // connect_event_user_to_channel(EVSYS_ID_USER_DMAC_CH_0 + dma_channel, event_channel);
 
     // Start the CPU
     gpio_set_pin_level(RESET_PIN, false);
@@ -100,14 +104,15 @@ void common_hal_captureio_capture_capture(captureio_capture_obj_t* self, uint32_
     // do {
     //     current_address = *((volatile uint16_t*) &PORT->Group[1].IN.reg);
     // } while (current_address != 0xff26);
-    dma_enable_channel(dma_channel);
+    //dma_enable_channel(dma_channel);
 
 
-    while (dma_transfer_status(dma_channel) == 0) {}
+    //while (dma_transfer_status(dma_channel) == 0) {}
+    while(true) {}
 
     // Stop the CPU
     gpio_set_pin_level(RESET_PIN, true);
-    dma_disable_channel(dma_channel);
+    //dma_disable_channel(dma_channel);
 
     if (buffer[0] == 0) {
         asm("nop");
