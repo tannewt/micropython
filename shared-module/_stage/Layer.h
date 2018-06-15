@@ -36,11 +36,12 @@ typedef struct {
     mp_obj_base_t base;
     uint8_t *map;
     uint8_t *graphic;
-    uint8_t *palette;
+    uint16_t *palette;
     int16_t x, y;
     uint8_t width, height;
     uint8_t frame;
     uint8_t rotation;
+    uint8_t tiles_per_byte;
 } layer_obj_t;
 
 uint16_t get_layer_pixel(layer_obj_t *layer, uint16_t x, uint16_t y);

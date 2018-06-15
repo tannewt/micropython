@@ -34,32 +34,45 @@
 bool render_stage(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,
         mp_obj_t *layers, size_t layers_size,
         uint16_t *buffer, size_t buffer_size,
-        busio_spi_obj_t *spi) {
+        busio_spi_obj_t *spi, uint8_t display_scale) {
 
     size_t index = 0;
+    size_t row_size = x1 - x0;
     for (uint16_t y = y0; y < y1; ++y) {
         for (uint16_t x = x0; x < x1; ++x) {
-            for (size_t layer = 0; layer < layers_size; ++layer) {
-                uint16_t c = TRANSPARENT;
-                layer_obj_t *obj = MP_OBJ_TO_PTR(layers[layer]);
-                if (obj->base.type == &mp_type_layer) {
-                    c = get_layer_pixel(obj, x, y);
-                } else if (obj->base.type == &mp_type_text) {
-                    c = get_text_pixel((text_obj_t *)obj, x, y);
+            for(uint8_t subrow = 0; subrow < display_scale; subrow++) {
+                // We've already computed this pixel once a row ago.
+                if (subrow > 0 && index > row_size) {
+                    for (uint8_t subpixel = 0; subpixel < display_scale; subpixel++) {
+                        buffer[index + subpixel] = buffer[index - row_size];
+                    }
+                } else {
+                    for (size_t layer = 0; layer < layers_size; ++layer) {
+                        uint16_t c = TRANSPARENT;
+                        layer_obj_t *obj = MP_OBJ_TO_PTR(layers[layer]);
+                        if (obj->base.type == &mp_type_layer) {
+                            c = get_layer_pixel(obj, x, y);
+                        } else if (obj->base.type == &mp_type_text) {
+                            c = get_text_pixel((text_obj_t *)obj, x, y);
+                        }
+                        if (c != TRANSPARENT) {
+                            for (uint8_t subpixel = 0; subpixel < display_scale; subpixel++) {
+                                buffer[index + subpixel] = c;
+                            }
+                            break;
+                        }
+                    }
                 }
-                if (c != TRANSPARENT) {
-                    buffer[index] = c;
-                    break;
+
+                index += display_scale;
+                // The buffer is full, send it.
+                if (index >= buffer_size) {
+                    if (!common_hal_busio_spi_write(spi,
+                            ((uint8_t*)buffer), buffer_size * 2)) {
+                        return false;
+                    }
+                    index = 0;
                 }
-            }
-            index += 1;
-            // The buffer is full, send it.
-            if (index >= buffer_size) {
-                if (!common_hal_busio_spi_write(spi,
-                        ((uint8_t*)buffer), buffer_size * 2)) {
-                    return false;
-                }
-                index = 0;
             }
         }
     }

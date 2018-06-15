@@ -37,6 +37,6 @@
 bool render_stage(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,
         mp_obj_t *layers, size_t layers_size,
         uint16_t *buffer, size_t buffer_size,
-        busio_spi_obj_t *spi);
+        busio_spi_obj_t *spi, uint8_t display_scale);
 
 #endif  // MICROPY_INCLUDED_SHARED_MODULE__STAGE

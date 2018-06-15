@@ -63,13 +63,15 @@ STATIC mp_obj_t layer_make_new(const mp_obj_type_t *type, size_t n_args,
     self->y = 0;
     self->frame = 0;
     self->rotation = false;
+    self->tiles_per_byte = 2;
 
     mp_buffer_info_t bufinfo;
     mp_get_buffer_raise(args[2], &bufinfo, MP_BUFFER_READ);
     self->graphic = bufinfo.buf;
-    if (bufinfo.len != 2048) {
-        mp_raise_ValueError(translate("graphic must be 2048 bytes long"));
-    }
+
+    // if (bufinfo.len != 2048) {
+    //     mp_raise_ValueError(translate("graphic must be 2048 bytes long"));
+    // }
 
     mp_get_buffer_raise(args[3], &bufinfo, MP_BUFFER_READ);
     self->palette = bufinfo.buf;

@@ -60,6 +60,7 @@
 //|     :param list layers: A list of the :py:class:`~_stage.Layer` objects.
 //|     :param bytearray buffer: A buffer to use for rendering.
 //|     :param ~busio.SPI spi: The SPI bus to use.
+//|     :param int display_scale: The scale with which to draw the display.
 //|
 //|     Note that this function only sends the raw pixel data. Setting up
 //|     the display for receiving it and handling the chip-select and
@@ -80,21 +81,26 @@ STATIC mp_obj_t stage_render(size_t n_args, const mp_obj_t *args) {
     mp_obj_t *layers;
     mp_obj_get_array(args[4], &layers_size, &layers);
 
+    uint8_t display_scale = mp_obj_get_int(args[7]);
+
     mp_buffer_info_t bufinfo;
     mp_get_buffer_raise(args[5], &bufinfo, MP_BUFFER_WRITE);
     uint16_t *buffer = bufinfo.buf;
     size_t buffer_size = bufinfo.len / 2; // 16-bit indexing
+    if (bufinfo.len % (2 * display_scale) != 0) {
+        mp_raise_ValueError("Buffer length must be multiple of 2 * display_scale");
+    }
 
     busio_spi_obj_t *spi = MP_OBJ_TO_PTR(args[6]);
 
     if (!render_stage(x0, y0, x1, y1, layers, layers_size,
-            buffer, buffer_size, spi)) {
+            buffer, buffer_size, spi, display_scale)) {
         mp_raise_OSError(MP_EIO);
     }
 
     return mp_const_none;
 }
-MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(stage_render_obj, 7, 7, stage_render);
+MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(stage_render_obj, 8, 8, stage_render);
 
 
 STATIC const mp_rom_map_elem_t stage_module_globals_table[] = {
