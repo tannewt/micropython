@@ -148,7 +148,7 @@ typedef long mp_off_t;
 #ifdef SAMD51
 #define CIRCUITPY_MCU_FAMILY samd51
 #define MICROPY_PY_SYS_PLATFORM                     "MicroChip SAMD51"
-#define PORT_HEAP_SIZE (0x20000) // 128KiB
+#define PORT_HEAP_SIZE (0x28000) // 128KiB
 #endif
 
 #ifdef LONGINT_IMPL_NONE

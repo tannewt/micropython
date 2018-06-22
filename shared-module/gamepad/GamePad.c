@@ -35,7 +35,7 @@
 #include "shared-bindings/util.h"
 
 
-void gamepad_init(size_t n_pins, const mp_obj_t* pins) {
+void gamepad_init_pins(size_t n_pins, const mp_obj_t* pins) {
     gamepad_obj_t* gamepad_singleton = MP_STATE_VM(gamepad_singleton);
     for (size_t i = 0; i < 8; ++i) {
         gamepad_singleton->pins[i] = NULL;
@@ -56,5 +56,17 @@ void gamepad_init(size_t n_pins, const mp_obj_t* pins) {
         }
         gamepad_singleton->pins[i] = pin;
     }
+    gamepad_singleton->last = 0;
+}
+
+void gamepad_init_bus(digitalio_digitalinout_obj_t *cs_pin, busio_spi_obj_t *spi_bus) {
+    gamepad_obj_t* gamepad_singleton = MP_STATE_VM(gamepad_singleton);
+    for (size_t i = 0; i < 8; ++i) {
+        gamepad_singleton->pins[i] = NULL;
+    }
+    common_hal_digitalio_digitalinout_switch_to_output(cs_pin, true, DRIVE_MODE_PUSH_PULL);
+    gamepad_singleton->cs_pin = cs_pin;
+    gamepad_singleton->spi_bus = spi_bus;
+    gamepad_singleton->pulls = 0xff;
     gamepad_singleton->last = 0;
 }

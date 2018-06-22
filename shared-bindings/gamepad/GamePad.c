@@ -99,20 +99,33 @@ STATIC mp_obj_t gamepad_make_new(const mp_obj_type_t *type, size_t n_args,
     if (n_args > 8) {
         mp_raise_TypeError(translate("too many arguments"));
     }
-    for (size_t i = 0; i < n_args; ++i) {
-        if (!MP_OBJ_IS_TYPE(args[i], &digitalio_digitalinout_type)) {
+
+    bool spi_bus = n_args == 2 && MP_OBJ_IS_TYPE(args[1], &busio_spi_type);
+    if (!spi_bus) {
+        for (size_t i = 0; i < n_args; ++i) {
+            if (!MP_OBJ_IS_TYPE(args[i], &digitalio_digitalinout_type)) {
+                mp_raise_TypeError(translate("expected a DigitalInOut"));
+            }
+            digitalio_digitalinout_obj_t *pin = MP_OBJ_TO_PTR(args[i]);
+            raise_error_if_deinited(
+                common_hal_digitalio_digitalinout_deinited(pin));
+        }
+    } else {
+        if (!MP_OBJ_IS_TYPE(args[0], &digitalio_digitalinout_type)) {
             mp_raise_TypeError(translate("expected a DigitalInOut"));
         }
-        digitalio_digitalinout_obj_t *pin = MP_OBJ_TO_PTR(args[i]);
-        raise_error_if_deinited(
-            common_hal_digitalio_digitalinout_deinited(pin));
     }
     if (!MP_STATE_VM(gamepad_singleton)) {
         gamepad_obj_t* gamepad_singleton = m_new_obj(gamepad_obj_t);
         gamepad_singleton->base.type = &gamepad_type;
         MP_STATE_VM(gamepad_singleton) = gc_make_long_lived(gamepad_singleton);
     }
-    gamepad_init(n_args, args);
+    if (!spi_bus) {
+        gamepad_init_pins(n_args, args);
+    } else {
+        gamepad_init_bus(args[0], args[1]);
+    }
+
     return MP_OBJ_FROM_PTR(MP_STATE_VM(gamepad_singleton));
 }
 

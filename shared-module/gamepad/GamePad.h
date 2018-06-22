@@ -29,16 +29,20 @@
 
 #include <stdint.h>
 
+#include "shared-bindings/busio/SPI.h"
 #include "shared-bindings/digitalio/DigitalInOut.h"
 
 typedef struct {
     mp_obj_base_t base;
     digitalio_digitalinout_obj_t* pins[8];
+    digitalio_digitalinout_obj_t* cs_pin;
+    busio_spi_obj_t *spi_bus;
     volatile uint8_t last;
     volatile uint8_t pressed;
     uint8_t pulls;
 } gamepad_obj_t;
 
-void gamepad_init(size_t n_pins, const mp_obj_t* pins);
+void gamepad_init_pins(size_t n_pins, const mp_obj_t* pins);
+void gamepad_init_bus(digitalio_digitalinout_obj_t* cs_pin, busio_spi_obj_t* spi_bus);
 
 #endif  // MICROPY_INCLUDED_GAMEPAD_GAMEPAD_H

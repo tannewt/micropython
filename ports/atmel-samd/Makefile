@@ -102,7 +102,7 @@ ifeq ($(DEBUG), 1)
   # Turn on Python modules useful for debugging (e.g. uheap, ustack).
   CFLAGS += -ggdb
   # You may want to disable -flto if it interferes with debugging.
-  CFLAGS += -flto
+  # CFLAGS += -flto
   # You may want to enable these flags to make setting breakpoints easier.
 ##   CFLAGS += -fno-inline -fno-ipa-sra
   ifeq ($(CHIP_FAMILY), samd21)
@@ -383,6 +383,7 @@ SRC_SHARED_MODULE = \
 	gamepad/GamePad.c \
 	_stage/__init__.c \
 	_stage/Layer.c \
+	_stage/SpriteSheet.c \
 	_stage/Text.c \
 	os/__init__.c \
 	random/__init__.c \

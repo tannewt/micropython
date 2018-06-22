@@ -24,29 +24,35 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_SHARED_MODULE__STAGE_LAYER_H
-#define MICROPY_INCLUDED_SHARED_MODULE__STAGE_LAYER_H
+#ifndef MICROPY_INCLUDED_SHARED_MODULE__STAGE_SPRITESHEET_H
+#define MICROPY_INCLUDED_SHARED_MODULE__STAGE_SPRITESHEET_H
 
 #include <stdint.h>
 #include <stdbool.h>
 
 #include "py/obj.h"
 
-#include "shared-module/_stage/SpriteSheet.h"
-
 typedef struct {
     mp_obj_base_t base;
-    uint8_t *map;
-    _stage_sprite_sheet_obj_t *graphic;
-    uint16_t *palette;
-    int16_t x, y;
-    uint8_t width, height;
-    uint8_t frame;
-    bool flip_x;
-    bool flip_y;
-    uint8_t tiles_per_byte;
-} layer_obj_t;
+    uint8_t *data;
+    // Dictates the number of colors in the palette as well.
+    uint8_t bits_per_pixel;
+    uint8_t sprite_width;
+    uint8_t sprite_height;
+    uint8_t sheet_width;
+    uint8_t sheet_height;
+    uint8_t pixels_per_byte;
+    uint8_t pixel_mask;
+} _stage_sprite_sheet_obj_t;
 
-uint16_t get_layer_pixel(layer_obj_t *layer, uint16_t x, uint16_t y);
 
-#endif  // MICROPY_INCLUDED_SHARED_MODULE__STAGE_LAYER
+void shared_module__stage_sprite_sheet_construct(_stage_sprite_sheet_obj_t *sprite_sheet,
+    uint8_t* data, uint32_t data_len,
+    uint8_t sheet_width, uint8_t sheet_height,
+    uint8_t bits_per_pixel,
+    uint8_t sprite_width, uint8_t sprite_height);
+
+uint16_t get_sprite_pixel(_stage_sprite_sheet_obj_t *sprite_sheet,
+    uint16_t sprite, uint16_t x, uint16_t y, bool flip_x, bool flip_y);
+
+#endif  // MICROPY_INCLUDED_SHARED_MODULE__STAGE_SPRITESHEET_H

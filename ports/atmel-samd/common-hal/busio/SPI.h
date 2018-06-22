@@ -36,7 +36,7 @@
 typedef struct {
     mp_obj_base_t base;
     struct spi_m_sync_descriptor spi_desc;
-    bool has_lock;
+    volatile bool has_lock;
     uint8_t clock_pin;
     uint8_t MOSI_pin;
     uint8_t MISO_pin;

@@ -39,16 +39,31 @@ void gamepad_tick(void) {
         return;
     }
     uint8_t gamepad_current = 0;
-    uint8_t bit = 1;
-    for (int i = 0; i < 8; ++i) {
-        digitalio_digitalinout_obj_t* pin = gamepad_singleton->pins[i];
-        if (!pin) {
-            break;
+    if (gamepad_singleton->spi_bus == NULL) {
+        uint8_t bit = 1;
+        for (int i = 0; i < 8; ++i) {
+            digitalio_digitalinout_obj_t* pin = gamepad_singleton->pins[i];
+            if (!pin) {
+                break;
+            }
+            if (common_hal_digitalio_digitalinout_get_value(pin)) {
+                gamepad_current |= bit;
+            }
+            bit <<= 1;
         }
-        if (common_hal_digitalio_digitalinout_get_value(pin)) {
-            gamepad_current |= bit;
+    } else {
+        uint8_t data_out[2] = {0, 0xff};
+        uint8_t data_in[2] = {0, 0};
+        // Skip reads when the bus is in use.
+        if (!common_hal_busio_spi_try_lock(gamepad_singleton->spi_bus)) {
+            return;
         }
-        bit <<= 1;
+        common_hal_busio_spi_configure(gamepad_singleton->spi_bus, 10000000, 0, 0, 8);
+        common_hal_digitalio_digitalinout_set_value(gamepad_singleton->cs_pin, false);
+common_hal_busio_spi_transfer(gamepad_singleton->spi_bus, data_out, data_in, 2);
+        common_hal_digitalio_digitalinout_set_value(gamepad_singleton->cs_pin, true);
+        common_hal_busio_spi_unlock(gamepad_singleton->spi_bus);
+        gamepad_current = data_in[1];
     }
     gamepad_current ^= gamepad_singleton->pulls;
     gamepad_singleton->pressed |= gamepad_singleton->last & gamepad_current;

@@ -30,80 +30,32 @@
 
 // Get the color of the pixel on the layer.
 uint16_t get_layer_pixel(layer_obj_t *layer, uint16_t x, uint16_t y) {
-    uint8_t sprite_width = 8;
-    uint8_t sprite_height = 8;
-
     // Shift by the layer's position offset.
     x -= layer->x;
     y -= layer->y;
 
     // Bounds check.
-    if ((x < 0) || (x >= layer->width << 4) ||
-            (y < 0) || (y >= layer->height << 4)) {
+    if ((x < 0) || (x >= layer->width * layer->graphic->sprite_width) ||
+            (y < 0) || (y >= layer->height * layer->graphic->sprite_height)) {
         return TRANSPARENT;
     }
 
     // Get the tile from the grid location or from sprite frame.
     uint8_t frame;
     if (layer->map) {
-        uint8_t tx = x / sprite_width;
-        uint8_t ty = y / sprite_height;
+        uint8_t tx = x / layer->graphic->sprite_width;
+        uint8_t ty = y / layer->graphic->sprite_height;
 
         frame = layer->map[(ty * layer->width + tx) / layer->tiles_per_byte];
         uint8_t bits_per_tile = 8 / layer->tiles_per_byte;
         uint8_t position_in_tile = (ty * layer->width + tx) % layer->tiles_per_byte;
-        frame = (frame >> (position_in_tile * bits_per_tile)) & ~(0xff << layer->tiles_per_byte);
+        frame = (frame >> (position_in_tile * bits_per_tile)) & ~(0xff << bits_per_tile);
     } else {
         frame = layer->frame;
     }
 
-    // Get the position within the tile.
-    x %= sprite_width;
-    y %= sprite_height;
-
-    if (!layer->map) {
-        // Rotate the image.
-        uint8_t ty = y; // Temporary variable for swapping.
-        switch (layer->rotation) {
-            case 1: // 90 degrees clockwise
-                y = 15 - x;
-                x = ty;
-                break;
-            case 2: // 180 degrees
-                y = 15 - ty;
-                x = 15 - x;
-                break;
-            case 3: // 90 degrees counter-clockwise
-                y = x;
-                x = 15 - ty;
-                break;
-            case 4: // 0 degrees, mirrored
-                x = 15 - x;
-                break;
-            case 5: // 90 degrees clockwise, mirrored
-                y = x;
-                x = ty;
-                break;
-            case 6: // 180 degrees, mirrored
-                y = 15 - ty;
-                break;
-            case 7: // 90 degrees counter-clockwise, mirrored
-                y = 15 - x;
-                x = 15 - ty;
-                break;
-            default: // 0 degrees
-                break;
-        }
-    }
-
     // Get the value of the pixel.
-    uint8_t pixel = layer->graphic[(frame << 7) + (y << 3) + (x >> 1)];
-    if (x % layer->tiles_per_byte) {
-        pixel &= 0x0f;
-    } else {
-        pixel >>= 4;
-    }
-
+    uint8_t pixel = get_sprite_pixel(layer->graphic, frame, x, y, layer->flip_x, layer->flip_y);
 
     // Convert to 16-bit color using the palette.
     return layer->palette[pixel];

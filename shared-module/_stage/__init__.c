@@ -37,12 +37,12 @@ bool render_stage(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,
         busio_spi_obj_t *spi, uint8_t display_scale) {
 
     size_t index = 0;
-    size_t row_size = x1 - x0;
+    size_t row_size = (x1 - x0) * display_scale;
     for (uint16_t y = y0; y < y1; ++y) {
-        for (uint16_t x = x0; x < x1; ++x) {
-            for(uint8_t subrow = 0; subrow < display_scale; subrow++) {
+        for (uint8_t subrow = 0; subrow < display_scale; subrow++) {
+            for (uint16_t x = x0; x < x1; ++x) {
                 // We've already computed this pixel once a row ago.
-                if (subrow > 0 && index > row_size) {
+                if (subrow > 0 && index >= row_size) {
                     for (uint8_t subpixel = 0; subpixel < display_scale; subpixel++) {
                         buffer[index + subpixel] = buffer[index - row_size];
                     }

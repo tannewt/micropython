@@ -24,29 +24,11 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_SHARED_MODULE__STAGE_LAYER_H
-#define MICROPY_INCLUDED_SHARED_MODULE__STAGE_LAYER_H
-
-#include <stdint.h>
-#include <stdbool.h>
-
-#include "py/obj.h"
+#ifndef MICROPY_INCLUDED__STAGE_SPRITESHEET_H
+#define MICROPY_INCLUDED__STAGE_SPRITESHEET_H
 
 #include "shared-module/_stage/SpriteSheet.h"
 
-typedef struct {
-    mp_obj_base_t base;
-    uint8_t *map;
-    _stage_sprite_sheet_obj_t *graphic;
-    uint16_t *palette;
-    int16_t x, y;
-    uint8_t width, height;
-    uint8_t frame;
-    bool flip_x;
-    bool flip_y;
-    uint8_t tiles_per_byte;
-} layer_obj_t;
+extern const mp_obj_type_t mp_type__stage_sprite_sheet;
 
-uint16_t get_layer_pixel(layer_obj_t *layer, uint16_t x, uint16_t y);
-
-#endif  // MICROPY_INCLUDED_SHARED_MODULE__STAGE_LAYER
+#endif  // MICROPY_INCLUDED__STAGE_SPRITESHEET
