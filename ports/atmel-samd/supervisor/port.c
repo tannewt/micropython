@@ -222,6 +222,10 @@ safe_mode_t port_init(void) {
 }
 
 void reset_port(void) {
+    #ifdef CIRCUITPY_GAMEPAD_TICKS
+        gamepad_reset();
+    #endif
+
     // Reset all SERCOMs except the ones being used by on-board devices.
     Sercom *sercom_instances[SERCOM_INST_NUM] = SERCOM_INSTS;
     for (int i = 0; i < SERCOM_INST_NUM; i++) {
@@ -260,11 +264,9 @@ void reset_port(void) {
     rtc_reset();
 #endif
 
+    // Make sure all peripherals are deinited by the time this happens otherwise you may hang
+    // waiting for it to respond.
     reset_gclks();
-
-#ifdef CIRCUITPY_GAMEPAD_TICKS
-    gamepad_reset();
-#endif
 
     reset_event_system();
 

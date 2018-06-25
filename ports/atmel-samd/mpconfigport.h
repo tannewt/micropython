@@ -211,7 +211,7 @@ extern const struct _mp_obj_module_t usb_hid_module;
     #define MICROPY_BUILTIN_METHOD_CHECK_SELF_ARG (1)
     #define MICROPY_PY_ALL_SPECIAL_METHODS (1)
     // Scan gamepad every 32ms
-    #define CIRCUITPY_GAMEPAD_TICKS 0x1f
+    #define CIRCUITPY_GAMEPAD_TICKS 0x3
 
     #if defined(__SAMD51G19A__) || defined(__SAMD51G18A__) || defined(__SAMR21G18A__)
         #define AUDIOBUSIO_MODULE

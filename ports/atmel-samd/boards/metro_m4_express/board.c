@@ -36,6 +36,10 @@ void board_init(void) {
     gpio_set_pin_function(MICROPY_HW_LED_RX, GPIO_PIN_FUNCTION_OFF);
     gpio_set_pin_direction(MICROPY_HW_LED_RX, GPIO_DIRECTION_OUT);
     gpio_set_pin_level(MICROPY_HW_LED_RX, true);
+
+    gpio_set_pin_function(PIN_PB16, GPIO_PIN_FUNCTION_OFF); // D3
+    gpio_set_pin_direction(PIN_PB16, GPIO_DIRECTION_OUT);
+    gpio_set_pin_level(PIN_PB16, true);
 }
 
 bool board_requests_safe_mode(void) {

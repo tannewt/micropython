@@ -47,20 +47,21 @@ bool render_stage(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,
                         buffer[index + subpixel] = buffer[index - row_size];
                     }
                 } else {
+                    uint16_t transparent = 0;
+                    uint16_t c = transparent;
                     for (size_t layer = 0; layer < layers_size; ++layer) {
-                        uint16_t c = TRANSPARENT;
                         layer_obj_t *obj = MP_OBJ_TO_PTR(layers[layer]);
                         if (obj->base.type == &mp_type_layer) {
                             c = get_layer_pixel(obj, x, y);
                         } else if (obj->base.type == &mp_type_text) {
                             c = get_text_pixel((text_obj_t *)obj, x, y);
                         }
-                        if (c != TRANSPARENT) {
-                            for (uint8_t subpixel = 0; subpixel < display_scale; subpixel++) {
-                                buffer[index + subpixel] = c;
-                            }
+                        if (c != transparent && c != TRANSPARENT) {
                             break;
                         }
+                    }
+                    for (uint8_t subpixel = 0; subpixel < display_scale; subpixel++) {
+                        buffer[index + subpixel] = c;
                     }
                 }
 

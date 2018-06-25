@@ -27,6 +27,7 @@
 #include "tick.h"
 
 #include "peripheral_clk_config.h"
+#include "hal/include/hal_gpio.h"
 
 #include "supervisor/shared/autoreload.h"
 #include "shared-module/gamepad/__init__.h"
@@ -37,6 +38,7 @@
 volatile uint64_t ticks_ms = 0;
 
 void SysTick_Handler(void) {
+    gpio_toggle_pin_level(PIN_PB16);
     // SysTick interrupt handler called when the SysTick timer reaches zero
     // (every millisecond).
     common_hal_mcu_disable_interrupts();
