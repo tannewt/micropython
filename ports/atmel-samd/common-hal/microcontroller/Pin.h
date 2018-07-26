@@ -39,9 +39,9 @@ typedef struct {
 } pin_sercom_t;
 
 typedef struct {
-    uint8_t index;
+    uint8_t index:4;
     bool is_tc:1;
-    uint8_t wave_output:7;
+    uint8_t wave_output:3;
 } pin_timer_t;
 
 #ifdef SAMD21
@@ -56,7 +56,6 @@ typedef struct {
 
 typedef struct {
     mp_obj_base_t base;
-    qstr name;
     uint8_t pin;
     bool has_extint:1;
     uint8_t extint_channel:7;
@@ -66,6 +65,9 @@ typedef struct {
     pin_timer_t timer[NUM_TIMERS_PER_PIN];
     pin_sercom_t sercom[NUM_SERCOMS_PER_PIN];
 } mcu_pin_obj_t;
+static_assert(sizeof(mcu_pin_obj_t) ==
+                  7 + NUM_ADC_PER_PIN + NUM_TIMERS_PER_PIN + NUM_SERCOMS_PER_PIN,
+              "struct larger than expected.");
 
 #ifdef MICROPY_HW_NEOPIXEL
 extern bool neopixel_in_use;

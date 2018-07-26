@@ -26,6 +26,7 @@
 #ifndef MICROPY_INCLUDED_PY_OBJ_H
 #define MICROPY_INCLUDED_PY_OBJ_H
 
+#include <assert.h>
 #include <stdarg.h>
 
 #include "py/mpconfig.h"
@@ -283,7 +284,7 @@ static inline bool mp_obj_is_integer(mp_const_obj_t o) { return MP_OBJ_IS_INT(o)
 
 #define MP_DEFINE_CONST_FUN_OBJ_0(obj_name, fun_name) \
     const mp_obj_fun_builtin_fixed_t obj_name = \
-        {{&mp_type_fun_builtin_0}, .fun._0 = fun_name}
+        {.base = {&mp_type_fun_builtin_0}, .fun._0 = fun_name}
 #define MP_DEFINE_CONST_FUN_OBJ_1(obj_name, fun_name) \
     const mp_obj_fun_builtin_fixed_t obj_name = \
         {{&mp_type_fun_builtin_1}, .fun._1 = fun_name}
@@ -295,13 +296,13 @@ static inline bool mp_obj_is_integer(mp_const_obj_t o) { return MP_OBJ_IS_INT(o)
         {{&mp_type_fun_builtin_3}, .fun._3 = fun_name}
 #define MP_DEFINE_CONST_FUN_OBJ_VAR(obj_name, n_args_min, fun_name) \
     const mp_obj_fun_builtin_var_t obj_name = \
-        {{&mp_type_fun_builtin_var}, false, n_args_min, MP_OBJ_FUN_ARGS_MAX, .fun.var = fun_name}
+        {.base = {&mp_type_fun_builtin_var}, .is_kw = false, n_args_min, MP_OBJ_FUN_ARGS_MAX, .fun.var = fun_name}
 #define MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(obj_name, n_args_min, n_args_max, fun_name) \
     const mp_obj_fun_builtin_var_t obj_name = \
-        {{&mp_type_fun_builtin_var}, false, n_args_min, n_args_max, .fun.var = fun_name}
+        {.base = {&mp_type_fun_builtin_var}, .is_kw = false, n_args_min, n_args_max, .fun.var = fun_name}
 #define MP_DEFINE_CONST_FUN_OBJ_KW(obj_name, n_args_min, fun_name) \
     const mp_obj_fun_builtin_var_t obj_name = \
-        {{&mp_type_fun_builtin_var}, true, n_args_min, MP_OBJ_FUN_ARGS_MAX, .fun.kw = fun_name}
+        {.base = {&mp_type_fun_builtin_var}, .is_kw = true, n_args_min, MP_OBJ_FUN_ARGS_MAX, .fun.kw = fun_name}
 
 // These macros are used to define constant map/dict objects
 // You can put "static" in front of the definition to make it local
@@ -365,6 +366,7 @@ typedef struct _mp_map_t {
     size_t alloc;
     mp_map_elem_t *table;
 } mp_map_t;
+static_assert(sizeof(mp_map_t) == 12, "struct larger than expected.");
 
 // mp_set_lookup requires these constants to have the values they do
 typedef enum _mp_map_lookup_kind_t {
@@ -539,6 +541,7 @@ struct _mp_obj_type_t {
     // A dict mapping qstrs to objects local methods/constants/etc.
     struct _mp_obj_dict_t *locals_dict;
 };
+static_assert(sizeof(struct _mp_obj_type_t) == 60, "struct larger than expected.");
 
 // Constant types, globally accessible
 extern const mp_obj_type_t mp_type_type;
@@ -794,17 +797,18 @@ typedef struct _mp_obj_fun_builtin_fixed_t {
     } fun;
 } mp_obj_fun_builtin_fixed_t;
 
-#define MP_OBJ_FUN_ARGS_MAX (0xffff) // to set maximum value in n_args_max below
+#define MP_OBJ_FUN_ARGS_MAX (0xff) // to set maximum value in n_args_max below
 typedef struct _mp_obj_fun_builtin_var_t {
     mp_obj_base_t base;
-    bool is_kw : 1;
-    mp_uint_t n_args_min : 15; // inclusive
-    mp_uint_t n_args_max : 16; // inclusive
     union {
         mp_fun_var_t var;
         mp_fun_kw_t kw;
     } fun;
+    bool is_kw : 1;
+    mp_uint_t n_args_min : 7; // inclusive
+    mp_uint_t n_args_max : 8; // inclusive
 } mp_obj_fun_builtin_var_t;
+static_assert(sizeof(mp_obj_fun_builtin_var_t) == 12, "struct larger than expected.");
 
 qstr mp_obj_fun_get_name(mp_const_obj_t fun);
 qstr mp_obj_code_get_name(const byte *code_info);

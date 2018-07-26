@@ -142,7 +142,7 @@ void mp_obj_module_set_globals(mp_obj_t self_in, mp_obj_dict_t *globals) {
 STATIC const mp_rom_map_elem_t mp_builtin_module_table[] = {
     { MP_ROM_QSTR(MP_QSTR___main__), MP_ROM_PTR(&mp_module___main__) },
     { MP_ROM_QSTR(MP_QSTR_builtins), MP_ROM_PTR(&mp_module_builtins) },
-    { MP_ROM_QSTR(MP_QSTR_micropython), MP_ROM_PTR(&mp_module_micropython) },
+    //{ MP_ROM_QSTR(MP_QSTR_micropython), MP_ROM_PTR(&mp_module_micropython) },
 
 #if MICROPY_PY_ARRAY
     { MP_ROM_QSTR(MP_QSTR_array), MP_ROM_PTR(&mp_module_array) },

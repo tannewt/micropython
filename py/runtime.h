@@ -35,12 +35,12 @@ typedef enum {
 } mp_vm_return_kind_t;
 
 typedef enum {
-    MP_ARG_BOOL      = 0x001,
-    MP_ARG_INT       = 0x002,
-    MP_ARG_OBJ       = 0x003,
-    MP_ARG_KIND_MASK = 0x0ff,
-    MP_ARG_REQUIRED  = 0x100,
-    MP_ARG_KW_ONLY   = 0x200,
+    MP_ARG_BOOL      = 0x01,
+    MP_ARG_INT       = 0x02,
+    MP_ARG_OBJ       = 0x03,
+    MP_ARG_KIND_MASK = 0x0f,
+    MP_ARG_REQUIRED  = 0x10,
+    MP_ARG_KW_ONLY   = 0x20,
 } mp_arg_flag_t;
 
 typedef union _mp_arg_val_t {
@@ -52,9 +52,10 @@ typedef union _mp_arg_val_t {
 
 typedef struct _mp_arg_t {
     uint16_t qst;
-    uint16_t flags;
+    uint8_t flags;
     mp_arg_val_t defval;
 } mp_arg_t;
+static_assert(sizeof(mp_arg_t) == 8, "struct larger than expected.");
 
 // Tables mapping operator enums to qstrs, defined in objtype.c
 extern const byte mp_unary_op_method_name[];

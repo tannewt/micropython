@@ -42,6 +42,7 @@ bss = 0
 # stdin is the linker output.
 for line in sys.stdin:
     line = line.strip()
+    print(line)
     if not line.startswith("text"):
         text, data, bss = map(int, line.split()[:3])
 
