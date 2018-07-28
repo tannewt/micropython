@@ -3,6 +3,7 @@ SRC_SUPERVISOR = \
 	supervisor/memory.c \
 	supervisor/port.c \
 	supervisor/shared/autoreload.c \
+	supervisor/shared/i18n.c \
 	supervisor/shared/rgb_led_status.c \
 	supervisor/shared/stack.c
 

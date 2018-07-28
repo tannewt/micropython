@@ -39,7 +39,9 @@
 enum {
 #ifndef NO_QSTR
 #define QDEF(id, str) id,
+#define TRANSLATION(id, str)
 #include "genhdr/qstrdefs.generated.h"
+#undef TRANSLATION
 #undef QDEF
 #endif
     MP_QSTRnumber_of, // no underscore so it can't clash with any of the above

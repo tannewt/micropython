@@ -39,8 +39,8 @@
 #include "shared-bindings/microcontroller/Pin.h"
 #include "shared-bindings/microcontroller/Processor.h"
 
-
 #include "py/runtime.h"
+#include "supervisor/shared/i18n.h"
 
 //| :mod:`microcontroller` --- Pin references and cpu functionality
 //| ================================================================
@@ -123,7 +123,7 @@ STATIC mp_obj_t mcu_on_next_reset(mp_obj_t run_mode_obj) {
     } else if (run_mode_obj == &mcu_runmode_bootloader_obj) {
         run_mode = RUNMODE_BOOTLOADER;
     } else {
-        mp_raise_ValueError("Invalid run mode.");
+        mp_raise_ValueError(i18n("Invalid run mode."));
     }
 
     common_hal_mcu_on_next_reset(run_mode);

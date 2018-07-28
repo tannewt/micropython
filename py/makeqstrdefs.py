@@ -75,12 +75,16 @@ def qstr_unescape(qstr):
 def process_file(f):
     output = []
     last_fname = None
+    lineno = 0
     for line in f:
+        #print(line.strip())
         # match gcc-like output (# n "file") and msvc-like output (#line n "file")
         if line and (line[0:2] == "# " or line[0:5] == "#line"):
-            m = re.match(r"#[line]*\s\d+\s\"([^\"]+)\"", line)
+            m = re.match(r"#[line]*\s(\d+)\s\"([^\"]+)\"", line)
             assert m is not None
-            fname = m.group(1)
+            #print(m.groups())
+            lineno = int(m.group(1))
+            fname = m.group(2)
             if not fname.endswith(".c"):
                 continue
             if fname != last_fname:
@@ -92,6 +96,9 @@ def process_file(f):
             name = match.replace('MP_QSTR_', '')
             if name not in QSTRING_BLACK_LIST:
                 output.append('Q(' + qstr_unescape(name) + ')')
+        for match in re.findall(r'i18n\(\"([^\"]+)\"\)', line):
+            output.append('I18N("' + match + '")')
+        lineno += 1
 
     write_out(last_fname, output)
     return ""

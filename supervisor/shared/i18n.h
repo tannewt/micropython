@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2016 Scott Shawcroft for Adafruit Industries
+ * Copyright (c) 2018 Scott Shawcroft for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,23 +24,9 @@
  * THE SOFTWARE.
  */
 
-#include "genhdr/mpversion.h"
+#ifndef MICROPY_INCLUDED_SUPERVISOR_I18N_H
+#define MICROPY_INCLUDED_SUPERVISOR_I18N_H
 
-#include "supervisor/shared/i18n.h"
+const char* i18n(const char* c);
 
-//| :func:`help` - Built-in method to provide helpful information
-//| ==============================================================
-//|
-//| .. method:: help(object=None)
-//|
-//|   Prints a help method about the given object. When ``object`` is none,
-//|   prints general port information.
-//|
-
-const char circuitpython_help_text[] =
-    "Welcome to Adafruit CircuitPython " MICROPY_GIT_TAG "!\r\n"
-    "\r\n"
-    "Please visit learn.adafruit.com/category/circuitpython for project guides.\r\n"
-    "\r\n"
-    "To list built-in modules please do `help(\"modules\")`.\r\n";
-;
+#endif  // MICROPY_INCLUDED_SUPERVISOR_I18N_H

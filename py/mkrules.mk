@@ -79,12 +79,12 @@ $(HEADER_BUILD)/qstr.i.last: $(SRC_QSTR) | $(HEADER_BUILD)/mpversion.h
 	$(ECHO) "GEN $@"
 	$(Q)$(CPP) $(QSTR_GEN_EXTRA_CFLAGS) $(CFLAGS) $(if $?,$?,$^) >$(HEADER_BUILD)/qstr.i.last;
 
-$(HEADER_BUILD)/qstr.split: $(HEADER_BUILD)/qstr.i.last
+$(HEADER_BUILD)/qstr.split: $(HEADER_BUILD)/qstr.i.last $(PY_SRC)/makeqstrdefs.py
 	$(STEPECHO) "GEN $@"
 	$(Q)$(PYTHON) $(PY_SRC)/makeqstrdefs.py split $(HEADER_BUILD)/qstr.i.last $(HEADER_BUILD)/qstr $(QSTR_DEFS_COLLECTED)
 	$(Q)touch $@
 
-$(QSTR_DEFS_COLLECTED): $(HEADER_BUILD)/qstr.split
+$(QSTR_DEFS_COLLECTED): $(HEADER_BUILD)/qstr.split $(PY_SRC)/makeqstrdefs.py
 	$(STEPECHO) "GEN $@"
 	$(Q)$(PYTHON) $(PY_SRC)/makeqstrdefs.py cat $(HEADER_BUILD)/qstr.i.last $(HEADER_BUILD)/qstr $(QSTR_DEFS_COLLECTED)
 
@@ -187,4 +187,3 @@ tags:
 	ctags -e -R $(TOP)
 
 -include $(OBJ:.o=.P)
-

@@ -29,6 +29,7 @@
 
 #include "lib/utils/interrupt_char.h"
 #include "supervisor/shared/autoreload.h"
+#include "supervisor/shared/i18n.h"
 #include "supervisor/shared/rgb_led_status.h"
 #include "supervisor/shared/stack.h"
 
@@ -89,7 +90,7 @@ STATIC mp_obj_t supervisor_set_rgb_status_brightness(mp_obj_t lvl){
       // This must be int. If cast to uint8_t first, will never raise a ValueError.
       int brightness_int = mp_obj_get_int(lvl);
       if(brightness_int < 0 || brightness_int > 255){
-            mp_raise_ValueError("Brightness must be between 0 and 255");
+            mp_raise_ValueError(i18n("Brightness must be between 0 and 255"));
       }
       set_rgb_status_brightness((uint8_t)brightness_int);
       return mp_const_none;
@@ -115,7 +116,7 @@ STATIC mp_obj_t supervisor_set_next_stack_limit(mp_obj_t size_obj) {
     mp_int_t size = mp_obj_get_int(size_obj);
 
     if (size < 256) {
-        mp_raise_ValueError("Stack size must be at least 256");
+        mp_raise_ValueError(i18n("Stack size must be at least 256"));
     }
     set_next_stack_size(size);
 

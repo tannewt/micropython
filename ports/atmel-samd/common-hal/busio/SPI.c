@@ -126,8 +126,8 @@ void common_hal_busio_spi_construct(busio_spi_obj_t *self,
 
     // Pads must be set after spi_m_sync_init(), which uses default values from
     // the prototypical SERCOM.
-    hri_sercomspi_write_CTRLA_DOPO_bf(sercom, dopo);
-    hri_sercomspi_write_CTRLA_DIPO_bf(sercom, miso_pad);
+    sercom->SPI.CTRLA.reg |= SERCOM_SPI_CTRLA_DOPO(dopo) |
+                             SERCOM_SPI_CTRLA_DIPO(miso_pad);
 
     // Always start at 250khz which is what SD cards need. They are sensitive to
     // SPI bus noise before they are put into SPI mode.
@@ -187,7 +187,7 @@ bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
         uint32_t baudrate, uint8_t polarity, uint8_t phase, uint8_t bits) {
     uint8_t baud_reg_value = samd_peripherals_spi_baudrate_to_baud_reg_value(baudrate);
 
-    void * hw = self->spi_desc.dev.prvt;
+    Sercom * hw = self->spi_desc.dev.prvt;
     // If the settings are already what we want then don't reset them.
     if (hri_sercomspi_get_CTRLA_CPHA_bit(hw) == phase &&
         hri_sercomspi_get_CTRLA_CPOL_bit(hw) == polarity &&
@@ -200,8 +200,10 @@ bool common_hal_busio_spi_configure(busio_spi_obj_t *self,
     spi_m_sync_disable(&self->spi_desc);
     hri_sercomspi_wait_for_sync(hw, SERCOM_SPI_SYNCBUSY_MASK);
 
-    hri_sercomspi_write_CTRLA_CPHA_bit(hw, phase);
-    hri_sercomspi_write_CTRLA_CPOL_bit(hw, polarity);
+    // hri_sercomspi_write_CTRLA_CPHA_bit(hw, phase);
+    // hri_sercomspi_write_CTRLA_CPOL_bit(hw, polarity);
+    hw->SPI.CTRLA.bit.CPHA = phase;
+    hw->SPI.CTRLA.bit.CPOL = polarity;
     hri_sercomspi_write_CTRLB_CHSIZE_bf(hw, bits - 8);
     hri_sercomspi_write_BAUD_BAUD_bf(hw, baud_reg_value);
     hri_sercomspi_wait_for_sync(hw, SERCOM_SPI_SYNCBUSY_MASK);

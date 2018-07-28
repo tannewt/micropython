@@ -36,6 +36,7 @@
 #include "py/parsenum.h"
 #include "shared-bindings/struct/__init__.h"
 #include "shared-module/struct/__init__.h"
+#include "supervisor/shared/i18n.h"
 
 //| :mod:`struct` --- manipulation of c-style data
 //| ========================================================
@@ -85,6 +86,7 @@ STATIC mp_obj_t struct_pack(size_t n_args, const mp_obj_t *args) {
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(struct_pack_obj, 1, MP_OBJ_FUN_ARGS_MAX, struct_pack);
 
+extern const char* i18n(const char* c);
 
 //| .. function:: pack_into(fmt, buffer, offset, v1, v2, ...)
 //|
@@ -100,7 +102,7 @@ STATIC mp_obj_t struct_pack_into(size_t n_args, const mp_obj_t *args) {
         // negative offsets are relative to the end of the buffer
         offset = (mp_int_t)bufinfo.len + offset;
         if (offset < 0) {
-            mp_raise_RuntimeError("buffer too small");
+            mp_raise_RuntimeError(i18n("buffer too small"));
         }
     }
     byte *p = (byte *)bufinfo.buf;
@@ -142,7 +144,7 @@ STATIC mp_obj_t struct_unpack_from(size_t n_args, const mp_obj_t *args) {
             // negative offsets are relative to the end of the buffer
             offset = bufinfo.len + offset;
             if (offset < 0) {
-                mp_raise_RuntimeError("buffer too small");
+                mp_raise_RuntimeError(i18n("buffer too small"));
             }
         }
         p += offset;

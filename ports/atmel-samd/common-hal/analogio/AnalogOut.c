@@ -32,6 +32,7 @@
 
 #include "shared-bindings/analogio/AnalogOut.h"
 #include "shared-bindings/microcontroller/Pin.h"
+#include "supervisor/shared/i18n.h"
 
 #include "atmel_start_pins.h"
 #include "hal/include/hal_dac_sync.h"
@@ -49,7 +50,7 @@ void common_hal_analogio_analogout_construct(analogio_analogout_obj_t* self,
         && pin->pin != PIN_PA05
     #endif
     ) {
-        mp_raise_ValueError("AnalogOut not supported on given pin");
+        mp_raise_ValueError(i18n("AnalogOut not supported on given pin"));
         return;
     }
 

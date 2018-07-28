@@ -32,6 +32,7 @@
 #include "py/mperrno.h"
 #include "py/runtime.h"
 #include "py/stream.h"
+#include "supervisor/shared/i18n.h"
 
 #include "tick.h"
 
@@ -62,13 +63,15 @@ void common_hal_busio_uart_construct(busio_uart_obj_t *self,
     uint8_t tx_pad = 255; // Unset pad
 
     if (bits > 8) {
-        mp_raise_NotImplementedError("bytes > 8 bits not supported");
+        mp_raise_NotImplementedError(i18n("bytes > 8 bits not supported"));
+        return;
     }
 
     bool have_tx = tx != mp_const_none;
     bool have_rx = rx != mp_const_none;
     if (!have_tx && !have_rx) {
-        mp_raise_ValueError("tx and rx cannot both be None");
+        mp_raise_ValueError(i18n("tx and rx cannot both be None"));
+        return;
     }
 
     self->baudrate = baudrate;
@@ -115,7 +118,8 @@ void common_hal_busio_uart_construct(busio_uart_obj_t *self,
         }
     }
     if (sercom == NULL) {
-        mp_raise_ValueError("Invalid pins");
+        mp_raise_ValueError(i18n("Invalid pins"));
+        return;
     }
     if (!have_tx) {
         tx_pad = 0;
@@ -135,7 +139,8 @@ void common_hal_busio_uart_construct(busio_uart_obj_t *self,
         self->buffer = (uint8_t *) gc_alloc(self->buffer_length * sizeof(uint8_t), false, false);
         if (self->buffer == NULL) {
             common_hal_busio_uart_deinit(self);
-            mp_raise_msg(&mp_type_MemoryError, "Failed to allocate RX buffer");
+            mp_raise_msg(&mp_type_MemoryError, i18n("Failed to allocate RX buffer"));
+            return;
         }
     } else {
         self->buffer_length = 0;
@@ -143,7 +148,8 @@ void common_hal_busio_uart_construct(busio_uart_obj_t *self,
     }
 
     if (usart_async_init(usart_desc_p, sercom, self->buffer, self->buffer_length, NULL) != ERR_NONE) {
-        mp_raise_ValueError("Could not initialize UART");
+        mp_raise_ValueError(i18n("Could not initialize UART"));
+        return;
     }
 
     // usart_async_init() sets a number of defaults based on a prototypical SERCOM
@@ -156,17 +162,17 @@ void common_hal_busio_uart_construct(busio_uart_obj_t *self,
     // 0x1: TX pad 2; no RTS/CTS
     // 0x2: TX pad 0; RTS: pad 2, CTS: pad 3 (not used by us right now)
     // So divide by 2 to map pad to value.
-    hri_sercomusart_write_CTRLA_TXPO_bf(sercom, tx_pad / 2);
+    sercom->USART.CTRLA.reg |= SERCOM_USART_CTRLA_TXPO(tx_pad / 2) |
     // RXPO:
     // 0x0: RX pad 0
     // 0x1: RX pad 1
     // 0x2: RX pad 2
     // 0x3: RX pad 3
-    hri_sercomusart_write_CTRLA_RXPO_bf(sercom, rx_pad);
+                              SERCOM_USART_CTRLA_RXPO(rx_pad);
 
     // Enable tx and/or rx based on whether the pins were specified.
-    hri_sercomusart_write_CTRLB_TXEN_bit(sercom, have_tx);
-    hri_sercomusart_write_CTRLB_RXEN_bit(sercom, have_rx);
+    sercom->USART.CTRLB.reg |= have_tx ? SERCOM_USART_CTRLB_TXEN : 0 |
+                               have_rx ? SERCOM_USART_CTRLB_RXEN : 0;
 
     // Set parity, baud rate, stop bits, etc. 9-bit bytes not supported.
     usart_async_set_parity(usart_desc_p, parity == PARITY_NONE ? USART_PARITY_NONE :
@@ -230,7 +236,7 @@ void common_hal_busio_uart_deinit(busio_uart_obj_t *self) {
 // Read characters.
 size_t common_hal_busio_uart_read(busio_uart_obj_t *self, uint8_t *data, size_t len, int *errcode) {
     if (self->rx_pin == NO_PIN) {
-        mp_raise_ValueError("No RX pin");
+        mp_raise_ValueError(i18n("No RX pin"));
     }
 
     // This assignment is only here because the usart_async routines take a *const argument.
@@ -280,7 +286,7 @@ size_t common_hal_busio_uart_read(busio_uart_obj_t *self, uint8_t *data, size_t 
 // Write characters.
 size_t common_hal_busio_uart_write(busio_uart_obj_t *self, const uint8_t *data, size_t len, int *errcode) {
     if (self->tx_pin == NO_PIN) {
-        mp_raise_ValueError("No TX pin");
+        mp_raise_ValueError(i18n("No TX pin"));
     }
 
     // This assignment is only here because the usart_async routines take a *const argument.

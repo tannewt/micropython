@@ -34,7 +34,7 @@
 
 #include "samd/sercom.h"
 #include "shared-bindings/microcontroller/__init__.h"
-
+#include "supervisor/shared/i18n.h"
 
 // Number of times to try to send packet if failed.
 #define ATTEMPTS 2
@@ -42,7 +42,7 @@
 void common_hal_busio_i2c_construct(busio_i2c_obj_t *self,
         const mcu_pin_obj_t* scl, const mcu_pin_obj_t* sda, uint32_t frequency, uint32_t timeout) {
     #ifdef PIRKEY_M0
-    mp_raise_NotImplementedError("Not enough pins available");
+    mp_raise_NotImplementedError(i18n("Not enough pins available"));
     return;
     #endif
     Sercom* sercom = NULL;
@@ -73,7 +73,7 @@ void common_hal_busio_i2c_construct(busio_i2c_obj_t *self,
         }
     }
     if (sercom == NULL) {
-        mp_raise_ValueError("Invalid pins");
+        mp_raise_ValueError(i18n("Invalid pins"));
     }
 
     // Test that the pins are in a high state. (Hopefully indicating they are pulled up.)
@@ -96,7 +96,7 @@ void common_hal_busio_i2c_construct(busio_i2c_obj_t *self,
     if (!gpio_get_pin_level(sda->pin) || !gpio_get_pin_level(scl->pin)) {
         reset_pin(sda->pin);
         reset_pin(scl->pin);
-        mp_raise_RuntimeError("SDA or SCL needs a pull up");
+        mp_raise_RuntimeError(i18n("SDA or SCL needs a pull up"));
     }
     gpio_set_pin_function(sda->pin, sda_pinmux);
     gpio_set_pin_function(scl->pin, scl_pinmux);
@@ -116,7 +116,7 @@ void common_hal_busio_i2c_construct(busio_i2c_obj_t *self,
     if (i2c_m_sync_set_baudrate(&self->i2c_desc, 0, frequency / 1000) != ERR_NONE) {
         reset_pin(sda->pin);
         reset_pin(scl->pin);
-        mp_raise_ValueError("Unsupported baudrate");
+        mp_raise_ValueError(i18n("Unsupported baudrate"));
     }
 
     self->sda_pin = sda->pin;

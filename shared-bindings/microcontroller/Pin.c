@@ -31,6 +31,7 @@
 #include "py/nlr.h"
 #include "py/obj.h"
 #include "py/runtime.h"
+#include "supervisor/shared/i18n.h"
 
 //| .. currentmodule:: microcontroller
 //|
@@ -85,7 +86,7 @@ const mp_obj_type_t mcu_pin_type = {
 
 void assert_pin(mp_obj_t obj, bool none_ok) {
     if ((obj != mp_const_none || !none_ok) && !MP_OBJ_IS_TYPE(obj, &mcu_pin_type)) {
-        mp_raise_TypeError_varg("Expected a %q", mcu_pin_type.name);
+        mp_raise_TypeError_varg(i18n("Expected a %q"), mcu_pin_type.name);
     }
 }
 
@@ -96,6 +97,6 @@ void assert_pin_free(const mcu_pin_obj_t* pin) {
         qstr name;
 
         get_pin_name(pin, &package, &module, &name);
-        mp_raise_ValueError_varg("%q in use", name);
+        mp_raise_ValueError_varg(i18n("%q in use"), name);
     }
 }
