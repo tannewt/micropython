@@ -232,6 +232,9 @@ def print_qstr_data(qcfgs, qstrs, i18ns):
             i += 8
         return benc
 
+    def compress(s):
+        return b''
+
     def decompress(l, encoded):
         #print(l, encoded)
         dec = bytearray(l)
@@ -269,22 +272,6 @@ def print_qstr_data(qcfgs, qstrs, i18ns):
                 max_code = (max_code << 1) + lengths[bit_length]
                 searched_length += lengths[bit_length]
             v = values[searched_length + bits - max_code]
-
-            # if v == verbatim:
-            #     while this_bit > 0:
-            #         is_verbatim = is_verbatim << 1
-            #         if 0x80 & b:
-            #             is_verbatim |= 1
-            #         b <<= 1
-            #         if this_bit == 0:
-            #             this_bit = 7
-            #             this_byte += 1
-            #             b = encoded[this_byte]
-            #         else:
-            #             this_bit -= 1
-            #     is_verbatim += 1
-            #     print("v!", is_verbatim)
-            #print(v, chr(v))
             dec[i] = v
         return dec
 

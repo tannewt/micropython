@@ -135,7 +135,7 @@ bool maybe_run_list(const char ** filenames, pyexec_result_t* exec_result) {
         return false;
     }
     mp_hal_stdout_tx_str(filename);
-    mp_hal_stdout_tx_str(MSG_OUTPUT_SUFFIX);
+    mp_hal_stdout_tx_str(i18n(" output:\r\n"));
     pyexec_file(filename, exec_result);
     return true;
 }
@@ -144,13 +144,13 @@ bool run_code_py(safe_mode_t safe_mode) {
     bool serial_connected_at_start = serial_connected();
     #ifdef CIRCUITPY_AUTORELOAD_DELAY_MS
     if (serial_connected_at_start) {
-        serial_write(MSG_NEWLINE);
+        serial_write(i18n("\r\n"));
         if (autoreload_is_enabled()) {
-            serial_write(MSG_AUTORELOAD_ON);
+            serial_write(i18n("Auto-reload is on. Simply save files over USB to run them or enter REPL to disable.\r\n"));
         } else if (safe_mode != NO_SAFE_MODE) {
-            serial_write(MSG_SAFE_MODE_ON);
+            serial_write(i18n("Running in safe mode! Auto-reload is off.\r\n"));
         } else if (!autoreload_is_enabled()) {
-            serial_write(MSG_AUTORELOAD_OFF);
+            serial_write(i18n("Auto-reload is off.\r\n"));
         }
     }
     #endif
@@ -164,7 +164,7 @@ bool run_code_py(safe_mode_t safe_mode) {
     bool found_main = false;
 
     if (safe_mode != NO_SAFE_MODE) {
-        serial_write(MSG_SAFE_MODE_NO_MAIN);
+        serial_write(i18n("Running in safe mode! Not running saved code.\r\n"));
     } else {
         new_status_color(MAIN_RUNNING);
 
@@ -180,7 +180,7 @@ bool run_code_py(safe_mode_t safe_mode) {
         if (!found_main){
             found_main = maybe_run_list(double_extension_filenames, &result);
             if (found_main) {
-                serial_write(MSG_DOUBLE_FILE_EXTENSION);
+                serial_write(i18n("WARNING: Your code filename has two extensions\r\n"));
             }
         }
         stop_mp();
@@ -214,38 +214,49 @@ bool run_code_py(safe_mode_t safe_mode) {
 
         if (!serial_connected_before_animation && serial_connected()) {
             if (serial_connected_at_start) {
-                serial_write(MSG_NEWLINE MSG_NEWLINE);
+                serial_write(i18n("\r\n"));
+                serial_write(i18n("\r\n"));
             }
 
             if (!serial_connected_at_start) {
                 if (autoreload_is_enabled()) {
-                    serial_write(MSG_AUTORELOAD_ON);
+                    serial_write(i18n("Auto-reload is on. Simply save files over USB to run them or enter REPL to disable.\r\n"));
                 } else {
-                    serial_write(MSG_AUTORELOAD_OFF);
+                    serial_write(i18n("Auto-reload is off.\r\n"));
                 }
             }
             // Output a user safe mode string if its set.
             #ifdef BOARD_USER_SAFE_MODE
             if (safe_mode == USER_SAFE_MODE) {
-                serial_write(MSG_NEWLINE MSG_SAFE_MODE_USER_REQUESTED);
+                serial_write(i18n("\r\n"));
+                serial_write(i18n("You requested starting safe mode by "));
                 serial_write(BOARD_USER_SAFE_MODE_ACTION);
-                serial_write(MSG_NEWLINE MSG_SAFE_MODE_USER_EXIT);
+                serial_write(i18n("\r\n"));
+                serial_write(i18n("To exit, please reset the board without "));
                 serial_write(BOARD_USER_SAFE_MODE_ACTION);
-                serial_write(MSG_NEWLINE);
+                serial_write(i18n("\r\n"));
             } else
             #endif
             if (safe_mode != NO_SAFE_MODE) {
-                serial_write(MSG_NEWLINE MSG_BAD_SAFE_MODE MSG_NEWLINE);
+                serial_write(i18n("\r\n"));
+                serial_write(i18n("You are running in safe mode which means something really bad happened."));
+                serial_write(i18n("\r\n"));
                 if (safe_mode == HARD_CRASH) {
-                    serial_write(MSG_SAFE_MODE_CRASH MSG_NEWLINE);
-                    serial_write(MSG_SAFE_MODE_FILE_ISSUE MSG_NEWLINE);
-                    serial_write(MSG_SAFE_MODE_ISSUE_LINK MSG_NEWLINE);
+                    serial_write(i18n("Looks like our core CircuitPython code crashed hard. Whoops!"));
+                    serial_write(i18n("\r\n"));
+                    serial_write(i18n("Please file an issue here with the contents of your CIRCUITPY drive:"));
+                    serial_write(i18n("\r\n"));
+                    serial_write(i18n("https://github.com/adafruit/circuitpython/issues"));
+                    serial_write(i18n("\r\n"));
                 } else if (safe_mode == BROWNOUT) {
-                    serial_write(MSG_SAFE_MODE_BROWN_OUT_LINE_1 MSG_NEWLINE);
-                    serial_write(MSG_SAFE_MODE_BROWN_OUT_LINE_2 MSG_NEWLINE);
+                    serial_write(i18n("The microcontroller's power dipped. Please make sure your power supply provides"));
+                    serial_write(i18n("\r\n"));
+                    serial_write(i18n("enough power for the whole circuit and press reset (after ejecting CIRCUITPY)."));
+                    serial_write(i18n("\r\n"));
                 }
             }
-            serial_write(MSG_NEWLINE MSG_WAIT_BEFORE_REPL MSG_NEWLINE);
+            serial_write(i18n("\r\n"));
+            serial_write(i18n("Press any key to enter the REPL. Use CTRL-D to reload."));
         }
         if (serial_connected_before_animation && !serial_connected()) {
             serial_connected_at_start = false;
@@ -400,7 +411,8 @@ int __attribute__((used)) main(void) {
         }
         if (exit_code == PYEXEC_FORCED_EXIT) {
             if (!first_run) {
-                serial_write(MSG_SOFT_REBOOT MSG_NEWLINE);
+                serial_write(i18n("soft reboot"));
+                serial_write(i18n("\r\n"));
             }
             first_run = false;
             skip_repl = run_code_py(safe_mode);
