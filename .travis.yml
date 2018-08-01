@@ -5,6 +5,7 @@ compiler:
   - gcc
 git:
   depth: 1
+  submodules_depth: 10
 env:
   - TRAVIS_BOARD=feather_huzzah
   - TRAVIS_BOARD=arduino_zero
