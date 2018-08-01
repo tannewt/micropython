@@ -2,9 +2,6 @@
 	path = lib/axtls
 	url = https://github.com/pfalcon/axtls
 	branch = micropython
-[submodule "lib/libffi"]
-	path = lib/libffi
-	url = https://github.com/atgreen/libffi
 [submodule "lib/lwip"]
 	path = lib/lwip
 	url = https://git.savannah.gnu.org/r/lwip.git
