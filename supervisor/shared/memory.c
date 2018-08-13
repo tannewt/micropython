@@ -71,6 +71,7 @@ void free_memory(supervisor_allocation* allocation) {
             }
             low_address -= allocations[index].length / 4;
         }
+
     } else {
         // Freed memory isn't in the middle so skip updating bounds. The memory will be added to the
         // middle when the memory to the inside is freed.

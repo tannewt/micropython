@@ -10,7 +10,7 @@ MEMORY
 }
 
 /* top end of the stack */
-_estack = ORIGIN(RAM) + LENGTH(RAM);
+_estack = ORIGIN(RAM) + LENGTH(RAM) - 8;
 _bootloader_dbl_tap = 0;
 
 /* define output sections */
