@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
+ * Copyright (c) 2018 Scott Shawcroft for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
 
 #include "atmel_start_pins.h"
 
-#include "events.h"
+#include "peripherals/samd/events.h"
 
 void board_init(void) {
     // gpio_set_pin_function(RESET_PIN, GPIO_PIN_FUNCTION_OFF);

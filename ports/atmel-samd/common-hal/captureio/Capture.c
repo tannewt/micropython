@@ -31,8 +31,8 @@
 #include "atmel_start_pins.h"
 
 #include "audio_dma.h"
-#include "clocks.h"
-#include "events.h"
+#include "peripherals/samd/clocks.h"
+#include "peripherals/samd/events.h"
 
 #define RESET_PIN PIN_PB22
 #define CLOCK_PIN PIN_PA04

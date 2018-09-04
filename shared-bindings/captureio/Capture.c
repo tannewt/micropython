@@ -121,7 +121,7 @@ STATIC mp_obj_t captureio_capture_capture(size_t n_args, const mp_obj_t *pos_arg
     if (mp_get_buffer(args[ARG_buffer].u_obj, &bufinfo, MP_BUFFER_WRITE) && bufinfo.typecode == 'L') {
         common_hal_captureio_capture_capture(self, (uint32_t*) bufinfo.buf, bufinfo.len);
     } else {
-        mp_raise_ValueError("buffer must be an array of type 'L'");
+        mp_raise_ValueError(translate("buffer must be an array of type 'L'"));
     }
 
     return mp_const_none;
