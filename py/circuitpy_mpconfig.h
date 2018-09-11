@@ -365,6 +365,13 @@ extern const struct _mp_obj_module_t gamepadshift_module;
 #define GAMEPAD_ROOT_POINTERS
 #endif
 
+#ifdef CIRCUITPY_GBIO
+extern const struct _mp_obj_module_t gbio_module;
+#define GBIO_MODULE { MP_OBJ_NEW_QSTR(MP_QSTR_gbio), (mp_obj_t)&gbio_module },
+#else
+#define GBIO_MODULE
+#endif
+
 #if CIRCUITPY_I2CSLAVE
 extern const struct _mp_obj_module_t i2cslave_module;
 #define I2CSLAVE_MODULE        { MP_OBJ_NEW_QSTR(MP_QSTR_i2cslave), (mp_obj_t)&i2cslave_module },
@@ -609,6 +616,7 @@ extern const struct _mp_obj_module_t ustack_module;
     FREQUENCYIO_MODULE \
     GAMEPAD_MODULE \
     GAMEPADSHIFT_MODULE \
+    GBIO_MODULE \
     I2CSLAVE_MODULE \
     JSON_MODULE \
     MATH_MODULE \

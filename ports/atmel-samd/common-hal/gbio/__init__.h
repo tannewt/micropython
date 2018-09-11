@@ -24,23 +24,9 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_PULSEIO_PWMOUT_H
-#define MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_PULSEIO_PWMOUT_H
+#ifndef MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_GBIO___INIT___H
+#define MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_GBIO___INIT___H
 
-#include "common-hal/microcontroller/Pin.h"
+void gbio_init(void);
 
-#include "py/obj.h"
-
-typedef struct {
-    mp_obj_base_t base;
-    const mcu_pin_obj_t *pin;
-    const pin_timer_t* timer;
-    bool variable_frequency;
-    uint16_t duty_cycle;
-} pulseio_pwmout_obj_t;
-
-void pwmout_reset(void);
-
-void never_reset_tcc(uint8_t index);
-
-#endif // MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_PULSEIO_PWMOUT_H
+#endif // MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_GBIO___INIT___H

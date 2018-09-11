@@ -61,11 +61,15 @@ uint8_t tcc_channels[5];   // Set by pwmout_reset() to {0xc0, 0xf0, 0xf8, 0xfc, 
 
 static uint8_t never_reset_tc_or_tcc[TC_INST_NUM + TCC_INST_NUM];
 
+void never_reset_tcc(uint8_t index) {
+    never_reset_tc_or_tcc[TC_INST_NUM + index] += 1;
+}
+
 void common_hal_pulseio_pwmout_never_reset(pulseio_pwmout_obj_t *self) {
     if (self->timer->is_tc) {
         never_reset_tc_or_tcc[self->timer->index] += 1;
     } else {
-        never_reset_tc_or_tcc[TC_INST_NUM + self->timer->index] += 1;
+        never_reset_tcc(self->timer->index);
     }
 
     never_reset_pin_number(self->pin->number);

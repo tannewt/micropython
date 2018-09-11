@@ -151,6 +151,9 @@ endif
 ifeq ($(CIRCUITPY_GAMEPADSHIFT),1)
 SRC_PATTERNS += gamepadshift/%
 endif
+ifeq ($(CIRCUITPY_GBIO),1)
+SRC_PATTERNS += gbio/%
+endif
 ifeq ($(CIRCUITPY_I2CSLAVE),1)
 SRC_PATTERNS += i2cslave/%
 endif
@@ -258,6 +261,7 @@ SRC_COMMON_HAL_ALL = \
 	displayio/ParallelBus.c \
 	frequencyio/__init__.c \
 	frequencyio/FrequencyIn.c \
+	gbio/__init__.c \
 	i2cslave/I2CSlave.c \
 	i2cslave/__init__.c \
 	microcontroller/Pin.c \

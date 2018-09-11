@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
+ * Copyright (c) 2018 Scott Shawcroft for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,23 +24,16 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_PULSEIO_PWMOUT_H
-#define MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_PULSEIO_PWMOUT_H
+#include "boards/board.h"
+#include "mpconfigboard.h"
+#include "hal/include/hal_gpio.h"
 
-#include "common-hal/microcontroller/Pin.h"
+void board_init(void) {
+}
 
-#include "py/obj.h"
+bool board_requests_safe_mode(void) {
+    return false;
+}
 
-typedef struct {
-    mp_obj_base_t base;
-    const mcu_pin_obj_t *pin;
-    const pin_timer_t* timer;
-    bool variable_frequency;
-    uint16_t duty_cycle;
-} pulseio_pwmout_obj_t;
-
-void pwmout_reset(void);
-
-void never_reset_tcc(uint8_t index);
-
-#endif // MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_PULSEIO_PWMOUT_H
+void reset_board(void) {
+}

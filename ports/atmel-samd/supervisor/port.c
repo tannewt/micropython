@@ -52,6 +52,7 @@
 #include "common-hal/audiobusio/I2SOut.h"
 #include "common-hal/audioio/AudioOut.h"
 #include "common-hal/busio/SPI.h"
+#include "common-hal/gbio/__init__.h"
 #include "common-hal/microcontroller/Pin.h"
 #include "common-hal/pulseio/PulseIn.h"
 #include "common-hal/pulseio/PulseOut.h"
@@ -235,13 +236,17 @@ safe_mode_t port_init(void) {
     // Init the board last so everything else is ready
     board_init();
 
+    #ifdef CIRCUITPY_GBIO
+    gbio_init();
+    #endif
+
     #ifdef SAMD21
     if (PM->RCAUSE.bit.BOD33 == 1 || PM->RCAUSE.bit.BOD12 == 1) {
         return BROWNOUT;
     }
     #endif
     #ifdef SAMD51
-    if (RSTC->RCAUSE.bit.BODVDD == 1 || RSTC->RCAUSE.bit.BODCORE == 1) {
+    if (RSTC->RCAUSE.bit.BODCORE == 1) {
         return BROWNOUT;
     }
     #endif
@@ -294,7 +299,7 @@ void reset_port(void) {
     pew_reset();
 #endif
 
-    reset_event_system();
+    //reset_event_system();
 
     reset_all_pins();
 
