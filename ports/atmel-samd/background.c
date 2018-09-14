@@ -30,7 +30,7 @@
 #include "usb.h"
 #include "usb_mass_storage.h"
 
-#include "shared-module/displayio/__init__.h"
+#include "shared-module/displayio/Display.h"
 
 volatile uint64_t last_finished_tick = 0;
 

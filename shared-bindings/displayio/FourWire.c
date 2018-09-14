@@ -38,16 +38,15 @@
 
 //| .. currentmodule:: displayio
 //|
-//| :class:`FourWire` -- Manage updating a display over SPI four wire protocol
-//| ==========================================================================
+//| :class:`FourWire` -- Manage communicating to a display over SPI four wire protocol
+//| ====================================================================================
 //|
-//| Manage updating a display over SPI four wire protocol in the background while Python code runs.
-//| It doesn't handle display initialization.
+//| Manages communication to a display over SPI four wire protocol in the background while Python
+//| code runs. The number of created display busses is limited and may return an existing object.
 //|
 //| .. warning:: This will be changed before 4.0.0. Consider it very experimental.
 //|
-//| .. class:: FourWire(*, clock, data, command, chip_select, width, height, colstart, rowstart,
-//|                     color_depth, set_column_command, set_row_command, write_ram_command)
+//| .. class:: FourWire(*, clock, data, command, chip_select, reset)
 //|
 //|   Create a FourWire object associated with the given pins.
 //|
@@ -60,53 +59,28 @@ STATIC mp_obj_t displayio_fourwire_make_new(const mp_obj_type_t *type, size_t n_
 //|   .. method:: send(command, data)
 //|
 //|
-STATIC mp_obj_t displayio_fourwire_obj_send(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    mp_raise_NotImplementedError(translate("displayio is a work in progress"));
+STATIC mp_obj_t displayio_fourwire_obj_send(mp_obj_t self_in, mp_obj_t command_in, mp_obj_t data) {
+    displayio_fourwire_obj_t* self = MP_OBJ_TO_PTR(self_in);
+    uint8_t command = mp_obj_int_get_checked(command_in);
+    mp_buffer_info_t bufinfo;
+    if (!mp_get_buffer(data, &bufinfo, MP_BUFFER_READ) ||
+            !(bufinfo.typecode == 'B' || bufinfo.typecode == BYTEARRAY_TYPECODE)) {
+        mp_raise_ValueError(translate("data buffer must be a bytearray or array of type 'B'"));
+    }
+
+    if (!common_hal_displayio_fourwire_begin_transaction(self)) {
+        mp_raise_RuntimeError(translate("unable to begin transaction"));
+    }
+    common_hal_displayio_fourwire_send(self, true, &command, 1);
+    common_hal_displayio_fourwire_send(self, false, (uint8_t *) bufinfo.buf, bufinfo.len);
+    common_hal_displayio_fourwire_end_transaction(self);
 
     return mp_const_none;
 }
-MP_DEFINE_CONST_FUN_OBJ_KW(displayio_fourwire_send_obj, 1, displayio_fourwire_obj_send);
-
-//|   .. method:: show(group)
-//|
-//|     Switches do displaying the given group of elements.
-//|
-STATIC mp_obj_t displayio_fourwire_obj_show(mp_obj_t self_in, mp_obj_t group_in) {
-    displayio_fourwire_obj_t *self = MP_OBJ_TO_PTR(self_in);
-    displayio_group_t* group = MP_OBJ_TO_PTR(group_in);
-    common_hal_displayio_fourwire_show(self, group);
-    return mp_const_none;
-}
-MP_DEFINE_CONST_FUN_OBJ_2(displayio_fourwire_show_obj, displayio_fourwire_obj_show);
-
-//|   .. method:: refresh_soon()
-//|
-//|     Queues up a display refresh that happens in the background.
-//|
-STATIC mp_obj_t displayio_fourwire_obj_refresh_soon(mp_obj_t self_in) {
-    displayio_fourwire_obj_t *self = MP_OBJ_TO_PTR(self_in);
-    common_hal_displayio_fourwire_refresh_soon(self);
-    return mp_const_none;
-}
-MP_DEFINE_CONST_FUN_OBJ_1(displayio_fourwire_refresh_soon_obj, displayio_fourwire_obj_refresh_soon);
-
-//|   .. method:: wait_for_frame()
-//|
-//|     Waits until the next frame has been transmitted to the display unless the wait count is
-//|     behind the rendered frames. In that case, this will return immediately with the wait count.
-//|
-STATIC mp_obj_t displayio_fourwire_obj_wait_for_frame(mp_obj_t self_in) {
-    displayio_fourwire_obj_t *self = MP_OBJ_TO_PTR(self_in);
-    return MP_OBJ_NEW_SMALL_INT(common_hal_displayio_fourwire_wait_for_frame(self));
-}
-MP_DEFINE_CONST_FUN_OBJ_1(displayio_fourwire_wait_for_frame_obj, displayio_fourwire_obj_wait_for_frame);
-
+MP_DEFINE_CONST_FUN_OBJ_3(displayio_fourwire_send_obj, displayio_fourwire_obj_send);
 
 STATIC const mp_rom_map_elem_t displayio_fourwire_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_send), MP_ROM_PTR(&displayio_fourwire_send_obj) },
-    { MP_ROM_QSTR(MP_QSTR_show), MP_ROM_PTR(&displayio_fourwire_show_obj) },
-    { MP_ROM_QSTR(MP_QSTR_refresh_soon), MP_ROM_PTR(&displayio_fourwire_refresh_soon_obj) },
-    { MP_ROM_QSTR(MP_QSTR_wait_for_frame), MP_ROM_PTR(&displayio_fourwire_wait_for_frame_obj) },
 };
 STATIC MP_DEFINE_CONST_DICT(displayio_fourwire_locals_dict, displayio_fourwire_locals_dict_table);
 

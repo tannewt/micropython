@@ -48,6 +48,7 @@
 #include "common-hal/audiobusio/PDMIn.h"
 #include "common-hal/audiobusio/I2SOut.h"
 #include "common-hal/audioio/AudioOut.h"
+#include "common-hal/busio/__init__.h"
 #include "common-hal/microcontroller/Pin.h"
 #include "common-hal/pulseio/PulseIn.h"
 #include "common-hal/pulseio/PulseOut.h"
@@ -63,6 +64,10 @@
 #include "shared-bindings/rtc/__init__.h"
 #include "tick.h"
 #include "usb.h"
+
+#ifdef CIRCUITPY_DISPLAYIO
+#include "shared-bindings/displayio/Display.h"
+#endif
 
 #ifdef CIRCUITPY_GAMEPAD_TICKS
 #include "shared-module/gamepad/__init__.h"
@@ -224,28 +229,7 @@ safe_mode_t port_init(void) {
 }
 
 void reset_port(void) {
-    // Reset all SERCOMs except the ones being used by on-board devices.
-    Sercom *sercom_instances[SERCOM_INST_NUM] = SERCOM_INSTS;
-    for (int i = 0; i < SERCOM_INST_NUM; i++) {
-#ifdef SPI_FLASH_SERCOM
-        if (sercom_instances[i] == SPI_FLASH_SERCOM) {
-            continue;
-        }
-#endif
-#ifdef MICROPY_HW_APA102_SERCOM
-        if (sercom_instances[i] == MICROPY_HW_APA102_SERCOM) {
-            continue;
-        }
-#endif
-#ifdef CIRCUITPY_DISPLAYIO
-        // TODO(tannewt): Make this dynamic.
-        if (sercom_instances[i] == board_display_obj.bus.spi_desc.dev.prvt) {
-            continue;
-        }
-#endif
-        // SWRST is same for all modes of SERCOMs.
-        sercom_instances[i]->SPI.CTRLA.bit.SWRST = 1;
-    }
+    busio_reset();
 
 #if defined(EXPRESS_BOARD) && !defined(__SAMR21G18A__)
     audioout_reset();

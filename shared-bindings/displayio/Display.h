@@ -24,26 +24,31 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_SHARED_BINDINGS_DISPLAYBUSIO_FOURWIRE_H
-#define MICROPY_INCLUDED_SHARED_BINDINGS_DISPLAYBUSIO_FOURWIRE_H
+#ifndef MICROPY_INCLUDED_SHARED_BINDINGS_DISPLAYBUSIO_DISPLAY_H
+#define MICROPY_INCLUDED_SHARED_BINDINGS_DISPLAYBUSIO_DISPLAY_H
 
-#include "common-hal/displayio/FourWire.h"
 #include "common-hal/microcontroller/Pin.h"
 
+#include "shared-module/displayio/Display.h"
 #include "shared-module/displayio/Group.h"
 
-extern const mp_obj_type_t displayio_fourwire_type;
+extern const mp_obj_type_t displayio_display_type;
+extern displayio_display_obj_t board_display_obj;
 
-void common_hal_displayio_fourwire_construct(displayio_fourwire_obj_t* self,
-    const mcu_pin_obj_t* clock, const mcu_pin_obj_t* data, const mcu_pin_obj_t* command,
-    const mcu_pin_obj_t* chip_select, const mcu_pin_obj_t* reset);
+void common_hal_displayio_display_construct(displayio_display_obj_t* self, mp_obj_t bus,
+    uint16_t width, uint16_t height, int16_t colstart, int16_t rowstart, uint16_t color_depth,
+    uint8_t set_column_command, uint8_t set_row_command, uint8_t write_ram_command);
 
-int32_t common_hal_displayio_fourwire_wait_for_frame(displayio_fourwire_obj_t* self);
+int32_t common_hal_displayio_display_wait_for_frame(displayio_display_obj_t* self);
 
-bool common_hal_displayio_fourwire_begin_transaction(displayio_fourwire_obj_t* self);
-void common_hal_displayio_fourwire_send(displayio_fourwire_obj_t* self, bool command, uint8_t *data, uint32_t data_length);
-void common_hal_displayio_fourwire_end_transaction(displayio_fourwire_obj_t* self);
+void common_hal_displayio_display_show(displayio_display_obj_t* self, displayio_group_t* root_group);
 
-bool displayio_fourwire_frame_queued(displayio_fourwire_obj_t* self);
+void common_hal_displayio_display_refresh_soon(displayio_display_obj_t* self);
 
-#endif // MICROPY_INCLUDED_SHARED_BINDINGS_DISPLAYBUSIO_FOURWIRE_H
+bool displayio_display_frame_queued(displayio_display_obj_t* self);
+
+bool displayio_display_refresh_queued(displayio_display_obj_t* self);
+void displayio_display_finish_refresh(displayio_display_obj_t* self);
+bool displayio_display_send_pixels(displayio_display_obj_t* self, uint32_t* pixels, uint32_t length);
+
+#endif // MICROPY_INCLUDED_SHARED_BINDINGS_DISPLAYBUSIO_DISPLAY_H

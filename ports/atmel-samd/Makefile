@@ -385,6 +385,7 @@ SRC_SHARED_MODULE = \
 	displayio/__init__.c \
 	displayio/Bitmap.c \
 	displayio/ColorConverter.c \
+	displayio/Display.c \
 	displayio/Group.c \
 	displayio/OnDiskBitmap.c \
 	displayio/Palette.c \
