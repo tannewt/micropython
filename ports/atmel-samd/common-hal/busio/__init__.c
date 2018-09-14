@@ -55,3 +55,11 @@ void busio_reset(void) {
         sercom_instances[i]->SPI.CTRLA.bit.SWRST = 1;
     }
 }
+
+void busio_claim_forever(uint8_t sercom) {
+    skip_reset[i] = true;
+}
+
+void busio_release_forever_claim(uint8_t sercom) {
+    skip_reset[i] = false;
+}

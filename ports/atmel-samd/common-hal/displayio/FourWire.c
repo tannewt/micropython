@@ -34,17 +34,30 @@
 #include "tick.h"
 
 void common_hal_displayio_fourwire_construct(displayio_fourwire_obj_t* self,
-    const mcu_pin_obj_t* clock, const mcu_pin_obj_t* data, const mcu_pin_obj_t* command,
-    const mcu_pin_obj_t* chip_select, const mcu_pin_obj_t* reset) {
+    busio_spi_t* spi_bus, const mcu_pin_obj_t* command, const mcu_pin_obj_t* chip_select,
+    const mcu_pin_obj_t* reset) {
 
-    common_hal_busio_spi_construct(&self->bus, clock, data, mp_const_none);
+    // We include the structs for SPI and DigitalInOuts directly to make memory management easier
+    // outside the VM.
+    self->bus = spi_bus;
+    self->command.base.type = &digitalio_digitalinout_type;
     common_hal_digitalio_digitalinout_construct(&self->command, command);
     common_hal_digitalio_digitalinout_switch_to_output(&self->command, true, DRIVE_MODE_PUSH_PULL);
+    self->chip_select.base.type = &digitalio_digitalinout_type;
     common_hal_digitalio_digitalinout_construct(&self->chip_select, chip_select);
     common_hal_digitalio_digitalinout_switch_to_output(&self->chip_select, true, DRIVE_MODE_PUSH_PULL);
 
+    self->reset.base.type = &digitalio_digitalinout_type;
     common_hal_digitalio_digitalinout_construct(&self->reset, reset);
     common_hal_digitalio_digitalinout_switch_to_output(&self->reset, true, DRIVE_MODE_PUSH_PULL);
+}
+
+void common_hal_displayio_fourwire_deinit(displayio_fourwire_obj_t* self) {
+    busio_release_forever_claim()
+}
+
+bool common_hal_displayio_fourwire_deinited(displayio_fourwire_obj_t* self) {
+    return self->bus.base.type != &busio_spi_type;
 }
 
 bool common_hal_displayio_fourwire_begin_transaction(displayio_fourwire_obj_t* self) {

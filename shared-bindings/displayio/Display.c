@@ -55,7 +55,31 @@ displayio_display_obj_t board_display_obj;
 //|   Create a Display object
 //|
 STATIC mp_obj_t displayio_display_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *pos_args) {
+    mp_arg_check_num(n_args, n_kw, 1, 1, true);
+    mp_map_t kw_args;
+    mp_map_init_fixed_table(&kw_args, n_kw, pos_args + n_args);
+    enum { ARG_bus, ARG_width, ARG_height, ARG_colstart, ARG_rowstart, ARG_color_depth, ARG_set_column_command, ARG_set_row_command, ARG_write_ram_command };
+    static const mp_arg_t allowed_args[] = {
+        { MP_QSTR_bus, MP_ARG_OBJ | MP_ARG_REQUIRED },
+        { MP_QSTR_width, MP_ARG_INT| MP_ARG_KW_ONLY, {.u_int = 0 } },
+        { MP_QSTR_height, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0 } },
+        { MP_QSTR_colstart, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0 } },
+        { MP_QSTR_rowstart, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0 } },
+        { MP_QSTR_color_depth, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 16 } },
+        { MP_QSTR_set_column_command, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0x2a } },
+        { MP_QSTR_set_row_command, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0x2b } },
+        { MP_QSTR_write_ram_command, MP_ARG_INT | MP_ARG_KW_ONLY, {.u_int = 0x2c } },
+    };
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args, pos_args, &kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
+    if (args[ARG_width].u_int < 1 || args[ARG_height].u_int < 1) {
+        mp_raise_ValueError(translate("Width and height must be greater than zero"));
+    }
+
+    board_display_obj.base.type = &displayio_display_type;
+
+    common_hal_displayio_display_construct(&board_display_obj, args[ARG_bus].u_obj, args[ARG_width].u_int, args[ARG_height].u_int, args[ARG_colstart].u_int, args[ARG_rowstart].u_int, args[ARG_color_depth].u_int, args[ARG_set_column_command].u_int, args[ARG_set_row_command].u_int, args[ARG_write_ram_command].u_int);
     return MP_OBJ_FROM_PTR(&board_display_obj);
 }
 
