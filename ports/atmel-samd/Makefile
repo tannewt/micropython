@@ -405,6 +405,7 @@ SRC_SHARED_MODULE = \
 ifneq ($(CHIP_VARIANT),SAMR21G18A)
 	SRC_COMMON_HAL += \
 		audioio/__init__.c \
+		audioio/AudioIn.c \
 		audioio/AudioOut.c
 	SRC_SHARED_MODULE += \
 		audioio/RawSample.c \
