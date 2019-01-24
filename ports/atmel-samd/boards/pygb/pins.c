@@ -1,11 +1,11 @@
 #include "shared-bindings/board/__init__.h"
 
-#include "board_busses.h"
+#include "supervisor/shared/board_busses.h"
 
 // This mapping only includes functional names because pins broken
 // out on connectors are labeled with their MCU name available from
 // microcontroller.pin.
-STATIC const mp_map_elem_t board_global_dict_table[] = {
+STATIC const mp_rom_map_elem_t board_global_dict_table[] = {
     { MP_OBJ_NEW_QSTR(MP_QSTR_LED),  (mp_obj_t)&pin_PB23 },
 
     { MP_ROM_QSTR(MP_QSTR_I2C), MP_ROM_PTR(&board_i2c_obj) },

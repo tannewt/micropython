@@ -58,9 +58,9 @@
 //|   :param ~microcontroller.Pin pin: the pin to read from
 //|
 STATIC mp_obj_t captureio_capture_make_new(const mp_obj_type_t *type,
-        mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args) {
+        mp_uint_t n_args, const mp_obj_t *args, mp_map_t* kw_args) {
     // check number of arguments
-    mp_arg_check_num(n_args, n_kw, 0, 0, false);
+    mp_arg_check_num(n_args, kw_args, 0, 0, false);
 
     captureio_capture_obj_t *self = m_new_obj(captureio_capture_obj_t);
     self->base.type = &captureio_capture_type;
@@ -139,7 +139,7 @@ STATIC MP_DEFINE_CONST_DICT(captureio_capture_locals_dict, captureio_capture_loc
 
 const mp_obj_type_t captureio_capture_type = {
     { &mp_type_type },
-    .name = MP_QSTR_AnalogIn,
+    .name = MP_QSTR_Capture,
     .make_new = captureio_capture_make_new,
     .locals_dict = (mp_obj_t)&captureio_capture_locals_dict,
 };

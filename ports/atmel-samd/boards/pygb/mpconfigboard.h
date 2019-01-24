@@ -17,8 +17,6 @@
 
 #define BOARD_FLASH_SIZE (FLASH_SIZE - 0x4000 - CIRCUITPY_INTERNAL_NVM_SIZE)
 
-#include "internal_flash.h"
-
 #define CLK0_PIN PIN_PA04
 #define WR0_PIN PIN_PA05
 #define RD0_PIN PIN_PA06
