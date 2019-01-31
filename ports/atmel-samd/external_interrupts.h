@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
+ * Copyright (c) 2018 Scott Shawcroft for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,43 +23,29 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include "background.h"
 
-#include "audio_dma.h"
-#include "tick.h"
-#include "supervisor/usb.h"
+#ifndef MICROPY_INCLUDED_ATMEL_SAMD_EXTERNAL_INTERRUPTS_H
+#define MICROPY_INCLUDED_ATMEL_SAMD_EXTERNAL_INTERRUPTS_H
 
-#include "common-hal/ps2io/Keyboard.h"
-#include "py/runtime.h"
-#include "shared-module/network/__init__.h"
-#include "supervisor/shared/stack.h"
+#include <stdbool.h>
+#include <stdint.h>
 
-#ifdef CIRCUITPY_DISPLAYIO
-#include "shared-module/displayio/__init__.h"
-#endif
+#define EIC_HANDLER_NO_INTERRUPT 0x0
+#define EIC_HANDLER_PULSEIN 0x1
+#define EIC_HANDLER_INCREMENTAL_ENCODER 0x2
+#define EIC_HANDLER_PS2IO 0x3
 
-volatile uint64_t last_finished_tick = 0;
+void reset_all_eic_handlers(void);
+bool eic_handler_free(uint8_t eic_channel);
 
-bool stack_ok_so_far = true;
+void enable_eic_channel_handler(uint8_t eic_channel, uint32_t sense_setting,
+                                uint8_t channel_interrupt_handler);
 
-void run_background_tasks(void) {
-    assert_heap_ok();
-    #if (defined(SAMD21) && defined(PIN_PA02)) || defined(SAMD51)
-    audio_dma_background();
-    #endif
-    #ifdef CIRCUITPY_DISPLAYIO
-    displayio_refresh_displays();
-    #endif
+void disable_eic_channel_handler(uint8_t eic_channel);
 
-    #if MICROPY_PY_NETWORK
-    network_module_background();
-    #endif
-    usb_background();
-    assert_heap_ok();
+void* get_eic_channel_data(uint8_t eic_channel);
+void set_eic_channel_data(uint8_t eic_channel, void* data);
 
-    last_finished_tick = ticks_ms;
-}
+void external_interrupt_handler(uint8_t channel);
 
-bool background_tasks_ok(void) {
-    return ticks_ms - last_finished_tick < 1000;
-}
+#endif  // MICROPY_INCLUDED_ATMEL_SAMD_EXTERNAL_INTERRUPTS_H

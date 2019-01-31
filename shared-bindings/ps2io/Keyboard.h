@@ -1,9 +1,9 @@
 /*
- * This file is part of the MicroPython project, http://micropython.org/
+ * This file is part of the Micro Python project, http://micropython.org/
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
+ * Copyright (c) 2018 Scott Shawcroft for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,43 +23,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include "background.h"
 
-#include "audio_dma.h"
-#include "tick.h"
-#include "supervisor/usb.h"
+#ifndef MICROPY_INCLUDED_SHARED_BINDINGS_PS2IO_KEYBOARD_H
+#define MICROPY_INCLUDED_SHARED_BINDINGS_PS2IO_KEYBOARD_H
 
 #include "common-hal/ps2io/Keyboard.h"
-#include "py/runtime.h"
-#include "shared-module/network/__init__.h"
-#include "supervisor/shared/stack.h"
 
-#ifdef CIRCUITPY_DISPLAYIO
-#include "shared-module/displayio/__init__.h"
-#endif
+#include "shared-bindings/microcontroller/Pin.h"
 
-volatile uint64_t last_finished_tick = 0;
+extern const mp_obj_type_t ps2io_keyboard_type;
 
-bool stack_ok_so_far = true;
+// Construct an underlying UART object.
+extern void common_hal_ps2io_keyboard_construct(ps2io_keyboard_obj_t *self,
+    const mcu_pin_obj_t* clock_pin, const mcu_pin_obj_t* data_pin, size_t bufsize);
+// Read characters.
+extern size_t common_hal_ps2io_keyboard_read(ps2io_keyboard_obj_t *self,
+    uint8_t *data, size_t len, int *errcode);
 
-void run_background_tasks(void) {
-    assert_heap_ok();
-    #if (defined(SAMD21) && defined(PIN_PA02)) || defined(SAMD51)
-    audio_dma_background();
-    #endif
-    #ifdef CIRCUITPY_DISPLAYIO
-    displayio_refresh_displays();
-    #endif
+extern uint32_t common_hal_ps2io_keyboard_bytes_available(ps2io_keyboard_obj_t *self);
+extern void common_hal_ps2io_keyboard_clear_buffer(ps2io_keyboard_obj_t *self);
 
-    #if MICROPY_PY_NETWORK
-    network_module_background();
-    #endif
-    usb_background();
-    assert_heap_ok();
-
-    last_finished_tick = ticks_ms;
-}
-
-bool background_tasks_ok(void) {
-    return ticks_ms - last_finished_tick < 1000;
-}
+#endif  // MICROPY_INCLUDED_SHARED_BINDINGS_PS2IO_KEYBOARD_H

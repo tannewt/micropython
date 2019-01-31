@@ -243,6 +243,7 @@ SRC_ASF := $(addprefix asf4/$(CHIP_FAMILY)/, $(SRC_ASF))
 SRC_C = \
 	audio_dma.c \
 	background.c \
+	external_interrupts.c \
 	fatfs_port.c \
 	mphalport.c \
 	reset.c \
@@ -333,6 +334,8 @@ SRC_COMMON_HAL = \
 	pulseio/PulseIn.c \
 	pulseio/PulseOut.c \
 	pulseio/PWMOut.c \
+	ps2io/__init__.c \
+	ps2io/Keyboard.c \
 	touchio/__init__.c \
 	touchio/TouchIn.c
 

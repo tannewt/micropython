@@ -42,6 +42,7 @@
 #include "hri/hri_rstc_d51.h"
 #endif
 
+#include "external_interrupts.h"
 #include "common-hal/analogio/AnalogIn.h"
 #include "common-hal/analogio/AnalogOut.h"
 #include "common-hal/audiobusio/PDMIn.h"
@@ -57,7 +58,6 @@
 #include "samd/cache.h"
 #include "samd/clocks.h"
 #include "samd/events.h"
-#include "samd/external_interrupts.h"
 #include "samd/dma.h"
 #include "shared-bindings/rtc/__init__.h"
 #include "reset.h"
@@ -205,7 +205,7 @@ void reset_port(void) {
 #ifdef SAMD21
     touchin_reset();
 #endif
-    eic_reset();
+    reset_all_eic_handlers();
     pulseout_reset();
     pwmout_reset();
 

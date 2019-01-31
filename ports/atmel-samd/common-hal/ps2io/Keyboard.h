@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
+ * Copyright (c) 2019 Scott Shawcroft for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,43 +23,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include "background.h"
 
-#include "audio_dma.h"
-#include "tick.h"
-#include "supervisor/usb.h"
+#ifndef MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_PS2IO_KEYBOARD_H
+#define MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_PS2IO_KEYBOARD_H
 
-#include "common-hal/ps2io/Keyboard.h"
-#include "py/runtime.h"
-#include "shared-module/network/__init__.h"
-#include "supervisor/shared/stack.h"
+#include "py/obj.h"
+#include "py/ringbuf.h"
 
-#ifdef CIRCUITPY_DISPLAYIO
-#include "shared-module/displayio/__init__.h"
-#endif
+typedef struct {
+    mp_obj_base_t base;
+    uint8_t channel;
+    uint8_t clock_pin;
+    uint8_t data_pin;
+    ringbuf_t buf;
+    // No need to be volatile, it's always in an interrupt.
+    uint16_t bitbuffer;
+    uint8_t bitcount;
+    uint8_t data_pin_mask;
+    uint8_t* data_pin_address;
+    uint64_t last_bit_ms;
+    uint16_t last_bit_us_until_ms;
+    uint8_t usb_hid_report[8];
+    bool extended;
+    bool break;
+} ps2io_keyboard_obj_t;
 
-volatile uint64_t last_finished_tick = 0;
+void pulsein_reset(void);
 
-bool stack_ok_so_far = true;
+void ps2io_interrupt_handler(uint8_t channel);
 
-void run_background_tasks(void) {
-    assert_heap_ok();
-    #if (defined(SAMD21) && defined(PIN_PA02)) || defined(SAMD51)
-    audio_dma_background();
-    #endif
-    #ifdef CIRCUITPY_DISPLAYIO
-    displayio_refresh_displays();
-    #endif
-
-    #if MICROPY_PY_NETWORK
-    network_module_background();
-    #endif
-    usb_background();
-    assert_heap_ok();
-
-    last_finished_tick = ticks_ms;
-}
-
-bool background_tasks_ok(void) {
-    return ticks_ms - last_finished_tick < 1000;
-}
+#endif // MICROPY_INCLUDED_ATMEL_SAMD_COMMON_HAL_PS2IO_KEYBOARD_H

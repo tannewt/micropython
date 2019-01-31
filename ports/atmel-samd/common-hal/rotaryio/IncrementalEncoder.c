@@ -28,8 +28,9 @@
 
 #include "atmel_start_pins.h"
 
-#include "samd/external_interrupts.h"
+#include "external_interrupts.h"
 #include "py/runtime.h"
+#include "samd/external_interrupts.h"
 #include "supervisor/shared/translate.h"
 
 void common_hal_rotaryio_incrementalencoder_construct(rotaryio_incrementalencoder_obj_t* self,
@@ -42,7 +43,7 @@ void common_hal_rotaryio_incrementalencoder_construct(rotaryio_incrementalencode
     // of the external interrupt.
 
     if (eic_get_enable()) {
-        if (!eic_channel_free(pin_a->extint_channel) || !eic_channel_free(pin_b->extint_channel)) {
+        if (!eic_handler_free(pin_a->extint_channel) || !eic_handler_free(pin_b->extint_channel)) {
             mp_raise_RuntimeError(translate("A hardware interrupt channel is already in use"));
         }
     } else {
@@ -76,8 +77,8 @@ void common_hal_rotaryio_incrementalencoder_construct(rotaryio_incrementalencode
     claim_pin(pin_a);
     claim_pin(pin_b);
 
-    turn_on_eic_channel(self->eic_channel_a, EIC_CONFIG_SENSE0_BOTH_Val, EIC_HANDLER_INCREMENTAL_ENCODER);
-    turn_on_eic_channel(self->eic_channel_b, EIC_CONFIG_SENSE0_BOTH_Val, EIC_HANDLER_INCREMENTAL_ENCODER);
+    enable_eic_channel_handler(self->eic_channel_a, EIC_CONFIG_SENSE0_BOTH_Val, EIC_HANDLER_INCREMENTAL_ENCODER);
+    enable_eic_channel_handler(self->eic_channel_b, EIC_CONFIG_SENSE0_BOTH_Val, EIC_HANDLER_INCREMENTAL_ENCODER);
 }
 
 bool common_hal_rotaryio_incrementalencoder_deinited(rotaryio_incrementalencoder_obj_t* self) {
@@ -88,8 +89,8 @@ void common_hal_rotaryio_incrementalencoder_deinit(rotaryio_incrementalencoder_o
     if (common_hal_rotaryio_incrementalencoder_deinited(self)) {
         return;
     }
-    turn_off_eic_channel(self->eic_channel_a);
-    turn_off_eic_channel(self->eic_channel_b);
+    disable_eic_channel_handler(self->eic_channel_a);
+    disable_eic_channel_handler(self->eic_channel_b);
     reset_pin_number(self->pin_a);
     self->pin_a = NO_PIN;
     reset_pin_number(self->pin_b);
