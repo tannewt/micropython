@@ -40,12 +40,14 @@ typedef struct {
     uint16_t bitbuffer;
     uint8_t bitcount;
     uint8_t data_pin_mask;
-    uint8_t* data_pin_address;
+    uint8_t* data_pin_in_address;
+    uint8_t* data_pin_dirset_address;
+    uint8_t* data_pin_dirclr_address;
     uint64_t last_bit_ms;
     uint16_t last_bit_us_until_ms;
     uint8_t usb_hid_report[8];
     bool extended;
-    bool break;
+    bool break_code;
 } ps2io_keyboard_obj_t;
 
 void pulsein_reset(void);

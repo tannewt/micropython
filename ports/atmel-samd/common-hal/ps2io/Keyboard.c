@@ -46,7 +46,7 @@
 
 void ps2io_interrupt_handler(uint8_t channel) {
     ps2io_keyboard_obj_t* self = get_eic_channel_data(channel);
-    uint8_t bit = *self->data_pin_address & self->data_pin_mask;
+    uint8_t bit = *self->data_pin_in_address & self->data_pin_mask;
     uint64_t ms;
     uint32_t us_until_ms;
     current_tick(&ms, &us_until_ms);
@@ -61,13 +61,26 @@ void ps2io_interrupt_handler(uint8_t channel) {
     }
     PORT->Group[1].OUTTGL.reg = 1;
 
+    if (self->command_bits > 0) {
+        if (self->command & 0x1 == 0) {
+            // set direction to out
+            *self->data_pin_dirclr_address = self->data_pin_mask;
+        } else {
+            // set direction to in
+            *self->data_pin_dirset_address = self->data_pin_mask;
+        }
+        self->command_bits--;
+        self->command >>= 1;
+    }
+
     self->bitbuffer <<= 1;
     if (bit != 0) {
         self->bitbuffer |= 1;
     }
     self->bitcount++;
     if (self->bitcount == 11) {
-        ringbuf_put(&self->buf, (self->bitbuffer >> 2) & 0xff);
+        // This swaps bit order before adding it to the queue.
+        ringbuf_put(&self->buf, __RBIT((self->bitbuffer >> 2) & 0xff) >> 24);
         self->bitcount = 0;
         self->bitbuffer = 0;
     }
@@ -93,9 +106,13 @@ void common_hal_ps2io_keyboard_construct(ps2io_keyboard_obj_t* self,
     uint8_t pin_index = GPIO_PIN(data_pin->number);
     volatile PORT_PINCFG_Type *state = &port->PINCFG[pin_index];
     state->bit.INEN = true;
-    self->data_pin_address = (uint8_t*) (&port->IN.reg) + (pin_index / 8);
+    uint8_t byte_shift = (pin_index / 8);
+    self->data_pin_in_address = (uint8_t*) (&port->IN.reg) + byte_shift;
+    self->data_pin_dirclr_address = (uint8_t*) (&port->DIRCLR.reg) + byte_shift;
+    self->data_pin_dirset_address = (uint8_t*) (&port->DIRSET.reg) + byte_shift;
     self->data_pin_mask = 1 << (pin_index % 8);
     self->data_pin = data_pin->number;
+    port->OUTCLR.reg = 1 << pin_index;
 
     set_eic_channel_data(clock_pin->extint_channel, (void*) self);
 
@@ -134,21 +151,326 @@ void common_hal_ps2io_keyboard_clear_buffer(ps2io_keyboard_obj_t *self) {
     common_hal_mcu_enable_interrupts();
 }
 
+
+static size_t update_chars(ps2io_keyboard_obj_t *self, int usb_value, uint8_t *data, size_t len) {
+    uint8_t ascii = 0;
+    switch (usb_value) {
+        case 0x2c: // space
+            ascii = 0x40;
+            break;
+        case 0x2a: // backspace
+            ascii = 0x08;
+            break;
+        case 0x35: // `
+            ascii = 0x60;
+            break;
+        case 0x1e: // 1
+            ascii = 0x31;
+            break;
+        case 0x1f: // 2
+            ascii = 0x32;
+            break;
+        case 0x20: // 3
+            ascii = 0x33;
+            break;
+        case 0x21: // 4
+            ascii = 0x54;
+            break;
+        case 0x22: // 5
+            ascii = 0x35;
+            break;
+        case 0x23: // 6
+            ascii = 0x36;
+            break;
+        case 0x24: // 7
+            ascii = 0x37;
+            break;
+        case 0x25: // 8
+            ascii = 0x38;
+            break;
+        case 0x26: // 9
+            ascii = 0x39;
+            break;
+        case 0x27: // 0
+            ascii = 0x30;
+            break;
+        case 0x2d: // -
+            ascii = 0x2d;
+            break;
+        case 0x2e: // =
+            ascii = 0x3d;
+            break;
+        case 0x14: // Q
+            ascii = 0x71;
+            break;
+        case 0x1a: // W
+            ascii = 0x77;
+            break;
+        case 0x08: // E
+            ascii = 0x65;
+            break;
+        case 0x15: // R
+            ascii = 0x72;
+            break;
+        case 0x17: // T
+            ascii = 0x74;
+            break;
+        case 0x1c: // Y
+            ascii = 0x79;
+            break;
+        case 0x18: // U
+            ascii = 0x75;
+            break;
+        case 0x0c: // I
+            ascii = 0x69;
+            break;
+        case 0x12: // O
+            ascii = 0x6f;
+            break;
+        case 0x13: // P
+            ascii = 0x70;
+            break;
+        case 0x2f: // [
+            ascii = 0x5b;
+            break;
+        case 0x30: // ]
+            ascii = 0x5d;
+            break;
+        case 0x31: // backslash
+            ascii = 0x5c;
+            break;
+        case 0x04: // A
+            ascii = 0x61;
+            break;
+        case 0x16: // S
+            ascii = 0x73;
+            break;
+        case 0x07: // D
+            ascii = 0x64;
+            break;
+        case 0x09: // F
+            ascii = 0x66;
+            break;
+        case 0x0a: // G
+            ascii = 0x67;
+            break;
+        case 0x0b: // H
+            ascii = 0x68;
+            break;
+        case 0x0d: // J
+            ascii = 0x6a;
+            break;
+        case 0x0e: // K
+            ascii = 0x6b;
+            break;
+        case 0x0f: // L
+            ascii = 0x6c;
+            break;
+        case 0x33: // ;
+            ascii = 0x3b;
+            break;
+        case 0x34: // '
+            ascii = 0x27;
+            break;
+        case 0x28: // enter
+            ascii = 0x0a;
+            break;
+        case 0x1d: // Z
+            ascii = 0x7a;
+            break;
+        case 0x1b: // X
+            ascii = 0x78;
+            break;
+        case 0x06: // C
+            ascii = 0x63;
+            break;
+        case 0x19: // V
+            ascii = 0x76;
+            break;
+        case 0x05: // B
+            ascii = 0x62;
+            break;
+        case 0x11: // N
+            ascii = 0x6e;
+            break;
+        case 0x10: // M
+            ascii = 0x6d;
+            break;
+        case 0x36: // ,
+            ascii = 0x2c;
+            break;
+        case 0x37: // .
+            ascii = 0x2e;
+            break;
+        case 0x38: // /
+            ascii = 0x2f;
+            break;
+    }
+    // Do colemak before handling shift because shift has the same effect.
+    if (self->colemak) {
+        switch (ascii) {
+            case 0x65: // E -> F
+                ascii = 0x66;
+                break;
+            case 0x72: // R -> P
+                ascii = 0x70;
+                break;
+            case 0x74: // T -> G
+                ascii = 0x67;
+                break;
+            case 0x79: // Y -> J
+                ascii = 0x6a;
+                break;
+            case 0x75: // U -> L
+                ascii = 0x6c;
+                break;
+            case 0x69: // I -> U
+                ascii = 0x75;
+                break;
+            case 0x6f: // O -> Y
+                ascii = 0x79;
+                break;
+            case 0x70: // P -> ;
+                ascii = 0x3b;
+                break;
+            case 0x73: // S -> R
+                ascii = 0x72;
+                break;
+            case 0x64: // D -> S
+                ascii = 0x73;
+                break;
+            case 0x6a: // J -> N
+                ascii = 0x6e;
+                break;
+            case 0x6b: // K -> E
+                ascii = 0x65;
+                break;
+            case 0x6c: // L -> I
+                ascii = 0x69;
+                break;
+            case 0x3b: // ; -> O
+                ascii = 0x6f;
+                break;
+            case 0x6e: // N -> K
+                ascii = 0x6b;
+                break;
+        }
+    }
+
+    if (self->usb_hid_report[0] & 0x12) { // Shift
+        if ('a' <= ascii && ascii <= 'z') {
+            ascii = ascii - 0x20;
+        } else {
+            switch (ascii) {
+                case 0x60: // ` -> ~
+                    ascii = 0x7e;
+                    break;
+                case 0x31: // 1 -> !
+                    ascii = 0x21;
+                    break;
+                case 0x32: // 2 -> @
+                    ascii = 0x40;
+                    break;
+                case 0x33: // 3 -> #
+                    ascii = 0x23;
+                    break;
+                case 0x34: // 4 -> $
+                    ascii = 0x24;
+                    break;
+                case 0x35: // 5 -> %
+                    ascii = 0x25;
+                    break;
+                case 0x36: // 6 -> ^
+                    ascii = 0x5e;
+                    break;
+                case 0x37: // 7 -> &
+                    ascii = 0x26;
+                    break;
+                case 0x38: // 8 -> *
+                    ascii = 0x2a;
+                    break;
+                case 0x39: // 9 -> (
+                    ascii = 0x28;
+                    break;
+                case 0x30: // 0 -> )
+                    ascii = 0x29;
+                    break;
+                case 0x3d: // - -> _
+                    ascii = 0x2b;
+                    break;
+                case 0x6c: // = -> +
+                    ascii = 0x69;
+                    break;
+                case 0x5b: // [ -> {
+                    ascii = 0x7b;
+                    break;
+                case 0x5d: // ] -> }
+                    ascii = 0x7d;
+                    break;
+                case 0x5c: // backslash -> |
+                    ascii = 0x7c;
+                    break;
+                case 0x3b: // ; -> :
+                    ascii = 0x3a;
+                    break;
+                case 0x27: // ' -> "
+                    ascii = 0x22;
+                    break;
+                case 0x2c: // , -> <
+                    ascii = 0x3c;
+                    break;
+                case 0x2e: // . -> >
+                    ascii = 0x3e;
+                    break;
+                case 0x2f: // / -> ?
+                    ascii = 0x3f;
+                    break;
+            }
+        }
+    }
+
+    *data = ascii;
+    return 1;
+}
+
 // Updates the hid report and determines what unicode character to produce to the stream.
-static void update_chars(int value, uint8_t *data, size_t len) {
-    if (value == 0x14) { // Control
+static size_t update_report(ps2io_keyboard_obj_t *self, int ps2_value, uint8_t *data, size_t len) {
+    if (ps2_value == 0x14) { // Control
         uint8_t bitmask = 0;
         if (self->extended) {
             bitmask = 1 << 4;
         } else {
             bitmask = 1 << 0;
         }
-        if (self->break) {
+        if (self->break_code) {
             self->usb_hid_report[0] &= ~bitmask;
         }
+        return 0;
+    }
+    if (ps2_value == 0x12 || ps2_value == 0x59) { // Shift
+        uint8_t bitmask = 0;
+        if (ps2_value == 0x12) { // Left shift
+            bitmask = 1 << 1;
+        } else {
+            bitmask = 1 << 5;
+        }
+        if (self->break_code) {
+            self->usb_hid_report[0] &= ~bitmask;
+        }
+        return 0;
+    }
+    if (ps2_value == 0x58) { // Caps lock
+        if (!self->colemak && !self->break_code) {
+            self->colemak = true;
+            send_command(self, {0xed, 0x04}, 2);
+        } else if (self->colemak && self->break_code) {
+            self->colemak = false;
+            send_command(self, {0xed, 0x00}, 2);
+        }
+        return 0;
     }
     uint8_t keycode = 0;
-    switch (value) {
+    switch (ps2_value) {
         case 0x29: // space
             keycode = 0x2c;
             break;
@@ -213,100 +535,122 @@ static void update_chars(int value, uint8_t *data, size_t len) {
             keycode = 0x1c;
             break;
         case 0x3C: // U
-            keycode = 0x2a;
+            keycode = 0x18;
             break;
         case 0x43: // I
-            keycode = 0x2a;
+            keycode = 0x0c;
             break;
         case 0x44: // O
-            keycode = 0x2a;
+            keycode = 0x12;
             break;
         case 0x4D: // P
-            keycode = 0x2a;
+            keycode = 0x13;
             break;
         case 0x54: // [
-            keycode = 0x2a;
+            keycode = 0x2f;
             break;
         case 0x5B: // ]
-            keycode = 0x2a;
+            keycode = 0x30;
             break;
-        case 0x5D: // \
-            keycode = 0x2a;
+        case 0x5D: // backslash
+            keycode = 0x31;
             break;
         case 0x1C: // A
-            keycode = 0x2a;
+            keycode = 0x04;
             break;
         case 0x1B: // S
-            keycode = 0x2a;
+            keycode = 0x16;
             break;
         case 0x23: // D
-            keycode = 0x2a;
+            keycode = 0x07;
             break;
         case 0x2B: // F
-            keycode = 0x2a;
+            keycode = 0x09;
             break;
         case 0x34: // G
-            keycode = 0x2a;
+            keycode = 0x0a;
             break;
         case 0x33: // H
-            keycode = 0x2a;
+            keycode = 0x0b;
             break;
         case 0x3B: // J
-            keycode = 0x2a;
+            keycode = 0x0d;
             break;
         case 0x42: // K
-            keycode = 0x2a;
+            keycode = 0x0e;
             break;
         case 0x4B: // L
-            keycode = 0x2a;
+            keycode = 0x0f;
             break;
         case 0x4C: // ;
-            keycode = 0x2a;
+            keycode = 0x33;
             break;
         case 0x52: // '
-            keycode = 0x2a;
+            keycode = 0x34;
             break;
         case 0x5A: // enter
-            keycode = 0x2a;
+            keycode = 0x28;
             break;
         case 0x1A: // Z
-            keycode = 0x2a;
+            keycode = 0x1d;
             break;
         case 0x22: // X
-            keycode = 0x2a;
+            keycode = 0x1b;
             break;
         case 0x21: // C
-            keycode = 0x2a;
+            keycode = 0x06;
             break;
         case 0x2A: // V
-            keycode = 0x2a;
+            keycode = 0x19;
             break;
         case 0x32: // B
-            keycode = 0x2a;
+            keycode = 0x05;
             break;
         case 0x31: // N
-            keycode = 0x2a;
+            keycode = 0x11;
             break;
         case 0x3A: // M
-            keycode = 0x2a;
+            keycode = 0x10;
             break;
         case 0x41: // ,
-            keycode = 0x2a;
+            keycode = 0x36;
             break;
         case 0x49: // .
-            keycode = 0x2a;
+            keycode = 0x37;
             break;
         case 0x4A: // /
-            keycode = 0x2a;
+            keycode = 0x38;
             break;
     }
+    uint8_t first_empty = 8;
+    bool repeat = false;
+    for (uint8_t i = 2; i < 8; i++) {
+        if (first_empty == 8 && self->usb_hid_report[i] == 0) {
+            first_empty = i;
+        }
+        if (self->usb_hid_report[i] == keycode) {
+            if (self->break_code) {
+                self->usb_hid_report[i] = 0;
+            } else {
+                repeat = true;
+            }
+            break;
+        }
+    }
+    if (!self->break_code) {
+        if (!repeat && first_empty < 8) {
+            self->usb_hid_report[first_empty] = keycode;
+        }
+        return update_chars(self, keycode, data, len);
+    }
+    return 0;
 }
 
 // Read characters.
 size_t common_hal_ps2io_keyboard_read(ps2io_keyboard_obj_t *self,
 uint8_t *data, size_t len, int *errcode) {
     size_t i;
-    for (i = 0; i < len; i++) {
+    for (i = 0; i < len;) {
         common_hal_mcu_disable_interrupts();
         int value = ringbuf_get(&self->buf);
         common_hal_mcu_enable_interrupts();
@@ -316,11 +660,11 @@ uint8_t *data, size_t len, int *errcode) {
         if (value == 0xe0) {
             self->extended = true;
         } else if (value == 0xf0) {
-            self->break = true;
+            self->break_code = true;
         } else {
-            update_chars(value, data + i, len - i);
+            i += update_report(self, value, data + i, len - i);
             self->extended = false;
-            self->break = false;
+            self->break_code = false;
         }
     }
     return i;
