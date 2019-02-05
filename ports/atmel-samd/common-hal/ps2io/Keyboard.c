@@ -62,7 +62,7 @@ void ps2io_interrupt_handler(uint8_t channel) {
     PORT->Group[1].OUTTGL.reg = 1;
 
     if (self->command_bits > 0) {
-        if (self->command & 0x1 == 0) {
+        if ((self->command & 0x1) == 0) {
             // set direction to out
             *self->data_pin_dirclr_address = self->data_pin_mask;
         } else {
@@ -122,6 +122,12 @@ void common_hal_ps2io_keyboard_construct(ps2io_keyboard_obj_t* self,
     }
 
     gpio_set_pin_function(clock_pin->number, GPIO_PIN_FUNCTION_A);
+
+    // Set clock to output 0 from PORT for when the PMUX is not enabled.
+    PortGroup *const clock_port = &PORT->Group[(enum gpio_port)GPIO_PORT(clock_pin->number)];
+    pin_index = GPIO_PIN(clock_pin->number);
+    clock_port->OUTCLR.reg = 1 << pin_index;
+    clock_port->DIRSET.reg = 1 << pin_index;
 
     turn_on_cpu_interrupt(self->channel);
 
@@ -433,6 +439,52 @@ static size_t update_chars(ps2io_keyboard_obj_t *self, int usb_value, uint8_t *d
     return 1;
 }
 
+static void send_command(ps2io_keyboard_obj_t *self, uint8_t* command, uint8_t command_len) {
+    self->command = 0;
+    self->command_bits = 0;
+    for (uint8_t i = 0; i < command_len; i++) {
+        // Start bit is 0
+        self->command <<= 1;
+        self->command_bits += 1;
+        uint8_t one_count = 0;
+        for (uint8_t b = 0; b < 8; b++) {
+            // Parity bit
+            self->command <<= 1;
+            if ((command[i] & (1 << b)) != 0) {
+                self->command |= 1;
+                one_count++;
+            }
+            self->command_bits += 1;
+        }
+        // Parity bit
+        self->command <<= 1;
+        if (one_count % 2 == 0) {
+            self->command |= 1;
+        }
+        self->command_bits += 1;
+
+        // Stop bit is 1
+        self->command <<= 1;
+        self->command |= 1;
+        self->command_bits += 1;
+    }
+    // request a host -> device
+    // Bring clock low.
+    disable_eic_channel_handler(self->channel);
+
+    gpio_set_pin_function(self->clock_pin, GPIO_PIN_FUNCTION_OFF);
+
+    // Wait 100us
+    common_hal_mcu_delay_us(100);
+
+    // Set data low.
+    *self->data_pin_dirclr_address = self->data_pin_mask;
+
+    // Release clock.
+    enable_eic_channel_handler(self->channel, EIC_CONFIG_SENSE0_FALL_Val, EIC_HANDLER_PS2IO);
+    gpio_set_pin_function(self->clock_pin, GPIO_PIN_FUNCTION_A);
+}
+
 // Updates the hid report and determines what unicode character to produce to the stream.
 static size_t update_report(ps2io_keyboard_obj_t *self, int ps2_value, uint8_t *data, size_t len) {
     if (ps2_value == 0x14) { // Control
@@ -462,10 +514,12 @@ static size_t update_report(ps2io_keyboard_obj_t *self, int ps2_value, uint8_t *
     if (ps2_value == 0x58) { // Caps lock
         if (!self->colemak && !self->break_code) {
             self->colemak = true;
-            send_command(self, {0xed, 0x04}, 2);
+            uint8_t turn_on_capslock_led[2] = {0xed, 0x04};
+            send_command(self, turn_on_capslock_led, 2);
         } else if (self->colemak && self->break_code) {
             self->colemak = false;
-            send_command(self, {0xed, 0x00}, 2);
+            uint8_t turn_off_capslock_led[2] = {0xed, 0x00};
+            send_command(self, turn_off_capslock_led, 2);
         }
         return 0;
     }
