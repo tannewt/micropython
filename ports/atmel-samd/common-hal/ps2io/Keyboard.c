@@ -45,32 +45,37 @@
 #include "tick.h"
 
 void ps2io_interrupt_handler(uint8_t channel) {
+    PORT->Group[1].OUTTGL.reg = 1;
     ps2io_keyboard_obj_t* self = get_eic_channel_data(channel);
     uint8_t bit = *self->data_pin_in_address & self->data_pin_mask;
     uint64_t ms;
     uint32_t us_until_ms;
     current_tick(&ms, &us_until_ms);
     // Debounce the clock signal.
-    bool new_bit = self->last_bit_ms - ms > 2 ||
-        (self->last_bit_ms - ms == 0 && self->last_bit_us_until_ms - us_until_ms > 60) ||
-        (self->last_bit_ms - ms == 1 && 1000 - us_until_ms + self->last_bit_us_until_ms > 60);
-    self->last_bit_ms = ms;
-    self->last_bit_us_until_ms = us_until_ms;
+    bool new_bit = ms - self->last_bit_ms > 1 ||
+        (ms - self->last_bit_ms == 0 && self->last_bit_us_until_ms - us_until_ms > 40) ||
+        (ms - self->last_bit_ms == 1 && 1000 - us_until_ms + self->last_bit_us_until_ms > 40);
+
     if (!new_bit) {
+        PORT->Group[1].OUTTGL.reg = 1;
         return;
     }
-    PORT->Group[1].OUTTGL.reg = 1;
+    self->last_bit_ms = ms;
+    self->last_bit_us_until_ms = us_until_ms;
 
-    if (self->command_bits > 0) {
+    if (self->command_bits % 12 != 0 || self->command_acked) {
+        self->command_acked = false;
         if ((self->command & 0x1) == 0) {
-            // set direction to out
-            *self->data_pin_dirclr_address = self->data_pin_mask;
-        } else {
-            // set direction to in
+            // set direction to out set 0
             *self->data_pin_dirset_address = self->data_pin_mask;
+        } else {
+            // set direction to in to indicate 1 via pull up
+            *self->data_pin_dirclr_address = self->data_pin_mask;
         }
         self->command_bits--;
         self->command >>= 1;
+        PORT->Group[1].OUTTGL.reg = 1;
+        return;
     }
 
     self->bitbuffer <<= 1;
@@ -80,7 +85,28 @@ void ps2io_interrupt_handler(uint8_t channel) {
     self->bitcount++;
     if (self->bitcount == 11) {
         // This swaps bit order before adding it to the queue.
-        ringbuf_put(&self->buf, __RBIT((self->bitbuffer >> 2) & 0xff) >> 24);
+        uint8_t value = __RBIT((self->bitbuffer >> 2) & 0xff) >> 24;
+        if (value == 0xfa && self->command_bits > 0) {
+            common_hal_mcu_delay_us(50);
+            self->command_acked = true;
+            // request a host -> device
+            // Bring clock low which will trigger the first zero bit.
+            gpio_set_pin_function(self->clock_pin, GPIO_PIN_FUNCTION_OFF);
+
+            // Wait 100us
+            common_hal_mcu_delay_us(100);
+
+            // Consume the start bit since we consume the first clock edge.
+            *self->data_pin_dirset_address = self->data_pin_mask;
+            self->command_bits--;
+            self->command >>= 1;
+            current_tick(&self->last_bit_ms, &self->last_bit_us_until_ms);
+
+            // Release clock.
+            gpio_set_pin_function(self->clock_pin, GPIO_PIN_FUNCTION_A);
+        } else {
+            ringbuf_put(&self->buf, value);
+        }
         self->bitcount = 0;
         self->bitbuffer = 0;
     }
@@ -180,7 +206,7 @@ static size_t update_chars(ps2io_keyboard_obj_t *self, int usb_value, uint8_t *d
             ascii = 0x33;
             break;
         case 0x21: // 4
-            ascii = 0x54;
+            ascii = 0x34;
             break;
         case 0x22: // 5
             ascii = 0x35;
@@ -327,6 +353,9 @@ static size_t update_chars(ps2io_keyboard_obj_t *self, int usb_value, uint8_t *d
             case 0x79: // Y -> J
                 ascii = 0x6a;
                 break;
+            case 0x66: // F -> T
+                ascii = 0x74;
+                break;
             case 0x75: // U -> L
                 ascii = 0x6c;
                 break;
@@ -442,12 +471,24 @@ static size_t update_chars(ps2io_keyboard_obj_t *self, int usb_value, uint8_t *d
 static void send_command(ps2io_keyboard_obj_t *self, uint8_t* command, uint8_t command_len) {
     self->command = 0;
     self->command_bits = 0;
-    for (uint8_t i = 0; i < command_len; i++) {
-        // Start bit is 0
+    // Queue bytes backwards
+    for (int8_t i = command_len - 1; i >= 0; i--) {
+        // Ack bit is 0 set by the host.
+        self->command <<= 1;
+        self->command |= 1;
+        self->command_bits += 1;
+
+        // Stop bit is 1
+        self->command <<= 1;
+        self->command |= 1;
+        self->command_bits += 1;
+
+        // Parity bit is actually set later
         self->command <<= 1;
         self->command_bits += 1;
+
         uint8_t one_count = 0;
-        for (uint8_t b = 0; b < 8; b++) {
+        for (int8_t b = 7; b >= 0; b--) {
             // Parity bit
             self->command <<= 1;
             if ((command[i] & (1 << b)) != 0) {
@@ -456,32 +497,25 @@ static void send_command(ps2io_keyboard_obj_t *self, uint8_t* command, uint8_t c
             }
             self->command_bits += 1;
         }
-        // Parity bit
-        self->command <<= 1;
-        if (one_count % 2 == 0) {
-            self->command |= 1;
-        }
-        self->command_bits += 1;
 
-        // Stop bit is 1
+        if (one_count % 2 == 0) {
+            self->command |= 1 << 8;
+        }
+
+        // Start bit is 0
         self->command <<= 1;
-        self->command |= 1;
         self->command_bits += 1;
     }
-    // request a host -> device
-    // Bring clock low.
-    disable_eic_channel_handler(self->channel);
+    self->command_acked = true;
 
+    // request a host -> device
+    // Bring clock low which will trigger the first zero bit.
     gpio_set_pin_function(self->clock_pin, GPIO_PIN_FUNCTION_OFF);
 
     // Wait 100us
     common_hal_mcu_delay_us(100);
 
-    // Set data low.
-    *self->data_pin_dirclr_address = self->data_pin_mask;
-
     // Release clock.
-    enable_eic_channel_handler(self->channel, EIC_CONFIG_SENSE0_FALL_Val, EIC_HANDLER_PS2IO);
     gpio_set_pin_function(self->clock_pin, GPIO_PIN_FUNCTION_A);
 }
 
@@ -496,6 +530,8 @@ static size_t update_report(ps2io_keyboard_obj_t *self, int ps2_value, uint8_t *
         }
         if (self->break_code) {
             self->usb_hid_report[0] &= ~bitmask;
+        } else {
+            self->usb_hid_report[0] |= bitmask;
         }
         return 0;
     }
@@ -508,19 +544,29 @@ static size_t update_report(ps2io_keyboard_obj_t *self, int ps2_value, uint8_t *
         }
         if (self->break_code) {
             self->usb_hid_report[0] &= ~bitmask;
+        } else {
+            self->usb_hid_report[0] |= bitmask;
         }
         return 0;
     }
     if (ps2_value == 0x58) { // Caps lock
         if (!self->colemak && !self->break_code) {
             self->colemak = true;
+            self->colemak_new = true;
             uint8_t turn_on_capslock_led[2] = {0xed, 0x04};
             send_command(self, turn_on_capslock_led, 2);
         } else if (self->colemak && self->break_code) {
-            self->colemak = false;
-            uint8_t turn_off_capslock_led[2] = {0xed, 0x00};
-            send_command(self, turn_off_capslock_led, 2);
+            if (self->colemak_new) {
+                self->colemak_new = false;
+            } else {
+                self->colemak = false;
+                uint8_t turn_off_capslock_led[2] = {0xed, 0x00};
+                send_command(self, turn_off_capslock_led, 2);
+            }
         }
+        return 0;
+    }
+    if (ps2_value == 0xfa) { // Unneeded ack.
         return 0;
     }
     uint8_t keycode = 0;

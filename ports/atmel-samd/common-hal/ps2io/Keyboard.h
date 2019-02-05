@@ -44,13 +44,15 @@ typedef struct {
     uint8_t* data_pin_dirset_address;
     uint8_t* data_pin_dirclr_address;
     uint64_t last_bit_ms;
-    uint16_t last_bit_us_until_ms;
+    uint32_t last_bit_us_until_ms;
     uint8_t usb_hid_report[8];
     uint32_t command;
     uint8_t command_bits;
     bool extended;
     bool break_code;
     bool colemak;
+    bool colemak_new;
+    bool command_acked;
 } ps2io_keyboard_obj_t;
 
 void pulsein_reset(void);
