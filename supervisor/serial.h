@@ -31,6 +31,7 @@
 #include <stdint.h>
 
 #include "py/mpconfig.h"
+#include "py/obj.h"
 
 #ifdef CIRCUITPY_BOOT_OUTPUT_FILE
 #include "lib/oofatfs/ff.h"
@@ -45,5 +46,6 @@ void serial_write_substring(const char* text, uint32_t length);
 char serial_read(void);
 bool serial_bytes_available(void);
 bool serial_connected(void);
+void serial_connect_stream(mp_obj_t stream);
 
 #endif  // MICROPY_INCLUDED_SUPERVISOR_SERIAL_H

@@ -90,11 +90,11 @@ STATIC mp_uint_t ps2io_keyboard_read(mp_obj_t self_in, void *buf_in, mp_uint_t s
 STATIC mp_uint_t ps2io_keyboard_ioctl(mp_obj_t self_in, mp_uint_t request, mp_uint_t arg, int *errcode) {
     ps2io_keyboard_obj_t *self = MP_OBJ_TO_PTR(self_in);
     mp_uint_t ret;
-    if (request == MP_IOCTL_POLL) {
+    if (request == MP_STREAM_POLL) {
         mp_uint_t flags = arg;
         ret = 0;
-        if ((flags & MP_IOCTL_POLL_RD) && common_hal_ps2io_keyboard_bytes_available(self) > 0) {
-            ret |= MP_IOCTL_POLL_RD;
+        if ((flags & MP_STREAM_POLL_RD) && common_hal_ps2io_keyboard_bytes_available(self) > 0) {
+            ret |= MP_STREAM_POLL_RD;
         }
     } else {
         *errcode = MP_EINVAL;
@@ -114,7 +114,7 @@ STATIC const mp_stream_p_t ps2io_keyboard_stream_p = {
     .read = ps2io_keyboard_read,
     .write = NULL,
     .ioctl = ps2io_keyboard_ioctl,
-    .is_text = false,
+    .is_text = true,
 };
 
 const mp_obj_type_t ps2io_keyboard_type = {

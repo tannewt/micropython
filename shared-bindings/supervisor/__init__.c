@@ -28,6 +28,7 @@
 #include "py/reload.h"
 
 #include "lib/utils/interrupt_char.h"
+#include "supervisor/serial.h"
 #include "supervisor/shared/autoreload.h"
 #include "supervisor/shared/rgb_led_status.h"
 #include "supervisor/shared/stack.h"
@@ -119,10 +120,20 @@ STATIC mp_obj_t supervisor_set_next_stack_limit(mp_obj_t size_obj) {
         mp_raise_ValueError(translate("Stack size must be at least 256"));
     }
     set_next_stack_size(size);
-
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_1(supervisor_set_next_stack_limit_obj, supervisor_set_next_stack_limit);
+
+//| .. method:: connect_stream(stream)
+//|
+//|   Connect the stream to CircuitPython's input and output stream.
+//|
+STATIC mp_obj_t supervisor_connect_stream(mp_obj_t stream_obj) {
+    serial_connect_stream(stream_obj);
+
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_1(supervisor_connect_stream_obj, supervisor_connect_stream);
 
 STATIC const mp_rom_map_elem_t supervisor_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_supervisor) },
@@ -132,7 +143,7 @@ STATIC const mp_rom_map_elem_t supervisor_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_runtime),  MP_ROM_PTR(&common_hal_supervisor_runtime_obj) },
     { MP_ROM_QSTR(MP_QSTR_reload),  MP_ROM_PTR(&supervisor_reload_obj) },
     { MP_ROM_QSTR(MP_QSTR_set_next_stack_limit),  MP_ROM_PTR(&supervisor_set_next_stack_limit_obj) },
-
+    { MP_ROM_QSTR(MP_QSTR_connect_stream),  MP_ROM_PTR(&supervisor_connect_stream_obj) },
 };
 
 STATIC MP_DEFINE_CONST_DICT(supervisor_module_globals, supervisor_module_globals_table);

@@ -43,4 +43,6 @@ extern size_t common_hal_ps2io_keyboard_read(ps2io_keyboard_obj_t *self,
 extern uint32_t common_hal_ps2io_keyboard_bytes_available(ps2io_keyboard_obj_t *self);
 extern void common_hal_ps2io_keyboard_clear_buffer(ps2io_keyboard_obj_t *self);
 
+extern void common_hal_ps2io_keyboard_move(ps2io_keyboard_obj_t *self, ps2io_keyboard_obj_t *new_location);
+
 #endif  // MICROPY_INCLUDED_SHARED_BINDINGS_PS2IO_KEYBOARD_H

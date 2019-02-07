@@ -48,4 +48,6 @@ void set_eic_channel_data(uint8_t eic_channel, void* data);
 
 void external_interrupt_handler(uint8_t channel);
 
+void never_reset_eic_handler(uint8_t eic_channel);
+
 #endif  // MICROPY_INCLUDED_ATMEL_SAMD_EXTERNAL_INTERRUPTS_H

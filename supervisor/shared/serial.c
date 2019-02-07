@@ -27,27 +27,54 @@
 #include <string.h>
 
 #include "py/mpconfig.h"
+#include "py/runtime.h"
+#include "py/stream.h"
 
 #include "supervisor/shared/display.h"
+#include "shared-bindings/ps2io/Keyboard.h"
 #include "shared-bindings/terminalio/Terminal.h"
 #include "supervisor/serial.h"
 #include "supervisor/usb.h"
 
 #include "tusb.h"
 
+// Cheat for now and always have a spot allocated for a keyboard.
+static ps2io_keyboard_obj_t supervisor_keyboard;
+static uint8_t kbd_buffer[256];
+
 void serial_init(void) {
     usb_init();
 }
 
 bool serial_connected(void) {
+    if (supervisor_keyboard.base.type != NULL && supervisor_keyboard.base.type != &mp_type_NoneType) {
+        return true;
+    }
     return tud_cdc_connected();
 }
 
 char serial_read(void) {
+    if (supervisor_keyboard.base.type != NULL && supervisor_keyboard.base.type != &mp_type_NoneType) {
+        char c;
+        int errcode;
+        mp_uint_t count = mp_stream_read_exactly(MP_OBJ_FROM_PTR(&supervisor_keyboard), &c, 1, &errcode);
+        if (count == 1) {
+            return c;
+        }
+    }
     return (char) tud_cdc_read_char();
 }
 
 bool serial_bytes_available(void) {
+    if (supervisor_keyboard.base.type != NULL && supervisor_keyboard.base.type != &mp_type_NoneType) {
+        mp_obj_t stream = MP_OBJ_FROM_PTR(&supervisor_keyboard);
+        const mp_stream_p_t *stream_p = mp_get_stream(stream);
+        int error;
+        mp_uint_t res = stream_p->ioctl(stream, MP_STREAM_POLL, MP_STREAM_POLL_RD, &error);
+        if (res == MP_STREAM_POLL_RD) {
+            return true;
+        }
+    }
     return tud_cdc_available() > 0;
 }
 
@@ -68,4 +95,15 @@ void serial_write_substring(const char* text, uint32_t length) {
 
 void serial_write(const char* text) {
     serial_write_substring(text, strlen(text));
+}
+
+void serial_connect_stream(mp_obj_t stream_obj) {
+    mp_obj_t native_stream = mp_instance_cast_to_native_base(stream_obj, &ps2io_keyboard_type);
+    if (native_stream == MP_OBJ_NULL) {
+        mp_raise_TypeError(translate("Only ps2io.Keyboard streams supported."));
+    }
+
+    ps2io_keyboard_obj_t* keyboard = MP_OBJ_TO_PTR(native_stream);
+    supervisor_keyboard.buf.buf = kbd_buffer;
+    common_hal_ps2io_keyboard_move(keyboard, &supervisor_keyboard);
 }

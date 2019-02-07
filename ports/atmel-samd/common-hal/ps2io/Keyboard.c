@@ -27,6 +27,7 @@
 #include "common-hal/ps2io/Keyboard.h"
 
 #include <stdint.h>
+#include <string.h>
 
 #include "atmel_start_pins.h"
 #include "hal/include/hal_gpio.h"
@@ -188,10 +189,13 @@ static size_t update_chars(ps2io_keyboard_obj_t *self, int usb_value, uint8_t *d
     uint8_t ascii = 0;
     switch (usb_value) {
         case 0x2c: // space
-            ascii = 0x40;
+            ascii = 0x20;
             break;
         case 0x2a: // backspace
             ascii = 0x08;
+            break;
+        case 0x2b: // tab
+            ascii = 0x09;
             break;
         case 0x35: // `
             ascii = 0x60;
@@ -305,7 +309,12 @@ static size_t update_chars(ps2io_keyboard_obj_t *self, int usb_value, uint8_t *d
             ascii = 0x27;
             break;
         case 0x28: // enter
-            ascii = 0x0a;
+            if (len >= 2) {
+                data[0] = 0x0d; // cr
+                data[1] = 0x0a; // lf
+                return 2;
+            }
+            ascii = 0x0d;
             break;
         case 0x1d: // Z
             ascii = 0x7a;
@@ -374,6 +383,9 @@ static size_t update_chars(ps2io_keyboard_obj_t *self, int usb_value, uint8_t *d
             case 0x64: // D -> S
                 ascii = 0x73;
                 break;
+            case 0x67: // G -> D
+                ascii = 0x64;
+                break;
             case 0x6a: // J -> N
                 ascii = 0x6e;
                 break;
@@ -392,7 +404,7 @@ static size_t update_chars(ps2io_keyboard_obj_t *self, int usb_value, uint8_t *d
         }
     }
 
-    if (self->usb_hid_report[0] & 0x12) { // Shift
+    if (self->usb_hid_report[0] & 0x22) { // Shift
         if ('a' <= ascii && ascii <= 'z') {
             ascii = ascii - 0x20;
         } else {
@@ -464,6 +476,20 @@ static size_t update_chars(ps2io_keyboard_obj_t *self, int usb_value, uint8_t *d
         }
     }
 
+    if (self->usb_hid_report[0] & 0x11) { // Control
+        switch (ascii) {
+            case 0x63: // C -> end of text
+                ascii = 0x03;
+                break;
+            case 0x64: // D -> end of transmit
+                ascii = 0x04;
+                break;
+        }
+    }
+
+    if (ascii == 0) {
+        return 0;
+    }
     *data = ascii;
     return 1;
 }
@@ -576,6 +602,9 @@ static size_t update_report(ps2io_keyboard_obj_t *self, int ps2_value, uint8_t *
             break;
         case 0x66: // backspace
             keycode = 0x2a;
+            break;
+        case 0x0d: // Tab
+            keycode = 0x2b;
             break;
         case 0x0E: // `
             keycode = 0x35;
@@ -772,4 +801,20 @@ uint8_t *data, size_t len, int *errcode) {
 
 uint32_t common_hal_ps2io_keyboard_bytes_available(ps2io_keyboard_obj_t *self) {
     return ringbuf_count(&self->buf);
+}
+
+void common_hal_ps2io_keyboard_move(ps2io_keyboard_obj_t *self, ps2io_keyboard_obj_t *new_location) {
+
+    turn_off_cpu_interrupt(self->channel);
+    // Hold onto the new buffer and set it again below after we copy everything else.
+    uint8_t* new_buffer = new_location->buf.buf;
+    memcpy(new_buffer, self->buf.buf, 256);
+    memcpy(new_location, self, sizeof(ps2io_keyboard_obj_t));
+    new_location->buf.buf = new_buffer;
+    set_eic_channel_data(self->channel, (void*) new_location);
+    turn_on_cpu_interrupt(self->channel);
+
+    never_reset_pin_number(self->clock_pin);
+    never_reset_pin_number(self->data_pin);
+    never_reset_eic_handler(self->channel);
 }

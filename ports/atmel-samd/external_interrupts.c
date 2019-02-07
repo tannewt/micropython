@@ -38,13 +38,21 @@
 // has one user.
 static void *channel_data[EIC_EXTINT_NUM];
 static uint8_t channel_handler[EIC_EXTINT_NUM];
+static uint16_t never_reset_channels;
 
 void reset_all_eic_handlers(void) {
-    eic_reset();
     for (int i = 0; i < EIC_EXTINT_NUM; i++) {
+        if ((never_reset_channels & (1 << i)) != 0) {
+            continue;
+        }
+        turn_off_eic_channel(i);
         channel_data[i] = NULL;
         channel_handler[i] = 0;
     }
+}
+
+void never_reset_eic_handler(uint8_t eic_channel) {
+    never_reset_channels |= 1 << eic_channel;
 }
 
 bool eic_handler_free(uint8_t eic_channel) {
@@ -73,6 +81,7 @@ void enable_eic_channel_handler(uint8_t eic_channel, uint32_t sense_setting,
 }
 
 void disable_eic_channel_handler(uint8_t eic_channel) {
+    never_reset_channels &= ~(1 << eic_channel);
     turn_off_eic_channel(eic_channel);
     channel_data[eic_channel] = NULL;
     channel_handler[eic_channel] = EIC_HANDLER_NO_INTERRUPT;
