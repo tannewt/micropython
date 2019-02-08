@@ -61,8 +61,6 @@
 //|   :param int timeout: The maximum clock stretching timeut - (used only for bitbangio.I2C; ignored for busio.I2C)
 //|
 STATIC mp_obj_t busio_i2c_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
-    busio_i2c_obj_t *self = m_new_obj(busio_i2c_obj_t);
-    self->base.type = &busio_i2c_type;
     enum { ARG_scl, ARG_sda, ARG_frequency, ARG_timeout };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_scl, MP_ARG_REQUIRED | MP_ARG_OBJ },
@@ -78,6 +76,9 @@ STATIC mp_obj_t busio_i2c_make_new(const mp_obj_type_t *type, size_t n_args, con
     assert_pin_free(scl);
     const mcu_pin_obj_t* sda = MP_OBJ_TO_PTR(args[ARG_sda].u_obj);
     assert_pin_free(sda);
+
+    busio_i2c_obj_t *self = m_new_obj(busio_i2c_obj_t);
+    self->base.type = &busio_i2c_type;
     common_hal_busio_i2c_construct(self, scl, sda, args[ARG_frequency].u_int, args[ARG_timeout].u_int);
     return (mp_obj_t)self;
 }

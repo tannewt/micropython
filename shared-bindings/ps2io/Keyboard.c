@@ -47,9 +47,23 @@
 //|
 
 STATIC mp_obj_t ps2io_keyboard_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    enum { ARG_clock, ARG_data };
+    static const mp_arg_t allowed_args[] = {
+        { MP_QSTR_clock, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_OBJ },
+        { MP_QSTR_data, MP_ARG_KW_ONLY | MP_ARG_REQUIRED | MP_ARG_OBJ },
+    };
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
+    assert_pin(args[ARG_clock].u_obj, false);
+    assert_pin(args[ARG_data].u_obj, false);
+    const mcu_pin_obj_t* clock = MP_OBJ_TO_PTR(args[ARG_clock].u_obj);
+    assert_pin_free(clock);
+    const mcu_pin_obj_t* data = MP_OBJ_TO_PTR(args[ARG_data].u_obj);
+    assert_pin_free(data);
+
     ps2io_keyboard_obj_t *self = m_new_obj(ps2io_keyboard_obj_t);
     self->base.type = &ps2io_keyboard_type;
-    common_hal_ps2io_keyboard_construct(self, &pin_PB03, &pin_PB02, 256);
+    common_hal_ps2io_keyboard_construct(self, clock, data, 256);
     return MP_OBJ_FROM_PTR(self);
 }
 

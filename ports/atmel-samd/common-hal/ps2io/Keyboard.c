@@ -46,7 +46,7 @@
 #include "tick.h"
 
 void ps2io_interrupt_handler(uint8_t channel) {
-    PORT->Group[1].OUTTGL.reg = 1;
+    // PORT->Group[1].OUTTGL.reg = 1;
     ps2io_keyboard_obj_t* self = get_eic_channel_data(channel);
     uint8_t bit = *self->data_pin_in_address & self->data_pin_mask;
     uint64_t ms;
@@ -58,7 +58,7 @@ void ps2io_interrupt_handler(uint8_t channel) {
         (ms - self->last_bit_ms == 1 && 1000 - us_until_ms + self->last_bit_us_until_ms > 40);
 
     if (!new_bit) {
-        PORT->Group[1].OUTTGL.reg = 1;
+        // PORT->Group[1].OUTTGL.reg = 1;
         return;
     }
     self->last_bit_ms = ms;
@@ -75,7 +75,7 @@ void ps2io_interrupt_handler(uint8_t channel) {
         }
         self->command_bits--;
         self->command >>= 1;
-        PORT->Group[1].OUTTGL.reg = 1;
+        // PORT->Group[1].OUTTGL.reg = 1;
         return;
     }
 
@@ -111,7 +111,7 @@ void ps2io_interrupt_handler(uint8_t channel) {
         self->bitcount = 0;
         self->bitbuffer = 0;
     }
-    PORT->Group[1].OUTTGL.reg = 1;
+    // PORT->Group[1].OUTTGL.reg = 1;
 }
 
 void common_hal_ps2io_keyboard_construct(ps2io_keyboard_obj_t* self,
@@ -129,7 +129,7 @@ void common_hal_ps2io_keyboard_construct(ps2io_keyboard_obj_t* self,
     self->clock_pin = clock_pin->number;
 
     PortGroup *const port = &PORT->Group[(enum gpio_port)GPIO_PORT(data_pin->number)];
-    port->DIRSET.reg = 1; // Enable PB00 as output for debugging.
+    // port->DIRSET.reg = 1; // Enable PB00 as output for debugging.
     uint8_t pin_index = GPIO_PIN(data_pin->number);
     volatile PORT_PINCFG_Type *state = &port->PINCFG[pin_index];
     state->bit.INEN = true;
@@ -155,6 +155,7 @@ void common_hal_ps2io_keyboard_construct(ps2io_keyboard_obj_t* self,
     pin_index = GPIO_PIN(clock_pin->number);
     clock_port->OUTCLR.reg = 1 << pin_index;
     clock_port->DIRSET.reg = 1 << pin_index;
+    clock_port->PINCFG[pin_index].bit.DRVSTR = 1;
 
     turn_on_cpu_interrupt(self->channel);
 
@@ -534,6 +535,9 @@ static void send_command(ps2io_keyboard_obj_t *self, uint8_t* command, uint8_t c
     }
     self->command_acked = true;
 
+    // Wait a little so we don't respond so fast we debounce ourselves.
+    common_hal_mcu_delay_us(80);
+
     // request a host -> device
     // Bring clock low which will trigger the first zero bit.
     gpio_set_pin_function(self->clock_pin, GPIO_PIN_FUNCTION_OFF);
@@ -816,5 +820,6 @@ void common_hal_ps2io_keyboard_move(ps2io_keyboard_obj_t *self, ps2io_keyboard_o
 
     never_reset_pin_number(self->clock_pin);
     never_reset_pin_number(self->data_pin);
+    // never_reset_pin_number(32); // PB00
     never_reset_eic_handler(self->channel);
 }
