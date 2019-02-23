@@ -36,6 +36,7 @@ typedef struct {
     uint8_t clock_pin;
     uint8_t data_pin;
     ringbuf_t buf;
+    ringbuf_t out_buf;
     // No need to be volatile, it's always in an interrupt.
     uint16_t bitbuffer;
     uint8_t bitcount;
