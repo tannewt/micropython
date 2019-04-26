@@ -30,5 +30,11 @@
 #include "py/obj.h"
 
 void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len);
+void common_hal_gbio_queue_vblank_commands(const uint8_t* buf, uint32_t len, uint32_t additional_cycles);
+
+void common_hal_gbio_set_lcdc(uint8_t value);
+uint8_t common_hal_gbio_get_lcdc(void);
+
+uint8_t common_hal_gbio_get_pressed(void);
 
 #endif  // MICROPY_INCLUDED_SHARED_BINDINGS_GBIO___INIT___H

@@ -79,7 +79,14 @@ const uint8_t gameboy_boot[] = {
                                 0x3e, 0x11, // LD A, 0x11 (vblank is bit 0)
                                 0xe0, 0xff, // LD ffff, A
 
+                                0x00, 0x00,
+
                                 0xfb, // enable interrupts
+                                0xfb, // enable interrupts
+                                0xfb, // enable interrupts
+
+
+                                0x00, 0x00,
 
                                 // Load 0x1000 into hl and repeatedly jump to it until we do
                                 // something else. This prevents the program counter from
@@ -87,71 +94,96 @@ const uint8_t gameboy_boot[] = {
                                 0x21, 0x00, 0x10, 0xe9};
 
 uint8_t gamepad_state = 0xff;
-uint16_t addresses[2048];
+volatile uint16_t addresses[2048];
 uint16_t address_i;
-uint32_t vsync_count = 0;
+volatile uint32_t vsync_count = 0;
 uint32_t gamepad_count = 0;
 bool everything_going = false;
-uint8_t vsync_interrupt_response[] = {0xe9, 0xe9, 0x00, // Jump out of interrupt territory
-                             0x3e, 0x00, 0xe0, 0x43,  // Load a scroll x offset.
-                             0x3e, 0x00, 0xe0, 0x42,  // Load a scroll y offset.
+uint8_t vblank_interrupt_response[1000];
+uint16_t vblank_response_length;
+uint16_t total_additional_cycles;
+bool updating_vblank_response;
+bool break_next;
 
-                             // Load new gamepad state
-                              0x16, 0x30, // Load 0x30 into D
-                              0x0e, 0x00,  // Load 0x00 into C
-                              0x3e, 0x20, // Turn on only one column
-                              0xe2, // Load A into 0xff00
-                              0xf2, // read register 0xff + C into A
-                              0x5f, // Put A into E
-                              0x1a, 0x00, // Load dummy from (DE) into
+void kickoff_vsync_response(void) {
+    if (break_next) {
+        asm("bkpt");
+    }
+    // DMA free, return immediately.
+    DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
+    descriptor_out->BTCTRL.reg |= DMAC_BTCTRL_VALID;
+    volatile size_t len = vblank_response_length;
+    vblank_response_length = 2;
+    total_additional_cycles = 0;
 
-                              0x14, // Increment D
-                              0x3e, 0x10, // Turn on the other column
-                              0xe2, // Load A into 0xff00
-                              0xf2, // read register 0xff + C into A
-                              0x5f, // Put A into E
-                              0x1a, 0x00, // Load dummy from (DE)
+    if (len > 2) {
+        PORT->Group[1].OUTTGL.reg = 1 << 17;
+    }
 
-                              0x3e, 0x00, // Turn on both columns so any press is detected
-                              0xe2, // Load A into 0xff00
-                              0x21, 0x00, 0x11, // Load 0x1100 into hl
-                              0x3e, 0xee, // Clear the interrupt before it's enabled
-                              0x0e, 0x0f,  // Load 0x0f into C
-                              0xe2, // Load A into 0xff0f
+    // vblank_interrupt_response[len + 3] = 0xd9; // Return from interrupt
+    vblank_interrupt_response[len] = 0xd1; // Pop from the stack to not leak
+    vblank_interrupt_response[len + 1] = 0x21; // Load into hl
+    vblank_interrupt_response[len + 2] = 0x00; // Load into hl
+    vblank_interrupt_response[len + 3] = 0x22; // Load into hl
+    vblank_interrupt_response[len + 4] = 0xfb; // enable interrupts
+    vblank_interrupt_response[len + 5] = 0xfb; // enable interrupts
+    vblank_interrupt_response[len + 6] = 0xe9; // jump to where hl points.
+    len += 7;
 
-                             0x21, 0x00, 0x11, // Load 0x1000 into hl
-                             0xd9, // Return from the interrupt
-                             0xe9}; // jump to 0x1100
+    descriptor_out->BTCNT.reg = len;
+    descriptor_out->SRCADDR.reg = ((uint32_t) vblank_interrupt_response) + len;
 
-uint16_t x_position = 0;
-uint16_t y_position = 0;
-static void vsync_interrupt(void) {
+    dma_enable_channel(dma_out_channel);
+    // volatile uint8_t dma_status = dma_transfer_status(dma_out_channel);
+    // while (dma_status == 0) {
+    //     dma_status = dma_transfer_status(dma_out_channel);
+    // }
+    // if (len > 7) {
+    //     break_next = true;
+    // }
+}
+
+const uint8_t vblank_cleanup[] = {
+    0x00, // Noop to give DMA time to catch up.
+    0x18, // Jump 255 ahead to get out of interrupt range
+    0xff, // jump offset
+    0x21, // Load into hl
+    0x00, // Load into hl
+    0x14, // Load into hl
+    // 0xd9, // Return from interrupt
+    0xd1, // pop off the stack into DE, no worries if we miss it
+    0xfb, // enable interrupts
+    0xfb, // enable interrupts
+    0xe9, // jump to where hl points.
+};
+
+void kickoff_vblank_cleanup(void) {
+    // DMA free, return immediately.
+    DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
+    descriptor_out->BTCTRL.reg |= DMAC_BTCTRL_VALID;
+    uint32_t len = sizeof(vblank_cleanup);
+    descriptor_out->BTCNT.reg = len;
+    descriptor_out->SRCADDR.reg = ((uint32_t) vblank_cleanup) + len;
+
+    dma_enable_channel(dma_out_channel);
+}
+
+static void vsync_interrupt(bool real) {
     vsync_count++;
-    if ((gamepad_state & 0x02) == 0) {
-        x_position++;
-    } else if ((gamepad_state & 0x01) == 0) {
-        x_position--;
+    volatile uint8_t dma_status = dma_transfer_status(dma_out_channel);
+    while (dma_status == 0) {
+        dma_status = dma_transfer_status(dma_out_channel);
     }
-    if ((gamepad_state & 0x04) == 0) {
-        y_position++;
-    } else if ((gamepad_state & 0x08) == 0) {
-        y_position--;
-    }
-    gamepad_state = 0xff;
-    while (dma_transfer_status(dma_out_channel) == 0) {}
-    if (dma_transfer_status(dma_out_channel) != 0) {
-        // DMA free, return immediately.
-        DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
-        descriptor_out->BTCTRL.reg |= DMAC_BTCTRL_VALID;
-        size_t len = sizeof(vsync_interrupt_response);
-        vsync_interrupt_response[4] = x_position;
-        vsync_interrupt_response[8] = y_position;
-        descriptor_out->BTCNT.reg = sizeof(vsync_interrupt_response);
-        descriptor_out->SRCADDR.reg = ((uint32_t) vsync_interrupt_response) + len;
-
-        dma_enable_channel(dma_out_channel);
+    uint8_t final_status = dma_transfer_status(dma_out_channel);
+    if (final_status != 0) {
+        if (real && !updating_vblank_response) {
+            kickoff_vsync_response();
+        } else {
+            kickoff_vblank_cleanup();
+        }
     } else {
         asm("bkpt"); // need to queue interrupt return
+        final_status++;
     }
 }
 
@@ -184,7 +216,7 @@ uint8_t gamepad_interrupt_response[] = {0x00, 0x00,
                              0xe9}; //  and jump to hl.
 
 static void gamepad_interrupt(void) {
-    PORT->Group[1].OUTTGL.reg = 1 << 17;
+    //PORT->Group[1].OUTTGL.reg = 1 << 17;
     gamepad_count++;
     while (dma_transfer_status(dma_out_channel) == 0) {}
     if (dma_transfer_status(dma_out_channel) != 0) {
@@ -199,17 +231,27 @@ static void gamepad_interrupt(void) {
     } else {
         asm("bkpt"); // need to queue interrupt return
     }
-    PORT->Group[1].OUTTGL.reg = 1 << 17;
+    //PORT->Group[1].OUTTGL.reg = 1 << 17;
+}
+
+void retrigger_vblank_backup(void) {
+    TCC0->COUNT.reg = 0;
+    TCC0->INTFLAG.reg = TCC_INTFLAG_OVF;
+    TCC0->CTRLBSET.reg = TCC_CTRLBSET_CMD_RETRIGGER;
+    while (TCC0->SYNCBUSY.reg != 0) {}
+    TCC0->CTRLBSET.reg = TCC_CTRLBSET_CMD_RETRIGGER;
+    while (TCC0->STATUS.bit.STOP == 1) {}
 }
 
 void EVSYS_0_Handler() {
     uint16_t address = *((volatile uint16_t*) &PORT->Group[1].IN.reg);
+    PORT->Group[1].OUTTGL.reg = 1 << 17;
     EVSYS->Channel[0].CHINTFLAG.reg = 3;
         addresses[address_i] = address;
         address_i = (address_i + 1) % 2048;
     if (!everything_going) return;
     if (address == 0x0040) {
-        //PORT->Group[1].OUTTGL.reg = 1 << 17;
+        PORT->Group[1].OUTTGL.reg = 1 << 17;
         if (vsync_count == 1) {
             TCC0->CTRLBSET.reg = TCC_CTRLBSET_CMD_READSYNC;
             while (TCC0->SYNCBUSY.reg != 0) {}
@@ -223,23 +265,18 @@ void EVSYS_0_Handler() {
                 asm("bkpt");
             }
         }
-        TCC0->COUNT.reg = 0;
-        TCC0->INTFLAG.reg = TCC_INTFLAG_OVF;
-        TCC0->CTRLBSET.reg = TCC_CTRLBSET_CMD_RETRIGGER;
-        while (TCC0->SYNCBUSY.reg != 0) {}
-        TCC0->CTRLBSET.reg = TCC_CTRLBSET_CMD_RETRIGGER;
-        while (TCC0->STATUS.bit.STOP == 1) {}
-        vsync_interrupt();
-        //PORT->Group[1].OUTTGL.reg = 1 << 17;
+        retrigger_vblank_backup();
+        vsync_interrupt(true);
+        PORT->Group[1].OUTTGL.reg = 1 << 17;
         if ((TCC0->STATUS.bit.STOP == 1)) {
             asm("bkpt");
         }
     } else if (address == 0x0060) {
-        PORT->Group[1].OUTTGL.reg = 1 << 17;
+        //PORT->Group[1].OUTTGL.reg = 1 << 17;
         gamepad_interrupt();
-        PORT->Group[1].OUTTGL.reg = 1 << 17;
+        //PORT->Group[1].OUTTGL.reg = 1 << 17;
     } else if (address < 0x0100 && address != 0) {
-        PORT->Group[1].OUTTGL.reg = 1 << 17;
+        //PORT->Group[1].OUTTGL.reg = 1 << 17;
         //asm("bkpt");
     } else if ((address & 0xf000) == 0x3000) {
         uint8_t nibble = (address & 0xf);
@@ -261,12 +298,13 @@ void tcc_wait_for_sync(Tcc* tcc) {
 
 // Everything but MC interrupts
 void TCC0_0_Handler(void) {
-    //PORT->Group[1].OUTTGL.reg = 1 << 17;
+    PORT->Group[1].OUTTGL.reg = 1 << 17;
     if (TCC0->INTFLAG.bit.OVF == 1) {
         TCC0->INTFLAG.reg = TCC_INTFLAG_OVF;
-        vsync_interrupt();
+        vsync_interrupt(false);
+        retrigger_vblank_backup();
     }
-    //PORT->Group[1].OUTTGL.reg = 1 << 17;
+    PORT->Group[1].OUTTGL.reg = 1 << 17;
 }
 
 // MC0
@@ -317,6 +355,9 @@ void gbio_init(void) {
     tcc_wait_for_sync(tcc);
     tcc->WAVE.reg = TCC_WAVE_WAVEGEN_NFRQ;
     tcc_wait_for_sync(tcc);
+
+    tcc->DBGCTRL.reg = TCC_DBGCTRL_DBGRUN;
+    tcc_wait_for_sync(tcc);
     tcc->PER.reg = 0xffffff;
     tcc->CC[0].reg = 0x01ff;
     tcc->CC[1].reg = 0x00ff;
@@ -331,10 +372,14 @@ void gbio_init(void) {
     tcc_set_enable(tcc, true);
     tcc->CTRLBSET.reg = TCC_CTRLBSET_CMD_STOP;
 
+    vblank_interrupt_response[0] = 0x00; // Noop to give DMA time to catch up.
+    vblank_interrupt_response[1] = 0xe9; // Jump to HL to get PC out of interrupt range.
+    vblank_response_length = 2;
+
     // Set up the LUT
     MCLK->APBCMASK.bit.CCL_ = true;
     hri_gclk_write_PCHCTRL_reg(GCLK, CCL_GCLK_ID,
-                               GCLK_PCHCTRL_GEN_GCLK1_Val | (1 << GCLK_PCHCTRL_CHEN_Pos));
+                               GCLK_PCHCTRL_GEN_GCLK0_Val | (1 << GCLK_PCHCTRL_CHEN_Pos));
 
     CCL->CTRL.bit.SWRST = 1;
     while (CCL->CTRL.bit.SWRST == 1) {}
@@ -342,8 +387,9 @@ void gbio_init(void) {
     // Truth is 0xe which is 1 except when all three inputs, A15, RD and CLK are low.
     CCL->LUTCTRL[0].reg = CCL_LUTCTRL_TRUTH(0xfe) |
                           CCL_LUTCTRL_LUTEO |
+                          CCL_LUTCTRL_FILTSEL_FILTER |
                           CCL_LUTCTRL_INSEL0_IO |    // CLK
-                          CCL_LUTCTRL_INSEL1_IO | // A15 event event is 0x3
+                          CCL_LUTCTRL_INSEL1_IO |    // A15 event event is 0x3
                           CCL_LUTCTRL_INSEL2_IO |    // Read
                           CCL_LUTCTRL_ENABLE;
 
@@ -391,17 +437,30 @@ void gbio_init(void) {
 
     reset_event_system();
     turn_on_event_system();
+
+    // Interrupt for every valid address on the falling edge.
     uint8_t event_out_channel = 0; // find_sync_event_channel();
     connect_gclk_to_peripheral(0, EVSYS_GCLK_ID_0 + event_out_channel);
-    connect_event_user_to_channel(EVSYS_ID_USER_DMAC_CH_0 + dma_out_channel, event_out_channel);
+    //connect_event_user_to_channel(EVSYS_ID_USER_DMAC_CH_0 + dma_out_channel, event_out_channel);
     EVSYS->Channel[event_out_channel].CHANNEL.reg = EVSYS_CHANNEL_EVGEN(EVSYS_ID_GEN_CCL_LUTOUT_0) |
-                                                EVSYS_CHANNEL_PATH_RESYNCHRONIZED |
+                                                EVSYS_CHANNEL_PATH_SYNCHRONOUS |
                                                 EVSYS_CHANNEL_EDGSEL_FALLING_EDGE;
     EVSYS->Channel[event_out_channel].CHINTFLAG.reg = 0;
     EVSYS->Channel[event_out_channel].CHINTENSET.bit.EVD = 1;
 
     NVIC_SetPriority(EVSYS_0_IRQn, 0);
     NVIC_EnableIRQ(EVSYS_0_IRQn);
+
+    // Drive DMA from the rising edge of the LUT signal so we have almost a full cycle to move the
+    // new data.
+    uint8_t data_event_channel = 1;
+    connect_gclk_to_peripheral(0, EVSYS_GCLK_ID_0 + data_event_channel);
+    connect_event_user_to_channel(EVSYS_ID_USER_DMAC_CH_0 + dma_out_channel, data_event_channel);
+    EVSYS->Channel[data_event_channel].CHANNEL.reg = EVSYS_CHANNEL_EVGEN(EVSYS_ID_GEN_CCL_LUTOUT_0) |
+                                                EVSYS_CHANNEL_PATH_RESYNCHRONIZED |
+                                                EVSYS_CHANNEL_EDGSEL_RISING_EDGE;
+    EVSYS->Channel[data_event_channel].CHINTFLAG.reg = 0;
+    EVSYS->Channel[data_event_channel].CHINTENSET.bit.EVD = 1;
 
     dma_enable_channel(dma_out_channel);
     //DMAC->SWTRIGCTRL.bit.SWTRIG0 = 1 << dma_out_channel;
@@ -422,8 +481,10 @@ void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
         mp_raise_ValueError(translate("Too many commands"));
     }
     // Wait for a previous sequence to finish.
-    while (dma_transfer_status(dma_out_channel) == 0) {
+    volatile uint8_t dma_status = dma_transfer_status(dma_out_channel);
+    while (dma_status == 0) {
         MICROPY_VM_HOOK_LOOP
+        dma_status = dma_transfer_status(dma_out_channel);
     }
     memcpy(command_cache, buf, len);
 
@@ -438,10 +499,71 @@ void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
     descriptor_out->BTCNT.reg = len;
     descriptor_out->SRCADDR.reg = ((uint32_t) command_cache) + len;
 
+    PORT->Group[1].OUTTGL.reg = 1 << 17;
     dma_enable_channel(dma_out_channel);
 
+    dma_status = dma_transfer_status(dma_out_channel);
+    while (dma_status == 0) {
+        MICROPY_VM_HOOK_LOOP
+        dma_status = dma_transfer_status(dma_out_channel);
+    }
+    PORT->Group[1].OUTTGL.reg = 1 << 17;
+}
 
+void wait_for_vblank(void) {
+    uint32_t start_count = vsync_count;
+    while (start_count == vsync_count) {
+        MICROPY_VM_HOOK_LOOP
+    }
+}
+
+void common_hal_gbio_queue_vblank_commands(const uint8_t* buf, uint32_t len, uint32_t additional_cycles) {
+    // Wait for a previous sequence in case we're responding to vblank already.
     while (dma_transfer_status(dma_out_channel) == 0) {
         MICROPY_VM_HOOK_LOOP
     }
+    updating_vblank_response = true;
+    // If we've exhausted what we can do in the next vblank, then wait for it to complete.
+    if (len > sizeof(vblank_interrupt_response) - 6 - vblank_response_length - additional_cycles - total_additional_cycles) {
+        asm("bkpt");
+        wait_for_vblank();
+        while (dma_transfer_status(dma_out_channel) == 0) {
+            MICROPY_VM_HOOK_LOOP
+        }
+    }
+    memcpy(vblank_interrupt_response + vblank_response_length, buf, len);
+    vblank_response_length += len;
+    total_additional_cycles += additional_cycles;
+    updating_vblank_response = false;
+}
+
+uint8_t change_screen_commands[] = {
+        0x00, // Noop to sync DMA to GB clock
+        0x0e, // Load next value into C
+        0x40, // LCDC register
+        0x3e, // Load next value into A
+        0x91, // Default value out of bootloader
+        0xe2}; // Load A into 0xff00 + C
+
+void common_hal_gbio_set_lcdc(uint8_t value) {
+    uint8_t previous = change_screen_commands[4];
+    change_screen_commands[4] = value;
+    // Turning off has to happen during vblank.
+    if ((previous & 0x80) == 0x80 && (value & 0x80) == 0) {
+        common_hal_gbio_queue_vblank_commands(change_screen_commands, sizeof(change_screen_commands), 1);
+        wait_for_vblank();
+        return;
+    }
+    common_hal_gbio_queue_commands(change_screen_commands, sizeof(change_screen_commands));
+    if ((previous & 0x80) == 0x0 && (value & 0x80) == 0x80) {
+        retrigger_vblank_backup();
+    }
+}
+
+uint8_t common_hal_gbio_get_lcdc(void) {
+    return change_screen_commands[4];
+}
+
+uint8_t common_hal_gbio_get_pressed(void) {
+    return gamepad_state;
 }
