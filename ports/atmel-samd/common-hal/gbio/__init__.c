@@ -38,6 +38,7 @@
 #include "peripherals/samd/events.h"
 #include "peripherals/samd/timers.h"
 #include "py/runtime.h"
+#include "shared-bindings/microcontroller/__init__.h"
 #include "supervisor/shared/translate.h"
 
 uint8_t dma_out_channel;
@@ -93,6 +94,97 @@ const uint8_t gameboy_boot[] = {
                                 // exiting the cartridge address range.
                                 0x21, 0x00, 0x10, 0xe9};
 
+const uint8_t gameboy_color_boot[] = {
+                                    // Hello world
+                                    // 0x99, 0x99, 0x00, 0x74, 0x55, 0x55, 0x00, 0x36, 0x00, 0xC6, 0x44, 0x44, 0x11, 0x99, 0x00, 0x36,
+                                    // 0x00, 0xC6, 0x00, 0x69, 0x44, 0x44, 0x22, 0x22, 0xF9, 0x99, 0x74, 0x47, 0x55, 0x55, 0x66, 0x63,
+                                    // 0x66, 0x6C, 0x55, 0x52, 0x55, 0x52, 0x66, 0x63, 0x66, 0x6C, 0x88, 0x88, 0x45, 0x54, 0xE2, 0x2E,
+
+
+                                    // Nintendo logo 48 bytes to check first
+                                    0xce, 0xed, 0x66, 0x66, 0xcc, 0x0d, 0x00, 0x0b, 0x03, 0x73, 0x00, 0x83, 0x00, 0x0c, 0x00, 0x0d,
+                                    0x00, 0x08, 0x11, 0x1f, 0x88, 0x89, 0x00, 0x0e, 0xdc, 0xcc, 0x6e, 0xe6, 0xdd, 0xdd, 0xd9, 0x99,
+                                    0xbb, 0xbb, 0x67, 0x63, 0x6e, 0x0e, 0xec, 0xcc, 0xdd, 0xdc, 0x99, 0x9f, 0xbb, 0xb9, 0x33, 0x3e,
+
+
+                                    // Adafruit
+                                    0x00, 0x00, 0x30, 0x30, 0x00, 0x00, 0xC6, 0xC6, 0x00, 0x00, 0x07, 0x07, 0xCC, 0xCC, 0xCC, 0xCC,
+                                    0x00, 0x00, 0xF1, 0xF1, 0x13, 0x13, 0x3B, 0x3B, 0xC0, 0xC0, 0xD1, 0xD1, 0x00, 0x00, 0xBD, 0xBD,
+                                    0x00, 0x00, 0x66, 0x66, 0x00, 0x00, 0x66, 0x66, 0xC1, 0xC1, 0xDD, 0xDD, 0x08, 0x08, 0xE8, 0xE8,
+                                    0x36, 0x36, 0x63, 0x63, 0xE6, 0xE6, 0xE6, 0xE6, 0xCC, 0xCC, 0xC7, 0xC7, 0xCD, 0xCD, 0xDC, 0xDC,
+                                    0xF9, 0xF9, 0xBD, 0xBD, 0xBB, 0xBB, 0xBB, 0xBB, 0x11, 0x11, 0x11, 0x11, 0x88, 0x88, 0x88, 0x88,
+                                    0x66, 0x66, 0x63, 0x63, 0x66, 0x66, 0xE6, 0xE6, 0xDD, 0xDD, 0xDD, 0xDD, 0x88, 0x88, 0x8E, 0x8E,
+
+                                    // Nintendo logo 48 bytes with bytes read twice.
+                                    // 0xce, 0xce, 0xed, 0xed, 0x66, 0x66, 0x66, 0x66, 0xcc, 0xcc, 0x0d, 0x0d, 0x00, 0x00, 0x0b, 0x0b,
+                                    // 0x03, 0x03, 0x73, 0x73, 0x00, 0x00, 0x83, 0x83, 0x00, 0x00, 0x0c, 0x0c, 0x00, 0x00, 0x0d, 0x0d,
+                                    // 0x00, 0x00, 0x08, 0x08, 0x11, 0x11, 0x1f, 0x1f, 0x88, 0x88, 0x89, 0x89, 0x00, 0x00, 0x0e, 0x0e,
+                                    // 0xdc, 0xdc, 0xcc, 0xcc, 0x6e, 0x6e, 0xe6, 0xe6, 0xdd, 0xdd, 0xdd, 0xdd, 0xd9, 0xd9, 0x99, 0x99,
+                                    // 0xbb, 0xbb, 0xbb, 0xbb, 0x67, 0x67, 0x63, 0x63, 0x6e, 0x6e, 0x0e, 0x0e, 0xec, 0xec, 0xcc, 0xcc,
+                                    // 0xdd, 0xdd, 0xdc, 0xdc, 0x99, 0x99, 0x9f, 0x9f, 0xbb, 0xbb, 0xb9, 0xb9, 0x33, 0x33, 0x3e, 0x3e,
+
+                                    // Licensee code - Nintendo R&D1
+                                    0x33, // 0x14b
+                                    0x30, // 0x144 "0"
+                                    0x31, // 0x145 "1"
+
+                                    // Cartridge header 28 bytes
+                                    // 11 Game title characters - 0x134 - 0x13e
+                                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+
+                                    // Game code 0x13f - 0x142
+                                    0x20, 0x20, 0x20, 0x20,
+
+                                    // 0x143 * 69
+                                    0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0,
+                                    0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0,
+                                    0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0,
+                                    0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0,
+                                    0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0,
+                                    0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0,
+                                    0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0,
+
+
+                                // Cartridge header 28 bytes w/ valid checksum
+                                0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0xCA, 0x31, 0x58,
+
+                                    0x00, 0x00,
+
+
+                                // Set the stack pointer
+                                0x31, 0x00, 0xe0,
+
+                                0x00, 0x00,
+
+                                // Set both lines low to detect any press.
+                                0xf0, 0x00, // LD A, FF00 - Poke the gpio by reading from it
+                                0x3e, 0x00, // LD A, 0x30
+                                0xe0, 0x00, // LD FF00, A
+
+                                0x00, 0x00,
+
+                                // Clear vsync and joypad interrupts
+                                0x3e, 0x00, // LD A, 0x0
+                                0xe0, 0x0f, // LD ff0f, A
+
+                                // Enable vsync and joypad interrupts
+                                0x3e, 0x11, // LD A, 0x11 (vblank is bit 0)
+                                0xe0, 0xff, // LD ffff, A
+
+                                0x00, 0x00,
+
+                                0xfb, // enable interrupts
+                                0xfb, // enable interrupts
+                                0xfb, // enable interrupts
+
+                                0x00, 0x00,
+
+                                // Load 0x1000 into hl and repeatedly jump to it until we do
+                                // something else. This prevents the program counter from
+                                // exiting the cartridge address range.
+                                0x21, 0x00, 0x10, 0xe9};
+
 uint8_t gamepad_state = 0xff;
 volatile uint16_t addresses[2048];
 uint16_t address_i;
@@ -104,6 +196,8 @@ uint16_t vblank_response_length;
 uint16_t total_additional_cycles;
 bool updating_vblank_response;
 bool break_next;
+volatile bool gameboy_color_booting;
+bool gameboy_color;
 
 void kickoff_vsync_response(void) {
     if (break_next) {
@@ -249,7 +343,16 @@ void EVSYS_0_Handler() {
     EVSYS->Channel[0].CHINTFLAG.reg = 3;
         addresses[address_i] = address;
         address_i = (address_i + 1) % 2048;
-    if (!everything_going) return;
+    // GameBoy Color
+    // if (address_i == 214 + 50) {
+    //     asm("bkpt");
+    // }
+    if (!everything_going) {
+        if (address_i == 50 && address == 0x0104) {
+            gameboy_color_booting = true;
+        }
+        return;
+    }
     if (address == 0x0040) {
         PORT->Group[1].OUTTGL.reg = 1 << 17;
         if (vsync_count == 1) {
@@ -333,6 +436,8 @@ void gbio_init(void) {
 
     vsync_count = 0;
     gamepad_state = 0xff;
+
+    bool first_init = true;
 
     // Prep a vsync backup. Once in a while we miss an address so we keep a TC in sync with it.
     turn_on_clocks(false, 0, 1);
@@ -470,14 +575,32 @@ void gbio_init(void) {
 
     PORT->Group[1].OUTTGL.reg = 1 << 17;
     while (dma_transfer_status(dma_out_channel) == 0) {
+        if (gameboy_color_booting && first_init) {
+            gpio_set_pin_level(RESET_PIN, true);
+
+            common_hal_mcu_delay_us(10);
+
+            dma_disable_channel(dma_out_channel);
+            descriptor_out->BTCNT.reg = sizeof(gameboy_color_boot);
+            descriptor_out->SRCADDR.reg = ((uint32_t) gameboy_color_boot) + sizeof(gameboy_color_boot);
+            dma_enable_channel(dma_out_channel);
+            DMAC->SWTRIGCTRL.bit.SWTRIG0 = 1 << dma_out_channel;
+            first_init = false;
+            address_i = 0;
+
+            gpio_set_pin_level(RESET_PIN, false);
+        }
         MICROPY_VM_HOOK_LOOP
     }
     PORT->Group[1].OUTTGL.reg = 1 << 17;
+    if (gameboy_color_booting) {
+        gameboy_color = true;
+    }
     everything_going = true;
 }
 
 void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
-    if (len > 512 - 4) {
+    if (len > 512 - 5 - 2) {
         mp_raise_ValueError(translate("Too many commands"));
     }
     // Wait for a previous sequence to finish.
@@ -486,13 +609,21 @@ void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
         MICROPY_VM_HOOK_LOOP
         dma_status = dma_transfer_status(dma_out_channel);
     }
-    memcpy(command_cache, buf, len);
+    // Disable interrupts while we are transmitting because we an interrupt can misinterpret a
+    // our data as invalid instructions and crash. The better way to handle this would be to have
+    // the address interrupt catch an interrupt, set the data bus to noop and recover the
+    // interrupted code.
+    command_cache[0] = 0x0; // noop
+    command_cache[1] = 0xf3;
+    len += 2;
+    memcpy(command_cache + 2, buf, len);
 
     command_cache[len] = 0x21; // Load into hl
     command_cache[len + 1] = 0x00; // Load into hl
     command_cache[len + 2] = 0x10; // Load into hl
-    command_cache[len + 3] = 0xe9; // jump to where hl points.
-    len += 4;
+    command_cache[len + 3] = 0xfb; // Enable interrupts
+    command_cache[len + 4] = 0xe9; // jump to where hl points.
+    len += 5;
 
     DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
     descriptor_out->BTCTRL.reg |= DMAC_BTCTRL_VALID;
@@ -510,7 +641,7 @@ void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
     PORT->Group[1].OUTTGL.reg = 1 << 17;
 }
 
-void wait_for_vblank(void) {
+void common_hal_gbio_wait_for_vblank(void) {
     uint32_t start_count = vsync_count;
     while (start_count == vsync_count) {
         MICROPY_VM_HOOK_LOOP
@@ -526,7 +657,7 @@ void common_hal_gbio_queue_vblank_commands(const uint8_t* buf, uint32_t len, uin
     // If we've exhausted what we can do in the next vblank, then wait for it to complete.
     if (len > sizeof(vblank_interrupt_response) - 6 - vblank_response_length - additional_cycles - total_additional_cycles) {
         asm("bkpt");
-        wait_for_vblank();
+        common_hal_gbio_wait_for_vblank();
         while (dma_transfer_status(dma_out_channel) == 0) {
             MICROPY_VM_HOOK_LOOP
         }
@@ -551,7 +682,7 @@ void common_hal_gbio_set_lcdc(uint8_t value) {
     // Turning off has to happen during vblank.
     if ((previous & 0x80) == 0x80 && (value & 0x80) == 0) {
         common_hal_gbio_queue_vblank_commands(change_screen_commands, sizeof(change_screen_commands), 1);
-        wait_for_vblank();
+        common_hal_gbio_wait_for_vblank();
         return;
     }
     common_hal_gbio_queue_commands(change_screen_commands, sizeof(change_screen_commands));
@@ -564,6 +695,64 @@ uint8_t common_hal_gbio_get_lcdc(void) {
     return change_screen_commands[4];
 }
 
+
+                            //  0x16, 0x30, // Load 0x30 into D
+                            //  0x0e, 0x00,  // Load 0x00 into C
+
+                            //  0x3e, 0x20, // Turn on only one column
+                            //  0xe2, // Load A into 0xff00
+                            //  0xf2, // read register 0xff + C into A
+                            //  0x5f, // Put A into E
+                            //  0x1a, 0x00, // Load dummy from (DE) into
+
+                            //  0x14, // Increment D
+                            //  0x3e, 0x10, // Turn on the other column
+                            //  0xe2, // Load A into 0xff00
+                            //  0xf2, // read register 0xff + C into A
+                            //  0x5f, // Put A into E
+                            //  0x1a, 0x00, // Load dummy from (DE)
+
+                            //  0x3e, 0x00, // Turn on both columns so any press is detected
+                            //  0xe2, // Load A into 0xff00
+                            //  0x21, 0x00, 0x11, // Load 0x1100 into hl
+                            //  0x3e, 0xef, // Clear the interrupt before it's enabled
+                            //  0x0e, 0x0f,  // Load 0x0f into C
+                            //  0xe2, // Load A into 0xff0f
+
+uint8_t fetch_gamepad_commands[] = {
+                             0x16, 0x30, // Load 0x30 into D
+                             0x0e, 0x00,  // Load 0x00 into C
+
+                             0x3e, 0x20, // Turn on only one column
+                             0xe2, // Load A into 0xff00
+                             0x00, 0x00,
+                             0xf2, // read register 0xff + C into A
+                             0x5f, // Put A into E
+                             0x1a, 0x00, // Load dummy from (DE) into
+
+
+                             0x14, // Increment D
+                             0x3e, 0x10, // Turn on the other column
+                             0xe2, // Load A into 0xff00
+                             0x00, 0x00,
+                             0xf2, // read register 0xff + C into A
+                             0x5f, // Put A into E
+                             0x1a, 0x00, // Load dummy from (DE)
+
+                             0x3e, 0x00, // Turn on both columns so any press is detected
+                             0xe2, // Load A into 0xff00
+                             0x3e, 0xef, // Clear the interrupt before it's enabled
+                             0x0e, 0x0f,  // Load 0x0f into C
+                             0xe2, // Load A into 0xff0f
+};
+
 uint8_t common_hal_gbio_get_pressed(void) {
-    return gamepad_state;
+    uint8_t current_state = gamepad_state;
+    gamepad_state = 0xff;
+    common_hal_gbio_queue_commands(fetch_gamepad_commands, sizeof(fetch_gamepad_commands));
+    return current_state;
+}
+
+bool common_hal_gbio_is_color(void) {
+    return gameboy_color;
 }

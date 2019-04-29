@@ -117,6 +117,27 @@ STATIC mp_obj_t gbio_get_pressed(void){
 }
 MP_DEFINE_CONST_FUN_OBJ_0(gbio_get_pressed_obj, gbio_get_pressed);
 
+
+//| .. method:: wait_for_vblank()
+//|
+//|  Waits until the next vblank and then returns.
+//|
+STATIC mp_obj_t gbio_wait_for_vblank(void){
+    common_hal_gbio_wait_for_vblank();
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_0(gbio_wait_for_vblank_obj, gbio_wait_for_vblank);
+
+
+//| .. method:: is_color()
+//|
+//|  Returns True when the cart is in a GameBoy Color.
+//|
+STATIC mp_obj_t gbio_is_color(void){
+    return mp_obj_new_bool(common_hal_gbio_is_color());
+}
+MP_DEFINE_CONST_FUN_OBJ_0(gbio_is_color_obj, gbio_is_color);
+
 STATIC const mp_rom_map_elem_t gbio_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_gbio) },
     { MP_ROM_QSTR(MP_QSTR_queue_commands), MP_ROM_PTR(&gbio_queue_commands_obj) },
@@ -126,6 +147,8 @@ STATIC const mp_rom_map_elem_t gbio_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_get_lcdc), MP_ROM_PTR(&gbio_get_lcdc_obj) },
 
     { MP_ROM_QSTR(MP_QSTR_get_pressed), MP_ROM_PTR(&gbio_get_pressed_obj) },
+    { MP_ROM_QSTR(MP_QSTR_wait_for_vblank), MP_ROM_PTR(&gbio_wait_for_vblank_obj) },
+    { MP_ROM_QSTR(MP_QSTR_is_color), MP_ROM_PTR(&gbio_is_color_obj) },
 };
 
 STATIC MP_DEFINE_CONST_DICT(gbio_module_globals, gbio_module_globals_table);
