@@ -288,13 +288,16 @@ uint8_t gamepad_interrupt_response[] = {0x00, 0x00,
 
                              0x3e, 0x20, // Turn on only one column
                              0xe2, // Load A into 0xff00
+                             0x00, 0x00, 0x00, 0x00, 0x00,
                              0xf2, // read register 0xff + C into A
                              0x5f, // Put A into E
-                             0x1a, 0x00, // Load dummy from (DE) into
-
-                             0x14, // Increment D
                              0x3e, 0x10, // Turn on the other column
                              0xe2, // Load A into 0xff00
+                             0x1a, 0x00, // Load dummy from (DE) into
+
+                             0x00, 0x00, 0x00, 0x00, 0x00,
+
+                             0x14, // Increment D
                              0xf2, // read register 0xff + C into A
                              0x5f, // Put A into E
                              0x1a, 0x00, // Load dummy from (DE)
@@ -725,16 +728,16 @@ uint8_t fetch_gamepad_commands[] = {
 
                              0x3e, 0x20, // Turn on only one column
                              0xe2, // Load A into 0xff00
-                             0x00, 0x00,
+                             0x00, 0x00, 0x00, 0x00, 0x00,
                              0xf2, // read register 0xff + C into A
                              0x5f, // Put A into E
+                             0x3e, 0x10, // Turn on the other column
+                             0xe2, // Load A into 0xff00
                              0x1a, 0x00, // Load dummy from (DE) into
 
 
                              0x14, // Increment D
-                             0x3e, 0x10, // Turn on the other column
-                             0xe2, // Load A into 0xff00
-                             0x00, 0x00,
+                             0x00, 0x00, 0x00, 0x00, 0x00,
                              0xf2, // read register 0xff + C into A
                              0x5f, // Put A into E
                              0x1a, 0x00, // Load dummy from (DE)
