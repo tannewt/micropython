@@ -603,7 +603,7 @@ void gbio_init(void) {
 }
 
 void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
-    if (len > 512 - 5 - 2) {
+    if (len > 512 - 5 - 3) {
         mp_raise_ValueError(translate("Too many commands"));
     }
     // Wait for a previous sequence to finish.
@@ -612,26 +612,30 @@ void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
         MICROPY_VM_HOOK_LOOP
         dma_status = dma_transfer_status(dma_out_channel);
     }
+    uint32_t total_len = 0;
     // Disable interrupts while we are transmitting because we an interrupt can misinterpret a
     // our data as invalid instructions and crash. The better way to handle this would be to have
     // the address interrupt catch an interrupt, set the data bus to noop and recover the
     // interrupted code.
     command_cache[0] = 0x0; // noop
-    command_cache[1] = 0xf3;
-    len += 2;
-    memcpy(command_cache + 2, buf, len);
+    command_cache[1] = 0xf3; // disable interrupts
+    command_cache[2] = 0x0; // noop while the disable kicks in
+    total_len += 3;
 
-    command_cache[len] = 0x21; // Load into hl
-    command_cache[len + 1] = 0x00; // Load into hl
-    command_cache[len + 2] = 0x10; // Load into hl
-    command_cache[len + 3] = 0xfb; // Enable interrupts
-    command_cache[len + 4] = 0xe9; // jump to where hl points.
-    len += 5;
+    memcpy(command_cache + total_len, buf, len);
+    total_len += len;
+
+    command_cache[total_len] = 0x21; // Load into hl
+    command_cache[total_len + 1] = 0x00; // Load into hl
+    command_cache[total_len + 2] = 0x10; // Load into hl
+    command_cache[total_len + 3] = 0xfb; // Enable interrupts
+    command_cache[total_len + 4] = 0xe9; // jump to where hl points.
+    total_len += 5;
 
     DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
     descriptor_out->BTCTRL.reg |= DMAC_BTCTRL_VALID;
-    descriptor_out->BTCNT.reg = len;
-    descriptor_out->SRCADDR.reg = ((uint32_t) command_cache) + len;
+    descriptor_out->BTCNT.reg = total_len;
+    descriptor_out->SRCADDR.reg = ((uint32_t) command_cache) + total_len;
 
     PORT->Group[1].OUTTGL.reg = 1 << 17;
     dma_enable_channel(dma_out_channel);
