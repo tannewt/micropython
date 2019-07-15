@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  */
 
-#include "shared-bindings/gbio/__init__.h"
+#include "shared-bindings/_gbio/__init__.h"
 
 #include <string.h>
 
@@ -40,6 +40,7 @@
 #include "py/runtime.h"
 #include "shared-bindings/microcontroller/__init__.h"
 #include "supervisor/shared/translate.h"
+#include "tick.h"
 
 uint8_t dma_out_channel;
 uint8_t command_cache[512];
@@ -199,6 +200,8 @@ bool break_next;
 volatile bool gameboy_color_booting;
 bool gameboy_color;
 
+uint64_t last_vsync_time = 0;
+
 void kickoff_vsync_response(void) {
     if (break_next) {
         asm("bkpt");
@@ -264,6 +267,7 @@ void kickoff_vblank_cleanup(void) {
 
 static void vsync_interrupt(bool real) {
     vsync_count++;
+    last_vsync_time = ticks_ms;
     volatile uint8_t dma_status = dma_transfer_status(dma_out_channel);
     while (dma_status == 0) {
         dma_status = dma_transfer_status(dma_out_channel);
@@ -434,14 +438,6 @@ void TCC0_2_Handler(void) {
 }
 
 void gbio_init(void) {
-    address_i = 0;
-    everything_going = false;
-
-    vsync_count = 0;
-    gamepad_state = 0xff;
-
-    bool first_init = true;
-
     // Prep a vsync backup. Once in a while we miss an address so we keep a TC in sync with it.
     turn_on_clocks(false, 0, 1);
 
@@ -529,16 +525,12 @@ void gbio_init(void) {
 
     dma_out_channel = find_free_audio_dma_channel();
     DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
-    descriptor_out->BTCTRL.reg = DMAC_BTCTRL_VALID |
-                             DMAC_BTCTRL_BLOCKACT_NOACT |
-                             DMAC_BTCTRL_SRCINC |
-                             DMAC_BTCTRL_BEATSIZE_BYTE;
-                                    // Custom logo 48 bytes.
+    descriptor_out->BTCTRL.reg = DMAC_BTCTRL_BLOCKACT_NOACT |
+                                 DMAC_BTCTRL_SRCINC |
+                                 DMAC_BTCTRL_BEATSIZE_BYTE;
 
-    descriptor_out->BTCNT.reg = sizeof(gameboy_boot);
     descriptor_out->DSTADDR.reg = (uint32_t)&PORT->Group[0].OUT.reg + 2;
     descriptor_out->DESCADDR.reg = 0;
-    descriptor_out->SRCADDR.reg = ((uint32_t) gameboy_boot) + sizeof(gameboy_boot);
     dma_configure(dma_out_channel, 0, false);
     DmacChannel* out_channel = &DMAC->Channel[dma_out_channel];
     out_channel->CHEVCTRL.reg = DMAC_CHEVCTRL_EVIE | DMAC_CHEVCTRL_EVACT_TRIG;
@@ -570,8 +562,26 @@ void gbio_init(void) {
     EVSYS->Channel[data_event_channel].CHINTFLAG.reg = 0;
     EVSYS->Channel[data_event_channel].CHINTENSET.bit.EVD = 1;
 
+}
+
+void common_hal_gbio_reset_gameboy(void) {
+    address_i = 0;
+    everything_going = false;
+
+    vsync_count = 0;
+    gamepad_state = 0xff;
+
+    bool first_init = true;
+    gpio_set_pin_level(RESET_PIN, true);
+
+    common_hal_mcu_delay_us(10);
+
+    DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
+    descriptor_out->BTCTRL.reg |= DMAC_BTCTRL_VALID;
+    descriptor_out->BTCNT.reg = sizeof(gameboy_boot);
+    descriptor_out->SRCADDR.reg = ((uint32_t) gameboy_boot) + sizeof(gameboy_boot);
+
     dma_enable_channel(dma_out_channel);
-    //DMAC->SWTRIGCTRL.bit.SWTRIG0 = 1 << dma_out_channel;
 
     // Start the CPU
     gpio_set_pin_level(RESET_PIN, false);
@@ -605,6 +615,9 @@ void gbio_init(void) {
 void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
     if (len > 512 - 5 - 3) {
         mp_raise_ValueError(translate("Too many commands"));
+    }
+    if (ticks_ms - last_vsync_time > 60) {
+        mp_raise_RuntimeError(translate("GameBoy not running"));
     }
     // Wait for a previous sequence to finish.
     volatile uint8_t dma_status = dma_transfer_status(dma_out_channel);
@@ -649,6 +662,9 @@ void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
 }
 
 void common_hal_gbio_wait_for_vblank(void) {
+    if (ticks_ms - last_vsync_time > 60) {
+        mp_raise_RuntimeError(translate("GameBoy not running"));
+    }
     uint32_t start_count = vsync_count;
     while (start_count == vsync_count) {
         MICROPY_VM_HOOK_LOOP
@@ -656,6 +672,9 @@ void common_hal_gbio_wait_for_vblank(void) {
 }
 
 void common_hal_gbio_queue_vblank_commands(const uint8_t* buf, uint32_t len, uint32_t additional_cycles) {
+    if (ticks_ms - last_vsync_time > 60) {
+        mp_raise_RuntimeError(translate("GameBoy not running"));
+    }
     // Wait for a previous sequence in case we're responding to vblank already.
     while (dma_transfer_status(dma_out_channel) == 0) {
         MICROPY_VM_HOOK_LOOP

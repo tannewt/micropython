@@ -30,18 +30,18 @@
 #include "py/obj.h"
 #include "py/runtime.h"
 
-#include "shared-bindings/gbio/__init__.h"
+#include "shared-bindings/_gbio/__init__.h"
 
-//| :mod:`gbio` --- Interface with GameBoy hardware
+//| :mod:`_gbio` --- Interface with GameBoy hardware
 //| =========================================================================
 //|
-//| .. module:: gbio
+//| .. module:: _gbio
 //|   :synopsis: Interface with GameBoy hardware
 //|   :platform: Gameboy
 //|
-//| The `gbio` module contains classes to manage GameBoy hardware
-//|
-//| .. warning:: This will be changed before 4.0.0. Consider it very experimental.
+//| The `gbio` module contains classes to manage GameBoy hardware. This module
+//| is private and may change without a major version bump. Use the
+//| `adafruit_gbio` library for stability instead.
 //|
 //| Libraries
 //|
@@ -129,6 +129,17 @@ STATIC mp_obj_t gbio_wait_for_vblank(void){
 MP_DEFINE_CONST_FUN_OBJ_0(gbio_wait_for_vblank_obj, gbio_wait_for_vblank);
 
 
+//| .. method:: reset_gameboy()
+//|
+//|  Resets the GameBoy
+//|
+STATIC mp_obj_t gbio_reset_gameboy(void){
+    common_hal_gbio_reset_gameboy();
+    return mp_const_none;
+}
+MP_DEFINE_CONST_FUN_OBJ_0(gbio_reset_gameboy_obj, gbio_reset_gameboy);
+
+
 //| .. method:: is_color()
 //|
 //|  Returns True when the cart is in a GameBoy Color.
@@ -148,6 +159,7 @@ STATIC const mp_rom_map_elem_t gbio_module_globals_table[] = {
 
     { MP_ROM_QSTR(MP_QSTR_get_pressed), MP_ROM_PTR(&gbio_get_pressed_obj) },
     { MP_ROM_QSTR(MP_QSTR_wait_for_vblank), MP_ROM_PTR(&gbio_wait_for_vblank_obj) },
+    { MP_ROM_QSTR(MP_QSTR_reset_gameboy), MP_ROM_PTR(&gbio_reset_gameboy_obj) },
     { MP_ROM_QSTR(MP_QSTR_is_color), MP_ROM_PTR(&gbio_is_color_obj) },
 };
 

@@ -46,13 +46,13 @@
 #include "hri/hri_rstc_d51.h"
 #endif
 
+#include "common-hal/_gbio/__init__.h"
 #include "common-hal/analogio/AnalogIn.h"
 #include "common-hal/analogio/AnalogOut.h"
 #include "common-hal/audiobusio/PDMIn.h"
 #include "common-hal/audiobusio/I2SOut.h"
 #include "common-hal/audioio/AudioOut.h"
 #include "common-hal/busio/SPI.h"
-#include "common-hal/gbio/__init__.h"
 #include "common-hal/microcontroller/Pin.h"
 #include "common-hal/pulseio/PulseIn.h"
 #include "common-hal/pulseio/PulseOut.h"

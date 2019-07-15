@@ -152,7 +152,7 @@ ifeq ($(CIRCUITPY_GAMEPADSHIFT),1)
 SRC_PATTERNS += gamepadshift/%
 endif
 ifeq ($(CIRCUITPY_GBIO),1)
-SRC_PATTERNS += gbio/%
+SRC_PATTERNS += _gbio/%
 endif
 ifeq ($(CIRCUITPY_I2CSLAVE),1)
 SRC_PATTERNS += i2cslave/%
@@ -241,6 +241,7 @@ SRC_COMMON_HAL_ALL = \
 	_bleio/Descriptor.c \
 	_bleio/Service.c \
 	_bleio/UUID.c \
+	_gbio/__init__.c \
 	analogio/AnalogIn.c \
 	analogio/AnalogOut.c \
 	analogio/__init__.c \
@@ -261,7 +262,6 @@ SRC_COMMON_HAL_ALL = \
 	displayio/ParallelBus.c \
 	frequencyio/__init__.c \
 	frequencyio/FrequencyIn.c \
-	gbio/__init__.c \
 	i2cslave/I2CSlave.c \
 	i2cslave/__init__.c \
 	microcontroller/Pin.c \

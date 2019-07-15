@@ -367,7 +367,7 @@ extern const struct _mp_obj_module_t gamepadshift_module;
 
 #ifdef CIRCUITPY_GBIO
 extern const struct _mp_obj_module_t gbio_module;
-#define GBIO_MODULE { MP_OBJ_NEW_QSTR(MP_QSTR_gbio), (mp_obj_t)&gbio_module },
+#define GBIO_MODULE { MP_OBJ_NEW_QSTR(MP_QSTR__gbio), (mp_obj_t)&gbio_module },
 #else
 #define GBIO_MODULE
 #endif
