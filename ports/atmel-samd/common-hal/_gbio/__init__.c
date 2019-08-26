@@ -136,7 +136,7 @@ const uint8_t gameboy_color_boot[] = {
                                     // Game code 0x13f - 0x142
                                     0x20, 0x20, 0x20, 0x20,
 
-                                    // 0x143 * 69
+                                    // 0x143 * 69, these are to determine whether to do color selection during start up animation. read each other frame
                                     0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0,
                                     0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0,
                                     0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0,
@@ -146,11 +146,13 @@ const uint8_t gameboy_color_boot[] = {
                                     0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0,
 
 
-                                // Cartridge header 28 bytes w/ valid checksum
-                                0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0xCA, 0x31, 0x58,
+                                // Cartridge header 26 bytes w/ valid checksum
+                                0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, // Last is 0x143 but only used in checksum
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0xCA,
 
-                                    0x00, 0x00,
+                                0xc0, // The very last read is 0x143 to set the mode of the GBC. This is the one that matters!
+                                    
+                                0x00,
 
 
                                 // Set the stack pointer
@@ -523,7 +525,7 @@ void gbio_init(void) {
     // Set up output DMA
     gpio_set_port_direction(GPIO_PORTA, 0x00ff0000, GPIO_DIRECTION_OUT);
 
-    dma_out_channel = find_free_audio_dma_channel();
+    dma_out_channel = 0;
     DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
     descriptor_out->BTCTRL.reg = DMAC_BTCTRL_BLOCKACT_NOACT |
                                  DMAC_BTCTRL_SRCINC |
@@ -565,16 +567,21 @@ void gbio_init(void) {
 }
 
 void common_hal_gbio_reset_gameboy(void) {
+    // Reset internal tracking state.
+    TCC0->CTRLBSET.reg = TCC_CTRLBSET_CMD_STOP;
+    while (TCC0->SYNCBUSY.bit.CTRLB == 1) {}
+    bool first_init = true;
+    gpio_set_pin_level(RESET_PIN, true);
+
+    // Wait after reset to make sure we reset after handling any latent vsync interrupts.
+    common_hal_mcu_delay_us(10);
+
     address_i = 0;
     everything_going = false;
 
     vsync_count = 0;
     gamepad_state = 0xff;
 
-    bool first_init = true;
-    gpio_set_pin_level(RESET_PIN, true);
-
-    common_hal_mcu_delay_us(10);
 
     DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
     descriptor_out->BTCTRL.reg |= DMAC_BTCTRL_VALID;
@@ -609,6 +616,8 @@ void common_hal_gbio_reset_gameboy(void) {
     if (gameboy_color_booting) {
         gameboy_color = true;
     }
+    //asm("bkpt");
+    last_vsync_time = ticks_ms;
     everything_going = true;
 }
 
@@ -616,7 +625,8 @@ void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
     if (len > 512 - 5 - 3) {
         mp_raise_ValueError(translate("Too many commands"));
     }
-    if (ticks_ms - last_vsync_time > 60) {
+    if (!everything_going || ticks_ms - last_vsync_time > 60) {
+        // asm("bkpt");
         mp_raise_RuntimeError(translate("GameBoy not running"));
     }
     // Wait for a previous sequence to finish.
@@ -662,30 +672,32 @@ void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
 }
 
 void common_hal_gbio_wait_for_vblank(void) {
-    if (ticks_ms - last_vsync_time > 60) {
+    if (!everything_going || ticks_ms - last_vsync_time > 60) {
+        // asm("bkpt");
         mp_raise_RuntimeError(translate("GameBoy not running"));
     }
     uint32_t start_count = vsync_count;
     while (start_count == vsync_count) {
-        MICROPY_VM_HOOK_LOOP
+        RUN_BACKGROUND_TASKS;
     }
 }
 
 void common_hal_gbio_queue_vblank_commands(const uint8_t* buf, uint32_t len, uint32_t additional_cycles) {
-    if (ticks_ms - last_vsync_time > 60) {
+    if (!everything_going || ticks_ms - last_vsync_time > 60) {
+        // asm("bkpt");
         mp_raise_RuntimeError(translate("GameBoy not running"));
     }
     // Wait for a previous sequence in case we're responding to vblank already.
     while (dma_transfer_status(dma_out_channel) == 0) {
-        MICROPY_VM_HOOK_LOOP
+        RUN_BACKGROUND_TASKS;
     }
     updating_vblank_response = true;
     // If we've exhausted what we can do in the next vblank, then wait for it to complete.
     if (len > sizeof(vblank_interrupt_response) - 6 - vblank_response_length - additional_cycles - total_additional_cycles) {
-        asm("bkpt");
+        //asm("bkpt");
         common_hal_gbio_wait_for_vblank();
         while (dma_transfer_status(dma_out_channel) == 0) {
-            MICROPY_VM_HOOK_LOOP
+            RUN_BACKGROUND_TASKS;
         }
     }
     memcpy(vblank_interrupt_response + vblank_response_length, buf, len);
