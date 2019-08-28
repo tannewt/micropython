@@ -195,37 +195,37 @@ volatile uint32_t vsync_count = 0;
 uint32_t gamepad_count = 0;
 bool everything_going = false;
 uint8_t vblank_interrupt_response[1000];
-uint16_t vblank_response_length;
+volatile uint16_t vblank_response_length;
 uint16_t total_additional_cycles;
 bool updating_vblank_response;
 bool break_next;
 volatile bool gameboy_color_booting;
 bool gameboy_color;
+volatile bool cleanup_vsync;
+volatile bool kickoff_gamepad;
+volatile bool dma_in_use;
 
-uint64_t last_vsync_time = 0;
+volatile uint64_t last_vsync_time = 0;
 
 void kickoff_vsync_response(void) {
     if (break_next) {
         asm("bkpt");
     }
     // DMA free, return immediately.
+    dma_in_use = true;
     DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
     descriptor_out->BTCTRL.reg |= DMAC_BTCTRL_VALID;
-    volatile size_t len = vblank_response_length;
+    size_t len = vblank_response_length;
     vblank_response_length = 2;
     total_additional_cycles = 0;
 
-    if (len > 2) {
-        PORT->Group[1].OUTTGL.reg = 1 << 17;
-    }
-
     // vblank_interrupt_response[len + 3] = 0xd9; // Return from interrupt
-    vblank_interrupt_response[len] = 0xd1; // Pop from the stack to not leak
+    vblank_interrupt_response[len] = 0x00; // Pop from the stack to not leak
     vblank_interrupt_response[len + 1] = 0x21; // Load into hl
     vblank_interrupt_response[len + 2] = 0x00; // Load into hl
     vblank_interrupt_response[len + 3] = 0x22; // Load into hl
-    vblank_interrupt_response[len + 4] = 0xfb; // enable interrupts
-    vblank_interrupt_response[len + 5] = 0xfb; // enable interrupts
+    vblank_interrupt_response[len + 4] = 0x00; // nop
+    vblank_interrupt_response[len + 5] = 0xd9; // return from interrupt
     vblank_interrupt_response[len + 6] = 0xe9; // jump to where hl points.
     len += 7;
 
@@ -233,13 +233,6 @@ void kickoff_vsync_response(void) {
     descriptor_out->SRCADDR.reg = ((uint32_t) vblank_interrupt_response) + len;
 
     dma_enable_channel(dma_out_channel);
-    // volatile uint8_t dma_status = dma_transfer_status(dma_out_channel);
-    // while (dma_status == 0) {
-    //     dma_status = dma_transfer_status(dma_out_channel);
-    // }
-    // if (len > 7) {
-    //     break_next = true;
-    // }
 }
 
 const uint8_t vblank_cleanup[] = {
@@ -258,6 +251,7 @@ const uint8_t vblank_cleanup[] = {
 
 void kickoff_vblank_cleanup(void) {
     // DMA free, return immediately.
+    dma_in_use = true;
     DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
     descriptor_out->BTCTRL.reg |= DMAC_BTCTRL_VALID;
     uint32_t len = sizeof(vblank_cleanup);
@@ -266,27 +260,6 @@ void kickoff_vblank_cleanup(void) {
 
     dma_enable_channel(dma_out_channel);
 }
-
-static void vsync_interrupt(bool real) {
-    vsync_count++;
-    last_vsync_time = ticks_ms;
-    volatile uint8_t dma_status = dma_transfer_status(dma_out_channel);
-    while (dma_status == 0) {
-        dma_status = dma_transfer_status(dma_out_channel);
-    }
-    uint8_t final_status = dma_transfer_status(dma_out_channel);
-    if (final_status != 0) {
-        if (real && !updating_vblank_response) {
-            kickoff_vsync_response();
-        } else {
-            kickoff_vblank_cleanup();
-        }
-    } else {
-        asm("bkpt"); // need to queue interrupt return
-        final_status++;
-    }
-}
-
 
 uint8_t gamepad_interrupt_response[] = {0x00, 0x00,
                              0x16, 0x30, // Load 0x30 into D
@@ -318,23 +291,57 @@ uint8_t gamepad_interrupt_response[] = {0x00, 0x00,
                              0xd9, // Return from the interrupt
                              0xe9}; //  and jump to hl.
 
-static void gamepad_interrupt(void) {
-    //PORT->Group[1].OUTTGL.reg = 1 << 17;
-    gamepad_count++;
-    while (dma_transfer_status(dma_out_channel) == 0) {}
-    if (dma_transfer_status(dma_out_channel) != 0) {
-        // DMA free, return immediately.
-        DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
-        descriptor_out->BTCTRL.reg |= DMAC_BTCTRL_VALID;
-        size_t len = sizeof(gamepad_interrupt_response);
-        descriptor_out->BTCNT.reg = sizeof(gamepad_interrupt_response);
-        descriptor_out->SRCADDR.reg = ((uint32_t) gamepad_interrupt_response) + len;
+void kickoff_gamepad_response(void) {
+    dma_in_use = true;
+    DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
+    descriptor_out->BTCTRL.reg |= DMAC_BTCTRL_VALID;
+    size_t len = sizeof(gamepad_interrupt_response);
+    descriptor_out->BTCNT.reg = sizeof(gamepad_interrupt_response);
+    descriptor_out->SRCADDR.reg = ((uint32_t) gamepad_interrupt_response) + len;
 
-        dma_enable_channel(dma_out_channel);
-    } else {
-        asm("bkpt"); // need to queue interrupt return
+    dma_enable_channel(dma_out_channel);
+}
+
+void DMAC_0_Handler(void) {
+    DmacChannel* out_channel = &DMAC->Channel[dma_out_channel];
+    out_channel->CHINTFLAG.reg = DMAC_CHINTENSET_TERR | DMAC_CHINTENSET_TCMPL;
+    dma_in_use = false;
+    if (cleanup_vsync) {
+        kickoff_vblank_cleanup();
+        cleanup_vsync = false;
+    } else if (kickoff_gamepad) {
+        kickoff_gamepad_response();
+        kickoff_gamepad = false;
     }
-    //PORT->Group[1].OUTTGL.reg = 1 << 17;
+}
+
+static void vsync_interrupt(bool real) {
+    vsync_count++;
+    if (real) {
+        last_vsync_time = ticks_ms;
+    }
+    
+    if (!dma_in_use) {
+        if (real && !updating_vblank_response) {
+            kickoff_vsync_response();
+        } else {
+            kickoff_vblank_cleanup();
+        }
+    } else {
+        // Queue up exiting the vsync.
+        // TODO: Count how many cycles remain in the vsync and maybe squeeze things in.
+        cleanup_vsync = true;
+    }
+}
+
+static void gamepad_interrupt(void) {
+    gamepad_count++;
+    if (dma_in_use) {
+        kickoff_gamepad = true;
+    } else {
+        // DMA free, return immediately.
+        kickoff_gamepad_response();
+    }
 }
 
 void retrigger_vblank_backup(void) {
@@ -348,10 +355,10 @@ void retrigger_vblank_backup(void) {
 
 void EVSYS_0_Handler() {
     uint16_t address = *((volatile uint16_t*) &PORT->Group[1].IN.reg);
-    PORT->Group[1].OUTTGL.reg = 1 << 17;
+    //PORT->Group[1].OUTTGL.reg = 1 << 17;
     EVSYS->Channel[0].CHINTFLAG.reg = 3;
-        addresses[address_i] = address;
-        address_i = (address_i + 1) % 2048;
+    //addresses[address_i] = address;
+    address_i = (address_i + 1) % 2048;
     // GameBoy Color
     // if (address_i == 214 + 50) {
     //     asm("bkpt");
@@ -363,7 +370,7 @@ void EVSYS_0_Handler() {
         return;
     }
     if (address == 0x0040) {
-        PORT->Group[1].OUTTGL.reg = 1 << 17;
+        //PORT->Group[1].OUTTGL.reg = 1 << 17;
         if (vsync_count == 1) {
             TCC0->CTRLBSET.reg = TCC_CTRLBSET_CMD_READSYNC;
             while (TCC0->SYNCBUSY.reg != 0) {}
@@ -373,16 +380,16 @@ void EVSYS_0_Handler() {
             TCC0->PER.reg = count + 2;
             while (TCC0->SYNCBUSY.reg != 0) {}
 
-            if (count == 0) {
-                asm("bkpt");
-            }
+            // if (count == 0) {
+            //     asm("bkpt");
+            // }
         }
         retrigger_vblank_backup();
         vsync_interrupt(true);
-        PORT->Group[1].OUTTGL.reg = 1 << 17;
-        if ((TCC0->STATUS.bit.STOP == 1)) {
-            asm("bkpt");
-        }
+        // PORT->Group[1].OUTTGL.reg = 1 << 17;
+        // if ((TCC0->STATUS.bit.STOP == 1)) {
+        //     asm("bkpt");
+        // }
     } else if (address == 0x0060) {
         //PORT->Group[1].OUTTGL.reg = 1 << 17;
         gamepad_interrupt();
@@ -536,6 +543,12 @@ void gbio_init(void) {
     dma_configure(dma_out_channel, 0, false);
     DmacChannel* out_channel = &DMAC->Channel[dma_out_channel];
     out_channel->CHEVCTRL.reg = DMAC_CHEVCTRL_EVIE | DMAC_CHEVCTRL_EVACT_TRIG;
+    out_channel->CHINTENSET.reg = DMAC_CHINTENSET_TERR | DMAC_CHINTENSET_TCMPL;
+
+    cleanup_vsync = false;
+    NVIC_DisableIRQ(DMAC_0_IRQn);
+    NVIC_ClearPendingIRQ(DMAC_0_IRQn);
+    NVIC_EnableIRQ(DMAC_0_IRQn);
 
     reset_event_system();
     turn_on_event_system();
@@ -559,7 +572,7 @@ void gbio_init(void) {
     connect_gclk_to_peripheral(0, EVSYS_GCLK_ID_0 + data_event_channel);
     connect_event_user_to_channel(EVSYS_ID_USER_DMAC_CH_0 + dma_out_channel, data_event_channel);
     EVSYS->Channel[data_event_channel].CHANNEL.reg = EVSYS_CHANNEL_EVGEN(EVSYS_ID_GEN_CCL_LUTOUT_0) |
-                                                EVSYS_CHANNEL_PATH_RESYNCHRONIZED |
+                                                EVSYS_CHANNEL_PATH_SYNCHRONOUS |
                                                 EVSYS_CHANNEL_EDGSEL_RISING_EDGE;
     EVSYS->Channel[data_event_channel].CHINTFLAG.reg = 0;
     EVSYS->Channel[data_event_channel].CHINTENSET.bit.EVD = 1;
@@ -583,6 +596,7 @@ void common_hal_gbio_reset_gameboy(void) {
     gamepad_state = 0xff;
 
 
+    dma_in_use = true;
     DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
     descriptor_out->BTCTRL.reg |= DMAC_BTCTRL_VALID;
     descriptor_out->BTCNT.reg = sizeof(gameboy_boot);
@@ -593,14 +607,15 @@ void common_hal_gbio_reset_gameboy(void) {
     // Start the CPU
     gpio_set_pin_level(RESET_PIN, false);
 
-    PORT->Group[1].OUTTGL.reg = 1 << 17;
-    while (dma_transfer_status(dma_out_channel) == 0) {
+    //PORT->Group[1].OUTTGL.reg = 1 << 17;
+    while (dma_in_use) {
         if (gameboy_color_booting && first_init) {
             gpio_set_pin_level(RESET_PIN, true);
 
             common_hal_mcu_delay_us(10);
 
             dma_disable_channel(dma_out_channel);
+            dma_in_use = true;
             descriptor_out->BTCNT.reg = sizeof(gameboy_color_boot);
             descriptor_out->SRCADDR.reg = ((uint32_t) gameboy_color_boot) + sizeof(gameboy_color_boot);
             dma_enable_channel(dma_out_channel);
@@ -610,9 +625,9 @@ void common_hal_gbio_reset_gameboy(void) {
 
             gpio_set_pin_level(RESET_PIN, false);
         }
-        MICROPY_VM_HOOK_LOOP
+        RUN_BACKGROUND_TASKS;
     }
-    PORT->Group[1].OUTTGL.reg = 1 << 17;
+    //PORT->Group[1].OUTTGL.reg = 1 << 17;
     if (gameboy_color_booting) {
         gameboy_color = true;
     }
@@ -625,16 +640,15 @@ void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
     if (len > 512 - 5 - 3) {
         mp_raise_ValueError(translate("Too many commands"));
     }
-    if (!everything_going || ticks_ms - last_vsync_time > 60) {
+    if (!everything_going || ticks_ms - last_vsync_time > 600) {
         // asm("bkpt");
         mp_raise_RuntimeError(translate("GameBoy not running"));
     }
     // Wait for a previous sequence to finish.
-    volatile uint8_t dma_status = dma_transfer_status(dma_out_channel);
-    while (dma_status == 0) {
-        MICROPY_VM_HOOK_LOOP
-        dma_status = dma_transfer_status(dma_out_channel);
+    while (dma_in_use) {
+        RUN_BACKGROUND_TASKS;
     }
+    dma_in_use = true;
     uint32_t total_len = 0;
     // Disable interrupts while we are transmitting because we an interrupt can misinterpret a
     // our data as invalid instructions and crash. The better way to handle this would be to have
@@ -650,7 +664,7 @@ void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
 
     command_cache[total_len] = 0x21; // Load into hl
     command_cache[total_len + 1] = 0x00; // Load into hl
-    command_cache[total_len + 2] = 0x10; // Load into hl
+    command_cache[total_len + 2] = 0x13; // Load into hl
     command_cache[total_len + 3] = 0xfb; // Enable interrupts
     command_cache[total_len + 4] = 0xe9; // jump to where hl points.
     total_len += 5;
@@ -660,19 +674,17 @@ void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
     descriptor_out->BTCNT.reg = total_len;
     descriptor_out->SRCADDR.reg = ((uint32_t) command_cache) + total_len;
 
-    PORT->Group[1].OUTTGL.reg = 1 << 17;
+    // PORT->Group[1].OUTTGL.reg = 1 << 17;
     dma_enable_channel(dma_out_channel);
 
-    dma_status = dma_transfer_status(dma_out_channel);
-    while (dma_status == 0) {
-        MICROPY_VM_HOOK_LOOP
-        dma_status = dma_transfer_status(dma_out_channel);
+    while (dma_in_use) {
+        RUN_BACKGROUND_TASKS;
     }
-    PORT->Group[1].OUTTGL.reg = 1 << 17;
+    // PORT->Group[1].OUTTGL.reg = 1 << 17;
 }
 
 void common_hal_gbio_wait_for_vblank(void) {
-    if (!everything_going || ticks_ms - last_vsync_time > 60) {
+    if (!everything_going || ticks_ms - last_vsync_time > 600) {
         // asm("bkpt");
         mp_raise_RuntimeError(translate("GameBoy not running"));
     }
@@ -683,23 +695,41 @@ void common_hal_gbio_wait_for_vblank(void) {
 }
 
 void common_hal_gbio_queue_vblank_commands(const uint8_t* buf, uint32_t len, uint32_t additional_cycles) {
-    if (!everything_going || ticks_ms - last_vsync_time > 60) {
+    if (!everything_going || ticks_ms - last_vsync_time > 600) {
         // asm("bkpt");
         mp_raise_RuntimeError(translate("GameBoy not running"));
     }
+    if (dma_in_use) {
+        mp_printf(&mp_plat_print, "wait for dma to finish\n");
+    }
     // Wait for a previous sequence in case we're responding to vblank already.
-    while (dma_transfer_status(dma_out_channel) == 0) {
+    while (dma_in_use) {
         RUN_BACKGROUND_TASKS;
     }
-    updating_vblank_response = true;
     // If we've exhausted what we can do in the next vblank, then wait for it to complete.
-    if (len > sizeof(vblank_interrupt_response) - 6 - vblank_response_length - additional_cycles - total_additional_cycles) {
+    uint32_t remaining_cycles = sizeof(vblank_interrupt_response) - vblank_response_length - 7 - total_additional_cycles;
+    if (len + additional_cycles > remaining_cycles) {
+        mp_printf(&mp_plat_print, "wait for next vsync %d + %d > %d\n", len, additional_cycles, remaining_cycles);
         //asm("bkpt");
-        common_hal_gbio_wait_for_vblank();
-        while (dma_transfer_status(dma_out_channel) == 0) {
+        uint32_t start_time = last_vsync_time;
+        while (start_time == last_vsync_time) {
+            RUN_BACKGROUND_TASKS;
+            if (ticks_ms - last_vsync_time > 1000) {
+                asm("bkpt");
+            }
+        }
+        while (dma_in_use) {
             RUN_BACKGROUND_TASKS;
         }
     }
+    volatile uint32_t x = len;
+    (void) x;
+    volatile uint32_t y = vblank_response_length;
+    (void) y;
+    if (sizeof(vblank_interrupt_response) < vblank_response_length + len) {
+        asm("bkpt");
+    }
+    updating_vblank_response = true;
     memcpy(vblank_interrupt_response + vblank_response_length, buf, len);
     vblank_response_length += len;
     total_additional_cycles += additional_cycles;
@@ -793,4 +823,8 @@ uint8_t common_hal_gbio_get_pressed(void) {
 
 bool common_hal_gbio_is_color(void) {
     return gameboy_color;
+}
+
+uint32_t common_hal_gbio_get_vsync_count(void) {
+    return vsync_count;
 }

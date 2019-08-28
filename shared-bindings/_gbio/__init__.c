@@ -117,7 +117,6 @@ STATIC mp_obj_t gbio_get_pressed(void){
 }
 MP_DEFINE_CONST_FUN_OBJ_0(gbio_get_pressed_obj, gbio_get_pressed);
 
-
 //| .. method:: wait_for_vblank()
 //|
 //|  Waits until the next vblank and then returns.
@@ -127,6 +126,15 @@ STATIC mp_obj_t gbio_wait_for_vblank(void){
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_0(gbio_wait_for_vblank_obj, gbio_wait_for_vblank);
+
+//| .. method:: get_vsync_count()
+//|
+//|  Returns the frame number
+//|
+STATIC mp_obj_t gbio_get_vsync_count(void){
+    return MP_OBJ_NEW_SMALL_INT(common_hal_gbio_get_vsync_count());
+}
+MP_DEFINE_CONST_FUN_OBJ_0(gbio_get_vsync_count_obj, gbio_get_vsync_count);
 
 
 //| .. method:: reset_gameboy()
@@ -159,6 +167,7 @@ STATIC const mp_rom_map_elem_t gbio_module_globals_table[] = {
 
     { MP_ROM_QSTR(MP_QSTR_get_pressed), MP_ROM_PTR(&gbio_get_pressed_obj) },
     { MP_ROM_QSTR(MP_QSTR_wait_for_vblank), MP_ROM_PTR(&gbio_wait_for_vblank_obj) },
+    { MP_ROM_QSTR(MP_QSTR_get_vsync_count), MP_ROM_PTR(&gbio_get_vsync_count_obj) },
     { MP_ROM_QSTR(MP_QSTR_reset_gameboy), MP_ROM_PTR(&gbio_reset_gameboy_obj) },
     { MP_ROM_QSTR(MP_QSTR_is_color), MP_ROM_PTR(&gbio_is_color_obj) },
 };

@@ -37,6 +37,7 @@ uint8_t common_hal_gbio_get_lcdc(void);
 
 uint8_t common_hal_gbio_get_pressed(void);
 void common_hal_gbio_wait_for_vblank(void);
+uint32_t common_hal_gbio_get_vsync_count(void);
 void common_hal_gbio_reset_gameboy(void);
 bool common_hal_gbio_is_color(void);
 
