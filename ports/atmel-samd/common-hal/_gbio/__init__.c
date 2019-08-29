@@ -220,12 +220,12 @@ void kickoff_vsync_response(void) {
     total_additional_cycles = 0;
 
     // vblank_interrupt_response[len + 3] = 0xd9; // Return from interrupt
-    vblank_interrupt_response[len] = 0x00; // Pop from the stack to not leak
+    vblank_interrupt_response[len] = 0xd1; // Pop from the stack to not leak
     vblank_interrupt_response[len + 1] = 0x21; // Load into hl
     vblank_interrupt_response[len + 2] = 0x00; // Load into hl
     vblank_interrupt_response[len + 3] = 0x22; // Load into hl
-    vblank_interrupt_response[len + 4] = 0x00; // nop
-    vblank_interrupt_response[len + 5] = 0xd9; // return from interrupt
+    vblank_interrupt_response[len + 4] = 0xfb; // enable interrupts
+    vblank_interrupt_response[len + 5] = 0xfb; // enable interrupts
     vblank_interrupt_response[len + 6] = 0xe9; // jump to where hl points.
     len += 7;
 
@@ -705,6 +705,9 @@ void common_hal_gbio_queue_vblank_commands(const uint8_t* buf, uint32_t len, uin
     // Wait for a previous sequence in case we're responding to vblank already.
     while (dma_in_use) {
         RUN_BACKGROUND_TASKS;
+        if (ticks_ms - last_vsync_time > 1000) {
+            asm("bkpt");
+        }
     }
     // If we've exhausted what we can do in the next vblank, then wait for it to complete.
     uint32_t remaining_cycles = sizeof(vblank_interrupt_response) - vblank_response_length - 7 - total_additional_cycles;
