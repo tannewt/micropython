@@ -11,6 +11,7 @@ MEMORY
     FLASH_NVM (r) : ORIGIN = ${CIRCUITPY_INTERNAL_NVM_START_ADDR}, LENGTH = ${CIRCUITPY_INTERNAL_NVM_SIZE}
 
     RAM (xrw)  : ORIGIN = 0x20000000, LENGTH = ${RAM_SIZE}
+    BACKUPRAM (xrw)  : ORIGIN = 0x47000000, LENGTH = 8K
 }
 
 /* top end of the stack */
@@ -82,6 +83,14 @@ SECTIONS
         . = . + ${CIRCUITPY_DEFAULT_STACK_SIZE};
         . = ALIGN(4);
     } >RAM
+
+    .bss_backupram :
+    {
+        . = ALIGN(4);
+        *(.bss_backupram)
+        *(.bss_backupram*)
+        . = ALIGN(4);
+    } >BACKUPRAM
 
     .ARM.attributes 0 : { *(.ARM.attributes) }
 }
