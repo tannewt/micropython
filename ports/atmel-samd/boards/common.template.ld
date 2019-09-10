@@ -87,8 +87,8 @@ SECTIONS
     .bss_backupram :
     {
         . = ALIGN(4);
-        *(.bss_backupram)
-        *(.bss_backupram*)
+        *(.backupram)
+        *(.backupram*)
         . = ALIGN(4);
     } >BACKUPRAM
 

@@ -203,7 +203,7 @@ volatile bool gameboy_color_booting;
 bool gameboy_color;
 volatile bool cleanup_vsync;
 volatile bool kickoff_gamepad;
-volatile bool dma_in_use __attribute__((section(".bss_backupram")));
+volatile bool dma_in_use __attribute__((section(".backupram")));
 
 volatile uint64_t last_vsync_time = 0;
 
