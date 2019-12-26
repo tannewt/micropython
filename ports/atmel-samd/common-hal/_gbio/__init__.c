@@ -39,6 +39,7 @@
 #include "peripherals/samd/timers.h"
 #include "py/runtime.h"
 #include "shared-bindings/microcontroller/__init__.h"
+#include "supervisor/shared/tick.h"
 #include "supervisor/shared/translate.h"
 #include "tick.h"
 
@@ -151,7 +152,7 @@ const uint8_t gameboy_color_boot[] = {
                                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0xCA,
 
                                 0xc0, // The very last read is 0x143 to set the mode of the GBC. This is the one that matters!
-                                    
+
                                 0x00,
 
 
@@ -318,9 +319,9 @@ void DMAC_0_Handler(void) {
 static void vsync_interrupt(bool real) {
     vsync_count++;
     if (real) {
-        last_vsync_time = ticks_ms;
+        last_vsync_time = supervisor_ticks_ms64();
     }
-    
+
     if (!dma_in_use) {
         if (real && !updating_vblank_response) {
             kickoff_vsync_response();
@@ -632,7 +633,7 @@ void common_hal_gbio_reset_gameboy(void) {
         gameboy_color = true;
     }
     //asm("bkpt");
-    last_vsync_time = ticks_ms;
+    last_vsync_time = supervisor_ticks_ms64();
     everything_going = true;
 }
 
@@ -640,7 +641,7 @@ void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
     if (len > 512 - 5 - 3) {
         mp_raise_ValueError(translate("Too many commands"));
     }
-    if (!everything_going || ticks_ms - last_vsync_time > 600) {
+    if (!everything_going || supervisor_ticks_ms64() - last_vsync_time > 600) {
         // asm("bkpt");
         mp_raise_RuntimeError(translate("GameBoy not running"));
     }
@@ -684,7 +685,7 @@ void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
 }
 
 void common_hal_gbio_wait_for_vblank(void) {
-    if (!everything_going || ticks_ms - last_vsync_time > 600) {
+    if (!everything_going || supervisor_ticks_ms64() - last_vsync_time > 600) {
         // asm("bkpt");
         mp_raise_RuntimeError(translate("GameBoy not running"));
     }
@@ -695,7 +696,7 @@ void common_hal_gbio_wait_for_vblank(void) {
 }
 
 void common_hal_gbio_queue_vblank_commands(const uint8_t* buf, uint32_t len, uint32_t additional_cycles) {
-    if (!everything_going || ticks_ms - last_vsync_time > 600) {
+    if (!everything_going || supervisor_ticks_ms64() - last_vsync_time > 600) {
         // asm("bkpt");
         mp_raise_RuntimeError(translate("GameBoy not running"));
     }
@@ -705,7 +706,7 @@ void common_hal_gbio_queue_vblank_commands(const uint8_t* buf, uint32_t len, uin
     // Wait for a previous sequence in case we're responding to vblank already.
     while (dma_in_use) {
         RUN_BACKGROUND_TASKS;
-        if (ticks_ms - last_vsync_time > 1000) {
+        if (supervisor_ticks_ms64() - last_vsync_time > 1000) {
             asm("bkpt");
         }
     }
@@ -717,7 +718,7 @@ void common_hal_gbio_queue_vblank_commands(const uint8_t* buf, uint32_t len, uin
         uint32_t start_time = last_vsync_time;
         while (start_time == last_vsync_time) {
             RUN_BACKGROUND_TASKS;
-            if (ticks_ms - last_vsync_time > 1000) {
+            if (supervisor_ticks_ms64() - last_vsync_time > 1000) {
                 asm("bkpt");
             }
         }
