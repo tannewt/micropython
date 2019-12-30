@@ -466,7 +466,7 @@ void gc_info(gc_info_t *info) {
 
 // We place long lived objects at the end of the heap rather than the start. This reduces
 // fragmentation by localizing the heap churn to one portion of memory (the start of the heap.)
-void *gc_alloc(size_t n_bytes, bool has_finaliser, bool long_lived) {
+void * __attribute__((hot)) gc_alloc(size_t n_bytes, bool has_finaliser, bool long_lived) {
     size_t n_blocks = ((n_bytes + BYTES_PER_BLOCK - 1) & (~(BYTES_PER_BLOCK - 1))) / BYTES_PER_BLOCK;
     DEBUG_printf("gc_alloc(" UINT_FMT " bytes -> " UINT_FMT " blocks)\n", n_bytes, n_blocks);
 

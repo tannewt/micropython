@@ -34,32 +34,45 @@ SECTIONS
         *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
 
         . = ALIGN(4);
-    } >FLASH_FIRMWARE
+    } >FLASH_FIRMWARE AT>FLASH_FIRMWARE
 
     .ARM.exidx :
     {
         *(.ARM.exidx*)
         *(.gnu.linkonce.armexidx.*)
         _etext = .;        /* define a global symbol at end of code */
-        _sidata = .;       /* start of .data section */
-    } >FLASH_FIRMWARE
+    } >FLASH_FIRMWARE AT>FLASH_FIRMWARE
 
     /* This is the initialized data section
     The program executes knowing that the data is in the RAM
     but the loader puts the initial values in the FLASH_FIRMWARE (inidata).
     It is one task of the startup to copy the initial values from FLASH_FIRMWARE to RAM. */
-    .data : AT ( _sidata )
+    .data :
     {
         . = ALIGN(4);
-        _srelocate = .;        /* create a global symbol at data start; used by startup code in order to initialize the .data section in RAM */
         *(.ramfunc)
         *(.ramfunc*)
         *(.data)           /* .data sections */
         *(.data*)          /* .data* sections */
 
         . = ALIGN(4);
-        _erelocate = .;        /* define a global symbol at data end; used by startup code in order to initialize the .data section in RAM */
-    } >RAM
+    } >RAM AT>FLASH_FIRMWARE
+
+    _sidata = LOADADDR(.data);
+    /* create a global symbol at data start; used by startup code in order to initialize the .data section in RAM */
+    _srelocate = ADDR(.data);
+    _erelocate = _srelocate + SIZEOF(.data);        /* define a global symbol at data end; used by startup code in order to initialize the .data section in RAM */
+
+    .backupram_data :
+    {
+        . = ALIGN(4);
+        *(.backupram_data)
+        *(.backupram_data*)
+        . = ALIGN(4);
+    } >BACKUPRAM AT>FLASH_FIRMWARE
+    _start_backupram_data = LOADADDR(.backupram_data);
+    _backupram_data_destination = ADDR(.backupram_data);
+    _end_backupram_data = _start_backupram_data + SIZEOF(.backupram_data);
 
     /* Uninitialized data section */
     .bss :
@@ -74,7 +87,7 @@ SECTIONS
         . = ALIGN(4);
         _ezero = .;         /* define a global symbol at bss end; used by startup code */
         _ebss = .;
-    } >RAM
+    } >RAM AT>RAM
 
     /* this just checks there is enough RAM for the requested stack. */
     .stack :
@@ -82,15 +95,18 @@ SECTIONS
         . = ALIGN(4);
         . = . + ${CIRCUITPY_DEFAULT_STACK_SIZE};
         . = ALIGN(4);
-    } >RAM
+    } >RAM AT>RAM
 
-    .bss_backupram :
+    .backupram_bss :
     {
         . = ALIGN(4);
         *(.backupram)
-        *(.backupram*)
+        *(.backupram_bss)
         . = ALIGN(4);
-    } >BACKUPRAM
+    } >BACKUPRAM AT>BACKUPRAM
+
+    _start_backupram_bss = ADDR(.backupram_bss);
+    _end_backupram_bss = _start_backupram_bss + SIZEOF(.backupram_bss);
 
     .ARM.attributes 0 : { *(.ARM.attributes) }
 }

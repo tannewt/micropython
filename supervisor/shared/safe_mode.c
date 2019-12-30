@@ -82,7 +82,7 @@ void safe_mode_on_next_reset(safe_mode_t reason) {
 }
 
 // Don't inline this so it's easy to break on it from GDB.
-void __attribute__((noinline,)) reset_into_safe_mode(safe_mode_t reason) {
+void __attribute__((noinline,cold)) reset_into_safe_mode(safe_mode_t reason) {
     if (current_safe_mode > BROWNOUT && reason > BROWNOUT) {
         while (true) {
             // This very bad because it means running in safe mode didn't save us. Only ignore brownout

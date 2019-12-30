@@ -88,6 +88,14 @@
 
 extern volatile bool mp_msc_enabled;
 
+#if SAMD51
+extern char _start_backupram_bss;
+extern char _end_backupram_bss;
+extern char _start_backupram_data;
+extern char _end_backupram_data;
+extern char _backupram_data_destination;
+#endif
+
 #if defined(SAMD21) && defined(ENABLE_MICRO_TRACE_BUFFER)
 // Stores 2 ^ TRACE_BUFFER_MAGNITUDE_PACKETS packets.
 // 7 -> 128 packets
@@ -228,6 +236,12 @@ safe_mode_t port_init(void) {
     rtc_init();
 #endif
 
+    // Init backup ram.
+#if SAMD51
+    memset(&_start_backupram_bss, 0, &_end_backupram_bss - &_start_backupram_bss);
+    memcpy(&_backupram_data_destination, &_start_backupram_data, &_end_backupram_data - &_start_backupram_data);
+#endif
+
     init_shared_dma();
 
     // Reset everything into a known state before board_init.
@@ -355,7 +369,7 @@ uint32_t port_get_saved_word(void) {
 /**
  * \brief Default interrupt handler for unused IRQs.
  */
-__attribute__((used)) void HardFault_Handler(void)
+__attribute__((used,cold)) void HardFault_Handler(void)
 {
 #ifdef ENABLE_MICRO_TRACE_BUFFER
     // Turn off the micro trace buffer so we don't fill it up in the infinite

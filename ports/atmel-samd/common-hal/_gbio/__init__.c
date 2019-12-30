@@ -44,8 +44,9 @@
 #include "tick.h"
 
 uint8_t dma_out_channel;
-uint8_t command_cache[512];
-const uint8_t gameboy_boot[] = {
+// align so that memcpy is faster
+uint8_t command_cache[1024] __attribute__((section(".backupram_bss.command_cache"), aligned(4)));
+uint8_t gameboy_boot[] __attribute__((section(".backupram_data.gameboy_boot"))) = {
                                 // Adafruit
                                 0x00, 0x30, 0x00, 0xC6, 0x00, 0x07, 0xCC, 0xCC, 0x00, 0xF1, 0x13, 0x3B, 0xC0, 0xD1, 0x00, 0xBD,
                                 0x00, 0x66, 0x00, 0x66, 0xC1, 0xDD, 0x08, 0xE8, 0x36, 0x63, 0xE6, 0xE6, 0xCC, 0xC7, 0xCD, 0xDC,
@@ -96,7 +97,7 @@ const uint8_t gameboy_boot[] = {
                                 // exiting the cartridge address range.
                                 0x21, 0x00, 0x10, 0xe9};
 
-const uint8_t gameboy_color_boot[] = {
+uint8_t gameboy_color_boot[] __attribute__((section(".backupram_data.gameboy_color_boot"))) = {
                                     // Hello world
                                     // 0x99, 0x99, 0x00, 0x74, 0x55, 0x55, 0x00, 0x36, 0x00, 0xC6, 0x44, 0x44, 0x11, 0x99, 0x00, 0x36,
                                     // 0x00, 0xC6, 0x00, 0x69, 0x44, 0x44, 0x22, 0x22, 0xF9, 0x99, 0x74, 0x47, 0x55, 0x55, 0x66, 0x63,
@@ -195,7 +196,8 @@ uint16_t address_i;
 volatile uint32_t vsync_count = 0;
 uint32_t gamepad_count = 0;
 bool everything_going = false;
-uint8_t vblank_interrupt_response[1000];
+// align so that memcpy is faster
+uint8_t vblank_interrupt_response[1024] __attribute__((aligned(4)));
 volatile uint16_t vblank_response_length;
 uint16_t total_additional_cycles;
 bool updating_vblank_response;
@@ -204,7 +206,7 @@ volatile bool gameboy_color_booting;
 bool gameboy_color;
 volatile bool cleanup_vsync;
 volatile bool kickoff_gamepad;
-volatile bool dma_in_use __attribute__((section(".backupram")));
+volatile bool dma_in_use;
 
 volatile uint64_t last_vsync_time = 0;
 
@@ -214,29 +216,31 @@ void kickoff_vsync_response(void) {
     }
     // DMA free, return immediately.
     dma_in_use = true;
-    DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
-    descriptor_out->BTCTRL.reg |= DMAC_BTCTRL_VALID;
     size_t len = vblank_response_length;
     vblank_response_length = 2;
     total_additional_cycles = 0;
 
+    memcpy(command_cache, vblank_interrupt_response, len);
+
     // vblank_interrupt_response[len + 3] = 0xd9; // Return from interrupt
-    vblank_interrupt_response[len] = 0xd1; // Pop from the stack to not leak
-    vblank_interrupt_response[len + 1] = 0x21; // Load into hl
-    vblank_interrupt_response[len + 2] = 0x00; // Load into hl
-    vblank_interrupt_response[len + 3] = 0x22; // Load into hl
-    vblank_interrupt_response[len + 4] = 0xfb; // enable interrupts
-    vblank_interrupt_response[len + 5] = 0xfb; // enable interrupts
-    vblank_interrupt_response[len + 6] = 0xe9; // jump to where hl points.
+    command_cache[len] = 0xd1; // Pop from the stack to not leak
+    command_cache[len + 1] = 0x21; // Load into hl
+    command_cache[len + 2] = 0x00; // Load into hl
+    command_cache[len + 3] = 0x22; // Load into hl
+    command_cache[len + 4] = 0xfb; // enable interrupts
+    command_cache[len + 5] = 0xfb; // enable interrupts
+    command_cache[len + 6] = 0xe9; // jump to where hl points.
     len += 7;
 
+    DmacDescriptor* descriptor_out = dma_descriptor(dma_out_channel);
+    descriptor_out->BTCTRL.reg |= DMAC_BTCTRL_VALID;
     descriptor_out->BTCNT.reg = len;
-    descriptor_out->SRCADDR.reg = ((uint32_t) vblank_interrupt_response) + len;
+    descriptor_out->SRCADDR.reg = ((uint32_t) command_cache) + len;
 
     dma_enable_channel(dma_out_channel);
 }
 
-const uint8_t vblank_cleanup[] = {
+uint8_t vblank_cleanup[] __attribute__((section(".backupram_data.vblank_cleanup"))) = {
     0x00, // Noop to give DMA time to catch up.
     0x18, // Jump 255 ahead to get out of interrupt range
     0xff, // jump offset
@@ -262,7 +266,7 @@ void kickoff_vblank_cleanup(void) {
     dma_enable_channel(dma_out_channel);
 }
 
-uint8_t gamepad_interrupt_response[] = {0x00, 0x00,
+uint8_t gamepad_interrupt_response[] __attribute__((section(".backupram_data.gamepad_interrupt_response"))) = {0x00, 0x00,
                              0x16, 0x30, // Load 0x30 into D
                              0x0e, 0x00,  // Load 0x00 into C
 
@@ -616,6 +620,7 @@ void common_hal_gbio_reset_gameboy(void) {
             common_hal_mcu_delay_us(10);
 
             dma_disable_channel(dma_out_channel);
+            asm("bkpt");
             dma_in_use = true;
             descriptor_out->BTCNT.reg = sizeof(gameboy_color_boot);
             descriptor_out->SRCADDR.reg = ((uint32_t) gameboy_color_boot) + sizeof(gameboy_color_boot);
@@ -651,7 +656,7 @@ void common_hal_gbio_queue_commands(const uint8_t* buf, uint32_t len) {
     }
     dma_in_use = true;
     uint32_t total_len = 0;
-    // Disable interrupts while we are transmitting because we an interrupt can misinterpret a
+    // Disable interrupts while we are transmitting because an interrupt can misinterpret a
     // our data as invalid instructions and crash. The better way to handle this would be to have
     // the address interrupt catch an interrupt, set the data bus to noop and recover the
     // interrupted code.
