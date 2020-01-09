@@ -6,9 +6,8 @@ _minimum_heap_size = 0;
 MEMORY
 {
     FLASH (rx)            : ORIGIN = 0x60000000, LENGTH = 8M
-    FLASH_BOOTLOADER (rx) : ORIGIN = 0x60000000, LENGTH = 48K
-    FLASH_ISR (rx)        : ORIGIN = 0x6000C000, LENGTH = 1K
-    FLASH_TEXT (rx)       : ORIGIN = 0x6000C400, LENGTH = 975K
+    FLASH_ISR (rx)        : ORIGIN = 0x60000000, LENGTH = 1K
+    FLASH_TEXT (rx)       : ORIGIN = 0x60000400, LENGTH = 975K + 48K
     FLASH_FATFS (r)       : ORIGIN = 0x60100000, LENGTH = 1M
     RAM (rwx)             : ORIGIN = 0x00000000, LENGTH = 128K
     OCRAM (rwx)           : ORIGIN = 0x20200000, LENGTH = 768K
