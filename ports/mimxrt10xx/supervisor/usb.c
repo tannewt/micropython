@@ -35,7 +35,7 @@ void init_usb_hardware(void) {
 #ifdef USBPHY
     USBPHY_Type *usb_phy = USBPHY;
 #else
-    USBPHY_Type *usb_phy = USBPHY1;
+    USBPHY_Type *usb_phy = USBPHY2;
 #endif
 
     // Enable PHY support for Low speed device + LS via FS Hub
@@ -51,6 +51,6 @@ void init_usb_hardware(void) {
     usb_phy->TX = phytx;
 }
 
-void USB_OTG1_IRQHandler(void) {
-    tud_isr(0);
+void USB_OTG2_IRQHandler(void) {
+    tud_isr(1);
 }
