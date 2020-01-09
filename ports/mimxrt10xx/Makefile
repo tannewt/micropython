@@ -71,6 +71,7 @@ INC += \
 	-Isdk/CMSIS/Include \
 	-Isdk/devices/$(CHIP_FAMILY) \
 	-Isdk/devices/$(CHIP_FAMILY)/drivers \
+	-Isdk/devices/$(CHIP_FAMILY)/xip \
 
 # NDEBUG disables assert() statements. This reduces code size pretty dramatically, per tannewt.
 
@@ -154,6 +155,7 @@ SRC_SDK := $(addprefix sdk/devices/$(CHIP_FAMILY)/, $(SRC_SDK))
 SRC_C = \
 	background.c \
 	boards/$(BOARD)/board.c \
+	boards/$(BOARD)/flash_config.c \
 	boards/$(BOARD)/pins.c \
 	fatfs_port.c \
 	lib/mp-readline/readline.c \

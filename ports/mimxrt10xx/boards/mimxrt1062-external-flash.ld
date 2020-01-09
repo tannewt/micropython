@@ -5,9 +5,11 @@ _minimum_heap_size = 0;
 
 MEMORY
 {
-    FLASH (rx)            : ORIGIN = 0x60000000, LENGTH = 8M
-    FLASH_ISR (rx)        : ORIGIN = 0x60000000, LENGTH = 1K
-    FLASH_TEXT (rx)       : ORIGIN = 0x60000400, LENGTH = 975K + 48K
+    FLASH (rx)            : ORIGIN = 0x60000000, LENGTH = 2M
+    FLASH_CONFIG (rx)     : ORIGIN = 0x60000000, LENGTH = 512 /* This is the first block and is read so that the bootrom knows the optimal way to interface with the flash chip. */
+    FLASH_ISR (rx)        : ORIGIN = 0x60000200, LENGTH = 3K + 512
+    FLASH_IVT (rx)        : ORIGIN = 0x60001000, LENGTH = 4K /* This can't move because the bootrom looks at this address. */
+    FLASH_TEXT (rx)       : ORIGIN = 0x60002400, LENGTH = 1016K
     FLASH_FATFS (r)       : ORIGIN = 0x60100000, LENGTH = 1M
     RAM (rwx)             : ORIGIN = 0x00000000, LENGTH = 128K
     OCRAM (rwx)           : ORIGIN = 0x20200000, LENGTH = 768K
@@ -23,6 +25,23 @@ __RAM_VECTOR_TABLE_SIZE_BYTES = 0;
 
 SECTIONS
 {
+    .flash_config :
+    {
+        . = ALIGN(4);
+        KEEP(* (.boot_hdr.conf))
+        . = ALIGN(4);
+    } > FLASH_CONFIG
+
+    .ivt :
+    {
+        . = ALIGN(4);
+        KEEP(* (.boot_hdr.ivt))
+        KEEP(* (.boot_hdr.boot_data))
+        KEEP(* (.boot_hdr.dcd_data))
+        . = ALIGN(4);
+    } > FLASH_IVT
+    image_vector_table = LOADADDR(.ivt);
+
     .interrupts :
     {
         __VECTOR_TABLE = .;

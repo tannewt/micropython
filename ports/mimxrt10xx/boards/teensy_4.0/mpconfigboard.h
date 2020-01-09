@@ -20,12 +20,14 @@
 
 #define BOARD_FLASH_SIZE (2 * 1024 * 1024)
 
-#define DEFAULT_I2C_BUS_SCL (&pin_GPIO_EMC_22)
-#define DEFAULT_I2C_BUS_SDA (&pin_GPIO_EMC_21)
+// #define DEFAULT_I2C_BUS_SCL (&pin_GPIO_EMC_22)
+// #define DEFAULT_I2C_BUS_SDA (&pin_GPIO_EMC_21)
 
-#define DEFAULT_SPI_BUS_SCK  (&pin_GPIO_B1_07)
-#define DEFAULT_SPI_BUS_MOSI (&pin_GPIO_B1_06)
-#define DEFAULT_SPI_BUS_MISO (&pin_GPIO_B1_05)
+// #define DEFAULT_SPI_BUS_SCK  (&pin_GPIO_B1_07)
+// #define DEFAULT_SPI_BUS_MOSI (&pin_GPIO_B1_06)
+// #define DEFAULT_SPI_BUS_MISO (&pin_GPIO_B1_05)
 
-#define DEFAULT_UART_BUS_RX (&pin_GPIO_B1_03)
-#define DEFAULT_UART_BUS_TX (&pin_GPIO_B1_02)
+// #define DEFAULT_UART_BUS_RX (&pin_GPIO_B1_03)
+// #define DEFAULT_UART_BUS_TX (&pin_GPIO_B1_02)
+
+#define MICROPY_HW_LED_RX (&pin_GPIO_B0_03)
