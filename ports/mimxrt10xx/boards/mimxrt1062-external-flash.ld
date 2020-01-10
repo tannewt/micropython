@@ -6,13 +6,13 @@ _minimum_heap_size = 0;
 MEMORY
 {
     FLASH (rx)            : ORIGIN = 0x60000000, LENGTH = 2M
-    FLASH_CONFIG (rx)     : ORIGIN = 0x60000000, LENGTH = 512 /* This is the first block and is read so that the bootrom knows the optimal way to interface with the flash chip. */
-    FLASH_ISR (rx)        : ORIGIN = 0x60000200, LENGTH = 3K + 512
+    FLASH_CONFIG (rx)     : ORIGIN = 0x60000000, LENGTH = 4k /* This is the first block and is read so that the bootrom knows the optimal way to interface with the flash chip. */
     FLASH_IVT (rx)        : ORIGIN = 0x60001000, LENGTH = 4K /* This can't move because the bootrom looks at this address. */
-    FLASH_TEXT (rx)       : ORIGIN = 0x60002400, LENGTH = 1016K
+    FLASH_ISR (rx)        : ORIGIN = 0x60002000, LENGTH = 1K
+    FLASH_TEXT (rx)       : ORIGIN = 0x60002400, LENGTH = 1024K - 9k
     FLASH_FATFS (r)       : ORIGIN = 0x60100000, LENGTH = 1M
     RAM (rwx)             : ORIGIN = 0x00000000, LENGTH = 128K
-    OCRAM (rwx)           : ORIGIN = 0x20200000, LENGTH = 768K
+    OCRAM (rwx)           : ORIGIN = 0x20200000, LENGTH = 768K /* 768K */
 }
 
 _estack = ORIGIN(OCRAM) + LENGTH(OCRAM);
@@ -58,6 +58,7 @@ SECTIONS
     *(EXCLUDE_FILE(
         *flexspi_nor_flash_ops.o
         *fsl_flexspi.o
+        *port.o
     ) .text*)                /* .text* sections (code) */
         *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
         . = ALIGN(4);
@@ -82,6 +83,7 @@ SECTIONS
         *(.data*)               /* .data* sections */
         *flexspi_nor_flash_ops.o(.text*)
         *fsl_flexspi.o(.text*)
+        *port.o(.text*)
         . = ALIGN(4);
 
         __data_end__ = .;       /* define a global symbol at data end */

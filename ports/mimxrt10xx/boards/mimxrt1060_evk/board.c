@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2017, 2018 Scott Shawcroft for Adafruit Industries
+ * Copyright (c) 2019 Scott Shawcroft for Adafruit Industries
  * Copyright (c) 2019 Artur Pacholec
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,42 +25,31 @@
  * THE SOFTWARE.
  */
 
-#include "fsl_clock.h"
-#include "tusb.h"
+#include "boards/board.h"
+#include "mpconfigboard.h"
+#include "fsl_iomuxc.h"
 
-extern uint32_t whereami;
+void board_init(void) {
+    IOMUXC_SetPinMux(IOMUXC_GPIO_SD_B1_06_FLEXSPIA_SS0_B, 1U);
+    IOMUXC_SetPinMux(IOMUXC_GPIO_SD_B1_07_FLEXSPIA_SCLK,1U);
+    IOMUXC_SetPinMux(IOMUXC_GPIO_SD_B1_08_FLEXSPIA_DATA00, 1U);
+    IOMUXC_SetPinMux(IOMUXC_GPIO_SD_B1_09_FLEXSPIA_DATA01, 1U);
+    IOMUXC_SetPinMux(IOMUXC_GPIO_SD_B1_10_FLEXSPIA_DATA02, 1U);
+    IOMUXC_SetPinMux(IOMUXC_GPIO_SD_B1_11_FLEXSPIA_DATA03, 1U);
+    IOMUXC_SetPinMux(IOMUXC_GPIO_SD_B1_05_FLEXSPIA_DQS, 1U);
 
-void init_usb_hardware(void) {
-    if (NVIC->ISER[0] != 0) {
-        NVIC_GetActive(XBAR1_IRQ_2_3_IRQn);
-        asm("nop");
-    }
-
-    whereami = 2000;
-    CLOCK_EnableUsbhs0PhyPllClock(kCLOCK_Usbphy480M, 480000000U);
-    CLOCK_EnableUsbhs0Clock(kCLOCK_Usb480M, 480000000U);
-
-#ifdef USBPHY
-    USBPHY_Type *usb_phy = USBPHY;
-#else
-    USBPHY_Type *usb_phy = USBPHY1;
-#endif
-
-    // Enable PHY support for Low speed device + LS via FS Hub
-    usb_phy->CTRL |= USBPHY_CTRL_SET_ENUTMILEVEL2_MASK | USBPHY_CTRL_SET_ENUTMILEVEL3_MASK;
-
-    // Enable all power for normal operation
-    usb_phy->PWD = 0;
-
-    // TX Timing
-    uint32_t phytx = usb_phy->TX;
-    phytx &= ~(USBPHY_TX_D_CAL_MASK | USBPHY_TX_TXCAL45DM_MASK | USBPHY_TX_TXCAL45DP_MASK);
-    phytx |= USBPHY_TX_D_CAL(0x0C) | USBPHY_TX_TXCAL45DP(0x06) | USBPHY_TX_TXCAL45DM(0x06);
-    usb_phy->TX = phytx;
-
-    whereami = 3000;
+    IOMUXC_SetPinConfig(IOMUXC_GPIO_SD_B1_06_FLEXSPIA_SS0_B,0x10E1U);
+    IOMUXC_SetPinConfig(IOMUXC_GPIO_SD_B1_09_FLEXSPIA_DATA01, 0x10E1U);
+    IOMUXC_SetPinConfig(IOMUXC_GPIO_SD_B1_10_FLEXSPIA_DATA02, 0x10E1U);
+    IOMUXC_SetPinConfig(IOMUXC_GPIO_SD_B1_08_FLEXSPIA_DATA00, 0x10E1U);
+    IOMUXC_SetPinConfig(IOMUXC_GPIO_SD_B1_07_FLEXSPIA_SCLK, 0x10E1U);
+    IOMUXC_SetPinConfig(IOMUXC_GPIO_SD_B1_11_FLEXSPIA_DATA03, 0x10E1U);
+    IOMUXC_SetPinConfig(IOMUXC_GPIO_SD_B1_05_FLEXSPIA_DQS, 0x10E1U);
 }
 
-void USB_OTG1_IRQHandler(void) {
-    tud_isr(0);
+bool board_requests_safe_mode(void) {
+    return false;
+}
+
+void reset_board(void) {
 }

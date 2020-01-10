@@ -57,21 +57,28 @@ bool usb_enabled(void) {
     return tusb_inited();
 }
 
+extern uint32_t whereami;
+
 void usb_init(void) {
     init_usb_hardware();
+    whereami = 4000;
     load_serial_number();
 
     tusb_init();
+
+    whereami = 8000;
 
 #if MICROPY_KBD_EXCEPTION
     // Set Ctrl+C as wanted char, tud_cdc_rx_wanted_cb() callback will be invoked when Ctrl+C is received
     // This callback always got invoked regardless of mp_interrupt_char value since we only set it once here
     tud_cdc_set_wanted_char(CHAR_CTRL_C);
 #endif
+    whereami = 9000;
 
 #if CIRCUITPY_USB_MIDI
     usb_midi_init();
 #endif
+    whereami = 10000;
 }
 
 void usb_background(void) {

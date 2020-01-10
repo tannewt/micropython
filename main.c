@@ -57,6 +57,8 @@
 #include "supervisor/shared/stack.h"
 #include "supervisor/serial.h"
 
+#include "shared-bindings/digitalio/DigitalInOut.h"
+
 #if CIRCUITPY_DISPLAYIO
 #include "shared-module/displayio/__init__.h"
 #endif
@@ -403,6 +405,8 @@ int run_repl(void) {
     return exit_code;
 }
 
+volatile uint32_t whereami = 0;
+
 int __attribute__((used)) main(void) {
     memory_init();
 
@@ -412,6 +416,18 @@ int __attribute__((used)) main(void) {
     // Turn on LEDs
     init_status_leds();
     rgb_led_status_init();
+
+
+    // digitalio_digitalinout_obj_t rx_led;
+    // common_hal_digitalio_digitalinout_construct(&rx_led, &pin_GPIO_B0_03);
+    // bool state = true;
+    // while (true) {
+    //     common_hal_digitalio_digitalinout_switch_to_output(&rx_led, state, DRIVE_MODE_PUSH_PULL);
+    //     for (uint32_t i = 0; i < 300000000; i++) {
+    //         asm("nop;");
+    //     }
+    //     state = !state;
+    // }
 
     // Wait briefly to give a reset window where we'll enter safe mode after the reset.
     if (safe_mode == NO_SAFE_MODE) {
@@ -432,6 +448,8 @@ int __attribute__((used)) main(void) {
     // Turn on autoreload by default but before boot.py in case it wants to change it.
     autoreload_enable();
 
+    whereami = 100;
+
     // By default our internal flash is readonly to local python code and
     // writable over USB. Set it here so that boot.py can change it.
     filesystem_set_internal_concurrent_write_protection(true);
@@ -439,12 +457,18 @@ int __attribute__((used)) main(void) {
 
     run_boot_py(safe_mode);
 
+    whereami = 201;
+
     // Start serial and HID after giving boot.py a chance to tweak behavior.
     serial_init();
+
+    whereami = 202;
 
     #if CIRCUITPY_BLEIO
     supervisor_start_bluetooth();
     #endif
+
+    whereami = 300;
 
     // Boot script is finished, so now go into REPL/main mode.
     int exit_code = PYEXEC_FORCED_EXIT;
