@@ -54,8 +54,6 @@
 #include "fsl_gpio.h"
 #include "fsl_lpuart.h"
 
-#include "MIMXRT1062.h"
-
 void mpu_init(void)
 {
 	ARM_MPU_Disable();
@@ -65,13 +63,6 @@ void mpu_init(void)
 }
 
 safe_mode_t port_init(void) {
-    SRC_Type* reset_control = (SRC_Type *)0x400f8000;
-    if (reset_control->SCR == 0) {
-        asm("bkpt");
-    }
-    // reset the reset reason
-    //reset_control->SRSR = 0xff;
-    FLEXRAM->INT_STAT_EN |= 0x34;
     mpu_init();
     clocks_init();
 
@@ -165,42 +156,13 @@ uint32_t port_get_saved_word(void) {
     return __bss_end__;
 }
 
-__attribute__((used)) void MemManage_Handler(void)
-{
-    asm("bkpt");
-}
-
-__attribute__((used)) void BusFault_Handler(void)
-{
-    asm("bkpt");
-}
-
-__attribute__((used)) void UsageFault_Handler(void)
-{
-    asm("bkpt");
-}
-
-
-__attribute__((used)) void NMI_Handler(void)
-{
-    asm("bkpt");
-}
-
 /**
  * \brief Default interrupt handler for unused IRQs.
  */
 __attribute__((used)) void HardFault_Handler(void)
 {
-    // reset_into_safe_mode(HARD_CRASH);
-
-    digitalio_digitalinout_obj_t rx_led;
-    common_hal_digitalio_digitalinout_construct(&rx_led, &pin_GPIO_B0_03);
-    bool state = true;
+    reset_into_safe_mode(HARD_CRASH);
     while (true) {
-        common_hal_digitalio_digitalinout_switch_to_output(&rx_led, state, DRIVE_MODE_PUSH_PULL);
-        for (uint32_t i = 0; i < 600000000; i++) {
-            asm("nop;");
-        }
-        state = !state;
+        asm("nop;");
     }
 }

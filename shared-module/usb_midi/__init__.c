@@ -38,9 +38,7 @@
 
 supervisor_allocation* usb_midi_allocation;
 
-extern uint32_t whereami;
 void usb_midi_init(void) {
-    whereami = 700;
     // TODO(tannewt): Make this dynamic.
     uint16_t tuple_size = align32_size(sizeof(mp_obj_tuple_t) + sizeof(mp_obj_t*) * 2);
     uint16_t portin_size = align32_size(sizeof(usb_midi_portin_obj_t));
@@ -62,5 +60,4 @@ void usb_midi_init(void) {
     ports->items[1] = MP_OBJ_FROM_PTR(out);
 
     mp_map_lookup(&usb_midi_module_globals.map, MP_ROM_QSTR(MP_QSTR_ports), MP_MAP_LOOKUP)->value = MP_OBJ_FROM_PTR(ports);
-    whereami = 800;
 }

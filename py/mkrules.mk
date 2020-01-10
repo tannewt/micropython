@@ -22,12 +22,12 @@ endif
 
 vpath %.S . $(TOP) $(USER_C_MODULES)
 $(BUILD)/%.o: %.S
-	echo "CC $<"
+	$(STEPECHO) "CC $<"
 	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
 
 vpath %.s . $(TOP) $(USER_C_MODULES)
 $(BUILD)/%.o: %.s
-	echo "AS $<"
+	$(STEPECHO) "AS $<"
 	$(Q)$(AS) -o $@ $<
 
 define compile_c

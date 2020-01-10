@@ -28,15 +28,7 @@
 #include "fsl_clock.h"
 #include "tusb.h"
 
-extern uint32_t whereami;
-
 void init_usb_hardware(void) {
-    if (NVIC->ISER[0] != 0) {
-        NVIC_GetActive(XBAR1_IRQ_2_3_IRQn);
-        asm("nop");
-    }
-
-    whereami = 2000;
     CLOCK_EnableUsbhs0PhyPllClock(kCLOCK_Usbphy480M, 480000000U);
     CLOCK_EnableUsbhs0Clock(kCLOCK_Usb480M, 480000000U);
 
@@ -57,8 +49,6 @@ void init_usb_hardware(void) {
     phytx &= ~(USBPHY_TX_D_CAL_MASK | USBPHY_TX_TXCAL45DM_MASK | USBPHY_TX_TXCAL45DP_MASK);
     phytx |= USBPHY_TX_D_CAL(0x0C) | USBPHY_TX_TXCAL45DP(0x06) | USBPHY_TX_TXCAL45DM(0x06);
     usb_phy->TX = phytx;
-
-    whereami = 3000;
 }
 
 void USB_OTG1_IRQHandler(void) {
