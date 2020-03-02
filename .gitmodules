@@ -120,3 +120,12 @@
 [submodule "frozen/Adafruit_CircuitPython_Requests"]
 	path = frozen/Adafruit_CircuitPython_Requests
 	url = https://github.com/adafruit/Adafruit_CircuitPython_Requests
+[submodule "frozen/Adafruit_CircuitPython_binascii"]
+	path = frozen/Adafruit_CircuitPython_binascii
+	url = https://github.com/adafruit/Adafruit_CircuitPython_binascii
+[submodule "frozen/Adafruit_CircuitPython_ATECC"]
+	path = frozen/Adafruit_CircuitPython_ATECC
+	url = https://github.com/adafruit/Adafruit_CircuitPython_ATECC
+[submodule "frozen/Adafruit_CircuitPython_LSM6DS"]
+	path = frozen/Adafruit_CircuitPython_LSM6DS
+	url = https://github.com/adafruit/Adafruit_CircuitPython_LSM6DS
