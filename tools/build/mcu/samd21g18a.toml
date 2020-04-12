@@ -1,0 +1,2 @@
+mcu_family = "samd21"
+defines = ["__ATSAMD21G18A__"]

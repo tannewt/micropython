@@ -1,0 +1,20 @@
+mcu = "samd21g18a"
+
+
+[usb]
+vendor_id = 0x239A
+product_id = 0x8023
+product_name = "Feather M0 Express"
+manufacturer_name = "Adafruit Industries LLC"
+
+[external_flash]
+part_numbers = ["S25FL216K", "GD25Q16C"]
+
+# LONGINT_IMPL = MPZ
+
+# CIRCUITPY_BITBANGIO = 0
+# CIRCUITPY_FREQUENCYIO = 0
+# CIRCUITPY_I2CSLAVE = 0
+
+# CFLAGS_INLINE_LIMIT = 60
+# SUPEROPT_GC = 0

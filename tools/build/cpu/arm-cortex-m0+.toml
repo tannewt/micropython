@@ -1,0 +1,3 @@
+extra_include_directories = [
+"ports/atmel-samd/asf4/samd21/CMSIS/Include"
+]

@@ -1,0 +1,7 @@
+extra_include_directories = [
+    "ports/atmel-samd/asf4/samd21"
+]
+defines = [
+    "SAMD21"
+]
+cpu = ["arm-cortex-m0+"]

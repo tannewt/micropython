@@ -1,4 +1,4 @@
-/build-*
+/build*
 /mpy-cross
 /mpy-cross.static
 /mpy-cross.static.exe

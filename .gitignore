@@ -25,7 +25,7 @@ dist/
 
 # Build directory
 ######################
-build/
+build-*
 bin/
 circuitpython-stubs/
 
