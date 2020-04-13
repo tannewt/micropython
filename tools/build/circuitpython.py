@@ -1,5 +1,6 @@
 import glob
 import os
+import qstr
 import sys
 import ninja
 import toml
@@ -24,13 +25,15 @@ cpu_info = [toml.load("tools/build/cpu/{}.toml".format(cpu)) for cpu in mcu_fami
 
 # Instantiate the rules
 entries = []
-include_paths = [".", "ports/atmel-samd"]
+generated = ["qstr", "version"]
+include_paths = [".", "ports/atmel-samd"] + [os.path.join(build_directory, d) for d in generated]
 include_paths.extend(mcu_family_info["extra_include_directories"])
 for cpu in cpu_info:
     include_paths.extend(cpu["extra_include_directories"])
 include_paths.append(board_directory)
 
-defines = mcu_info["defines"]
+defines = ["FFCONF_H=\\\"lib/oofatfs/ffconf.h\\\""]
+defines.extend(mcu_info["defines"])
 defines.extend(mcu_family_info["defines"])
 if "external_flash" in board_info:
     defines.append("SPI_FLASH_FILESYSTEM")
@@ -38,15 +41,28 @@ if "external_flash" in board_info:
     defines.append("EXTERNAL_FLASH_DEVICE_COUNT={}".format(len(part_numbers)))
     defines.append("EXTERNAL_FLASH_DEVICES=\"{}\"".format(",".join(part_numbers)))
 
-c = ninja.Compile(build_directory, include_paths, defines)
+
+includes = ["-I../" + i for i in include_paths]
+defines = ["-D" + d for d in defines]
+cflags = includes + defines
+
+c = ninja.Compile(build_directory, cflags)
 entries.append(c)
 link = ninja.Link(build_directory)
 entries.append(link)
 
 outs = ["main.o"]
 
-entries.append(c.build("main.c"))
+entries.append(c.build("main.c", ["version/genhdr/mpversion.h"]))#, "qstr/genhdr/qstrdefs.enum.h"]))
 entries.append(link.build("firmware.elf", outs))
+
+sources = ["main.c"]
+entries.extend(qstr.build(sources, "arm-none-eabi-gcc", cflags))
+
+entries.extend([
+  "rule genversion\n  command = python3 ../py/makeversionhdr.py $out\n\n",
+  "build version/genhdr/mpversion.h: genversion\n\n"
+    ])
 
 print(board_directory)
 

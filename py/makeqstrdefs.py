@@ -107,6 +107,18 @@ def process_file(f):
     write_out(last_fname, output)
     return ""
 
+def process_single_file(f):
+    re_qstr = re.compile(r'MP_QSTR_[_a-zA-Z0-9]+')
+    re_translate = re.compile(r'translate\(\"((?:(?=(\\?))\2.)*?)\"\)')
+    for line in f:
+        if line.isspace():
+            continue
+        for match in re_qstr.findall(line):
+            name = match.replace('MP_QSTR_', '')
+            if name not in QSTRING_BLACK_LIST:
+                print('Q(' + qstr_unescape(name) + ')')
+        for match in re_translate.findall(line):
+            print('TRANSLATE("' + match[0] + '")')
 
 def cat_together():
     import glob
@@ -146,7 +158,7 @@ def cat_together():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 5:
+    if len(sys.argv) < 3:
         print('usage: %s command input_filename output_dir output_file' % sys.argv[0])
         sys.exit(2)
 
@@ -155,17 +167,18 @@ if __name__ == "__main__":
     args = Args()
     args.command = sys.argv[1]
     args.input_filename = sys.argv[2]
-    args.output_dir = sys.argv[3]
-    args.output_file = sys.argv[4]
 
-    try:
-        os.makedirs(args.output_dir)
-    except OSError:
-        pass
+
+    if args.command == "process":
+        with open(args.input_filename) as infile:
+            process_single_file(infile)
 
     if args.command == "split":
         with open(args.input_filename) as infile:
             process_file(infile)
 
     if args.command == "cat":
+        args.output_dir = sys.argv[3]
+        args.output_file = sys.argv[4]
+        os.makedirs(args.output_dir)
         cat_together()
