@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-05-13 21:57-0700\n"
+"POT-Creation-Date: 2020-05-15 10:43-0700\n"
 "PO-Revision-Date: 2020-05-05 20:24+0000\n"
 "Last-Translator: Jeff Epler <jepler@gmail.com>\n"
 "Language-Team: French <https://later.unpythonic.net/projects/circuitpython/"
@@ -92,7 +92,7 @@ msgstr ""
 msgid "%q must be >= 1"
 msgstr "%q doit être >=1"
 
-#: shared-module/vectorio/Polygon.c
+#: shared-bindings/vectorio/Polygon.c shared-module/vectorio/Polygon.c
 msgid "%q must be a tuple of length 2"
 msgstr ""
 
@@ -2193,6 +2193,10 @@ msgstr "division par zéro"
 msgid "empty"
 msgstr "vide"
 
+#: shared-bindings/vectorio/Polygon.c
+msgid "empty %q list"
+msgstr ""
+
 #: extmod/moduheapq.c extmod/modutimeq.c
 msgid "empty heap"
 msgstr "tas vide"
@@ -3228,8 +3232,8 @@ msgstr "'{' sans correspondance dans le format"
 msgid "unreadable attribute"
 msgstr "attribut illisible"
 
-#: shared-bindings/displayio/TileGrid.c shared-bindings/vectorio/VectorShape.c
-#: shared-module/vectorio/Polygon.c
+#: shared-bindings/displayio/TileGrid.c shared-bindings/vectorio/Polygon.c
+#: shared-bindings/vectorio/VectorShape.c shared-module/vectorio/Polygon.c
 #, fuzzy
 msgid "unsupported %q type"
 msgstr "type de %q non supporté"
