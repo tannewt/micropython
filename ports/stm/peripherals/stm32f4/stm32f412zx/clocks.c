@@ -24,12 +24,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include "stm32f4xx_hal.h"
-#include "py/mpconfig.h"
 
-void stm32f4_peripherals_clocks_init(void) {
+#include "stm32f4xx_hal.h"
+
+void stm32_peripherals_clocks_init(void) {
     //System clock init
-	RCC_ClkInitTypeDef RCC_ClkInitStruct;
+    RCC_ClkInitTypeDef RCC_ClkInitStruct;
     RCC_OscInitTypeDef RCC_OscInitStruct;
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct;
 
@@ -65,7 +65,7 @@ void stm32f4_peripherals_clocks_init(void) {
     /* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2
     * clocks dividers */
     RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
-                                RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+                                  RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
 
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;

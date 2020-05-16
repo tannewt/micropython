@@ -5,12 +5,16 @@ USB_MANUFACTURER = "Espruino"
 USB_DEVICES = "CDC,MSC"
 
 INTERNAL_FLASH_FILESYSTEM = 1
-LONGINT_IMPL = NONE
 
-MCU_SERIES = m4
-MCU_VARIANT = stm32f4
-MCU_SUB_VARIANT = stm32f401xe
-MCU_PACKAGE = 48
-CMSIS_MCU = STM32F401xE
+MCU_SERIES = F4
+MCU_VARIANT = STM32F401xE
+MCU_PACKAGE = UFQFPN48
+
+LD_COMMON = boards/common_default.ld
 LD_FILE = boards/STM32F401xd_fs.ld # use for internal flash
 
+# Disable ulab as we're nearly out of space on this board due to
+# INTERNAL_FLASH_FILESYSTEM.  It can probably be reenabled if we enable
+# lto for this port, and if other stuff hasn't been added in the
+# meantime
+CIRCUITPY_ULAB = 0
