@@ -51,6 +51,9 @@ def build(sources, cc, cflags):
     steps = []
     cflags = " ".join(cflags)
     print(cflags)
+    # qstrdefs passes config macros into the system.
+    print(sources)
+    sources = sources + ["py/qstrdefs.h"]
     # First we preprocess source files in a NO_QSTR mode.
     steps.append(f"rule qstr_src_pp\n  command = {cc} -E -DNO_QSTR {cflags} $in > $out\n\n")
     for source in sources:
@@ -60,9 +63,14 @@ def build(sources, cc, cflags):
     for source in sources:
         steps.append("build qstr/out/{}: qstr_src_out qstr/pp/{}\n\n".format(source, source))
 
-    # steps.append("rule qstr_pp\n  command = cat $in | sed 's/^Q(.*)/\"&\"/' | {} {} -E - | sed 's/^\"\\(Q(.*)\\)\"/\\1/' > $out\n\n".format(cc, cflags))
-    # steps.append("build qstr/genhdr/qstrdefs.preprocessed.h: qstr_pp {}\n\n".format(" ".join(["../" + f for f in sources])))
-    # steps.append("rule qstr_enum\n  command = python3 ../py/makeqstrdata.py $in > $out\n\n")
-    # steps.append("build qstr/genhdr/qstrdefs.enum.h: qstr_enum qstr/genhdr/qstrdefs.preprocessed.h\n\n")
+    # Now, merge and deduplicate entries.
+    steps.append("rule merge_qstr\n command = cat $in | sort --unique | python3 ../tools/build/only_if_different.py $out\n\n")
+    steps.append("build qstr/out/qstrdefs.preprocessed.h: merge_qstr {}\n\n".format(" ".join(("qstr/out/" + s for s in sources))))
+
+    # $(HEADER_BUILD)/qstrdefs.generated.h: $(PY_SRC)/makeqstrdata.py $(HEADER_BUILD)/$(TRANSLATION).mo $(HEADER_BUILD)/qstrdefs.preprocessed.h
+    # $(STEPECHO) "GEN $@"
+    # $(Q)$(PYTHON3) $(PY_SRC)/makeqstrdata.py --compression_filename $(HEADER_BUILD)/compression.generated.h --translation $(HEADER_BUILD)/$(TRANSLATION).mo $(HEADER_BUILD)/qstrdefs.preprocessed.h > $@
+    steps.append("rule qstr_enum\n  command = python3 ../py/makeqstrdata.py $in > $out\n\n")
+    steps.append("build qstr/genhdr/qstrdefs.enum.h: qstr_enum qstr/out/qstrdefs.preprocessed.h\n\n")
 
     return steps

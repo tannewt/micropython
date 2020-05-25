@@ -108,10 +108,13 @@ def process_file(f):
     return ""
 
 def process_single_file(f):
-    re_qstr = re.compile(r'MP_QSTR_[_a-zA-Z0-9]+')
+    re_qstr = re.compile(r'MP_QSTR_[_a-zA-Z0-9]*')
     re_translate = re.compile(r'translate\(\"((?:(?=(\\?))\2.)*?)\"\)')
     for line in f:
         if line.isspace():
+            continue
+        if line.startswith("QCFG("):
+            print(line.strip())
             continue
         for match in re_qstr.findall(line):
             name = match.replace('MP_QSTR_', '')

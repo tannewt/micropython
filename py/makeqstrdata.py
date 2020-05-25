@@ -296,7 +296,6 @@ def parse_input_headers(infiles):
                 elif ident.startswith("__"):
                     order -= 100000
                 qstrs[ident] = (order, ident, qstr)
-
     if not qcfgs and qstrs:
         sys.stderr.write("ERROR: Empty preprocessor output - check for errors above\n")
         sys.exit(1)

@@ -51,9 +51,10 @@ entries.append(c)
 link = ninja.Link(build_directory)
 entries.append(link)
 
-outs = ["main.o"]
+outs = ["main.o", "supervisor/shared/tick.o"]
 
-entries.append(c.build("main.c", ["version/genhdr/mpversion.h"]))#, "qstr/genhdr/qstrdefs.enum.h"]))
+entries.append(c.build("main.c", ["version/genhdr/mpversion.h", "qstr/genhdr/qstrdefs.enum.h"]))
+entries.append(c.build("supervisor/shared/tick.c", ["version/genhdr/mpversion.h", "qstr/genhdr/qstrdefs.enum.h"]))
 entries.append(link.build("firmware.elf", outs))
 
 sources = ["main.c"]

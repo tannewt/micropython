@@ -20,8 +20,8 @@ class Link(Rule):
         self.build_directory = build_directory
 
     def __str__(self):
-        return "rule link\n  command = arm-none-eabi-gcc -o $out $ldflags $in -Wl,--start-group $libs -Wl,--end-group\n\n"
+        return "rule link\n  command = arm-none-eabi-gcc -o $out -Wl,-T,$ldfile -Wl,-Map=$out.map $ldflags $in -Wl,--start-group $libs -Wl,--end-group\n\n"
 
-    def build(self, out, inputs):
+    def build(self, out, inputs, *, ldfile, ldflags="", libs=[]):
         inputs = ["objs/" + x for x in inputs]
-        return "build {}: compile {}\n\n".format(out, " ".join(inputs))
+        return "build {}: link {}\n\n".format(out, " ".join(inputs))
