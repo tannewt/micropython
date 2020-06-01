@@ -1,1 +1,0 @@
-../arduino_nano_33_iot/pins.c

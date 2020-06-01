@@ -11,3 +11,12 @@ LONGINT_IMPL = NONE
 CIRCUITPY_FULL_BUILD = 0
 
 SUPEROPT_GC = 0
+
+CIRCUITPY_ROTARYIO = 0
+CIRCUITPY_USB_MIDI = 0
+
+MICROPY_PY_UBINASCII = 1
+
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_BusDevice
+# FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_ATECC
+FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_Register
