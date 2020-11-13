@@ -1,4 +1,4 @@
-#include "re1.5.h"
+#include "extmod/re1.5/re1.5.h"
 
 int _re1_5_classmatch(const char *pc, const char *sp)
 {

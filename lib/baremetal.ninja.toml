@@ -1,0 +1,10 @@
+ignore = [
+    "axtls",
+    "libffi",
+    "berkeley-db-1.xx",
+    "tinyusb/hw",
+    "tinyusb/examples",
+    "tinyusb/test",
+    "tinyusb/tools",
+    "tinyusb/lib"
+]

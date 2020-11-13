@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-#include "re1.5.h"
+#include "extmod/re1.5/re1.5.h"
 
 void re1_5_dumpcode(ByteProg *prog)
 {
