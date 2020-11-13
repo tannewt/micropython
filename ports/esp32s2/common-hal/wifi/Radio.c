@@ -39,6 +39,10 @@
 #include "components/esp_wifi/include/esp_wifi.h"
 #include "components/lwip/include/apps/ping/ping_sock.h"
 
+#include "components/log/include/esp_log.h"
+
+static const char* TAG = "cp radio";
+
 #define MAC_ADDRESS_LENGTH 6
 
 static void start_station(wifi_radio_obj_t *self) {
@@ -126,6 +130,8 @@ wifi_radio_error_t common_hal_wifi_radio_connect(wifi_radio_obj_t *self, uint8_t
     // check enabled
     start_station(self);
 
+    ESP_LOGW(TAG, "connect()");
+
     wifi_config_t* config = &self->sta_config;
     memcpy(&config->sta.ssid, ssid, ssid_len);
     config->sta.ssid[ssid_len] = 0;
@@ -169,8 +175,10 @@ wifi_radio_error_t common_hal_wifi_radio_connect(wifi_radio_obj_t *self, uint8_t
         } else if (self->last_disconnect_reason == WIFI_REASON_NO_AP_FOUND) {
             return WIFI_RADIO_ERROR_NO_AP_FOUND;
         }
+        ESP_LOGW(TAG, "unknown reason %d", self->last_disconnect_reason);
         return WIFI_RADIO_ERROR_UNKNOWN;
     }
+    ESP_LOGW(TAG, "connected");
     return WIFI_RADIO_ERROR_NONE;
 }
 

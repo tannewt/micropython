@@ -37,6 +37,10 @@
 #include "components/lwip/lwip/src/include/lwip/sys.h"
 #include "components/lwip/lwip/src/include/lwip/netdb.h"
 
+#include "components/log/include/esp_log.h"
+
+static const char* TAG = "cp radio";
+
 void common_hal_socketpool_socket_settimeout(socketpool_socket_obj_t* self, mp_uint_t timeout_ms) {
     self->timeout_ms = timeout_ms;
 }
@@ -57,6 +61,7 @@ bool common_hal_socketpool_socket_connect(socketpool_socket_obj_t* self, const c
         int flags;
         esp_err_t err = esp_tls_get_and_clear_last_error(self->tcp->error_handle, &esp_tls_code, &flags);
 
+        ESP_LOGW(TAG, "ESP TLS error %d %d %x %d", esp_tls_code, flags, err, result);
         if (err == ESP_ERR_MBEDTLS_SSL_SETUP_FAILED) {
             mp_raise_espidf_MemoryError();
         } else if (ESP_ERR_MBEDTLS_SSL_HANDSHAKE_FAILED) {
@@ -64,6 +69,18 @@ bool common_hal_socketpool_socket_connect(socketpool_socket_obj_t* self, const c
         } else {
             mp_raise_OSError_msg_varg(translate("Unhandled ESP TLS error %d %d %x %d"), esp_tls_code, flags, err, result);
         }
+    } else {
+        // Connection successful, set the timeout on the underlying socket. We can't rely on the IDF
+        // to do it because the config structure is only used for TLS connections. Generally, we
+        // shouldn't hit this timeout because we try to only read available data. However, there is
+        // always a chance that we try to read something that is used internally.
+        int fd;
+        esp_tls_get_conn_sockfd(self->tcp, &fd);
+        struct timeval tv;
+        tv.tv_sec = 2 * 60; // Two minutes
+        tv.tv_usec = 0;
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
     }
 
     return self->connected;
@@ -74,15 +91,20 @@ bool common_hal_socketpool_socket_get_connected(socketpool_socket_obj_t* self) {
 }
 
 mp_uint_t common_hal_socketpool_socket_send(socketpool_socket_obj_t* self, const uint8_t* buf, mp_uint_t len) {
+    ESP_LOGW(TAG, "sending on socket %p", self);
     size_t sent = esp_tls_conn_write(self->tcp, buf, len);
 
     if (sent < 0) {
+        ESP_LOGW(TAG, "send failed %d", sent);
         mp_raise_OSError(MP_ENOTCONN);
+    } else {
+        ESP_LOGW(TAG, "sent %d", sent);
     }
     return sent;
 }
 
 mp_uint_t common_hal_socketpool_socket_recv_into(socketpool_socket_obj_t* self, const uint8_t* buf, mp_uint_t len) {
+    ESP_LOGW(TAG, "recv_into on socket %p", self);
     size_t received = 0;
     int status = 0;
     uint64_t start_ticks = supervisor_ticks_ms64();
@@ -107,7 +129,9 @@ mp_uint_t common_hal_socketpool_socket_recv_into(socketpool_socket_obj_t* self, 
             available = remaining;
         }
         if (available > 0) {
+            ESP_LOGW(TAG, "trying to read %d", available);
             status = esp_tls_conn_read(self->tcp, (void*) buf + received, available);
+            ESP_LOGW(TAG, "read %d", status);
             if (status == 0) {
                 // Reading zero when something is available indicates a closed
                 // connection. (The available bytes could have been TLS internal.)
@@ -120,12 +144,11 @@ mp_uint_t common_hal_socketpool_socket_recv_into(socketpool_socket_obj_t* self, 
     }
 
     if (received == 0) {
+        ESP_LOGW(TAG, "recv_into didn't get anything");
         // socket closed
         common_hal_socketpool_socket_close(self);
     }
-    if (status < 0) {
-        mp_raise_BrokenPipeError();
-    }
+    ESP_LOGW(TAG, "recv_into done. status %d", status);
     return received;
 }
 

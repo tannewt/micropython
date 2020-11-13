@@ -33,6 +33,10 @@
 
 #include "bindings/espidf/__init__.h"
 
+#include "components/log/include/esp_log.h"
+
+static const char* TAG = "socketpool";
+
 void common_hal_socketpool_socketpool_construct(socketpool_socketpool_obj_t* self, mp_obj_t radio) {
     if (radio != MP_OBJ_FROM_PTR(&common_hal_wifi_radio_obj)) {
         mp_raise_ValueError(translate("SocketPool can only be used with wifi.radio"));
@@ -41,7 +45,7 @@ void common_hal_socketpool_socketpool_construct(socketpool_socketpool_obj_t* sel
 
 socketpool_socket_obj_t* common_hal_socketpool_socket(socketpool_socketpool_obj_t* self,
     socketpool_socketpool_addressfamily_t family, socketpool_socketpool_sock_t type) {
-
+    ESP_LOGW(TAG, "new socket");
     int addr_family;
     int ipproto;
     if (family == SOCKETPOOL_AF_INET) {
@@ -86,12 +90,14 @@ socketpool_socket_obj_t* common_hal_socketpool_socket(socketpool_socketpool_obj_
     sock->tcp = tcp_handle;
     sock->ssl_context = NULL;
     sock->pool = self;
+    ESP_LOGW(TAG, "socket done");
     return sock;
 }
 
 
 mp_obj_t common_hal_socketpool_socketpool_gethostbyname(socketpool_socketpool_obj_t* self,
     const char* host) {
+    ESP_LOGW(TAG, "gethostbyname");
 
     const struct addrinfo hints = {
         .ai_family = AF_INET,
@@ -112,5 +118,6 @@ mp_obj_t common_hal_socketpool_socketpool_gethostbyname(socketpool_socketpool_ob
     mp_obj_t ip_obj = mp_obj_new_str(ip_str, strlen(ip_str));
     freeaddrinfo(res);
 
+    ESP_LOGW(TAG, "hostbyname done");
     return ip_obj;
 }

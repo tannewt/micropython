@@ -39,7 +39,7 @@ wifi_radio_obj_t common_hal_wifi_radio_obj;
 
 #include "components/log/include/esp_log.h"
 
-static const char* TAG = "wifi";
+static const char* TAG = "cp wifi";
 
 static void event_handler(void* arg, esp_event_base_t event_base,
                           int32_t event_id, void* event_data) {
@@ -50,13 +50,13 @@ static void event_handler(void* arg, esp_event_base_t event_base,
                 xEventGroupSetBits(radio->event_group_handle, WIFI_SCAN_DONE_BIT);
                 break;
             case WIFI_EVENT_STA_CONNECTED:
-                ESP_EARLY_LOGW(TAG, "connected");
+                ESP_LOGW(TAG, "connected");
                 break;
             case WIFI_EVENT_STA_DISCONNECTED: {
-                ESP_EARLY_LOGW(TAG, "disconnected");
+                ESP_LOGW(TAG, "disconnected");
                 wifi_event_sta_disconnected_t* d = (wifi_event_sta_disconnected_t*) event_data;
                 uint8_t reason = d->reason;
-                ESP_EARLY_LOGW(TAG, "reason %d 0x%02x", reason, reason);
+                ESP_LOGW(TAG, "reason %d 0x%02x", reason, reason);
                 if (radio->retries_left > 0 &&
                         (reason == WIFI_REASON_AUTH_EXPIRE ||
                          reason == WIFI_REASON_NOT_AUTHED ||
@@ -64,7 +64,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,
                          reason == WIFI_REASON_CONNECTION_FAIL ||
                          reason == WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT)) {
                     radio->retries_left--;
-                    ESP_EARLY_LOGI(TAG, "Retrying connect. %d retries remaining", radio->retries_left);
+                    ESP_LOGI(TAG, "Retrying connect. %d retries remaining", radio->retries_left);
                     esp_wifi_connect();
                     return;
                 }
@@ -92,6 +92,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,
 static bool wifi_inited, wifi_ever_inited;
 
 void common_hal_wifi_init(void) {
+    ESP_LOGI(TAG, "init wifi");
     wifi_inited = true;
     common_hal_wifi_radio_obj.base.type = &wifi_radio_type;
 
@@ -131,12 +132,14 @@ void common_hal_wifi_init(void) {
         mp_raise_RuntimeError(translate("Failed to init wifi"));
     }
     common_hal_wifi_radio_set_enabled(self, true);
+    ESP_LOGI(TAG, "init done");
 }
 
 void wifi_reset(void) {
     if (!wifi_inited) {
         return;
     }
+    ESP_LOGI(TAG, "deinit wifi");
     wifi_radio_obj_t* radio = &common_hal_wifi_radio_obj;
     common_hal_wifi_radio_set_enabled(radio, false);
     ESP_ERROR_CHECK(esp_event_handler_instance_unregister(WIFI_EVENT,
@@ -148,6 +151,9 @@ void wifi_reset(void) {
     ESP_ERROR_CHECK(esp_wifi_deinit());
     esp_netif_destroy(radio->netif);
     radio->netif = NULL;
+    // De-initing the LWIP network interface always errors currently.
+    // ESP_ERROR_CHECK(esp_netif_deinit());
+    ESP_LOGI(TAG, "deinit done");
 }
 
 void ipaddress_ipaddress_to_esp_idf(mp_obj_t ip_address, ip_addr_t* esp_ip_address) {
