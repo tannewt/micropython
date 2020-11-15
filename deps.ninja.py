@@ -8,6 +8,8 @@ print("deps for", fn)
 
 deps = []
 
+per_port = ["mphalport.h"]
+
 with open(fn, "r") as f:
     for line in f:
         stripped = line.strip()
@@ -16,7 +18,14 @@ with open(fn, "r") as f:
                 #print(stripped)
                 pass
             else:
-                deps.append(stripped[10:-1] + ".fulldeps")
+                try:
+                    include = stripped.split("\"", 2)[1]
+                except:
+                    print(stripped)
+                    raise
+                if include in per_port or include.startswith("nrfx"):
+                    include = "ports/nrf/" + include
+                deps.append(include + ".fulldeps")
 
 with open(ninja_out, "w") as f:
     f.write("build ")

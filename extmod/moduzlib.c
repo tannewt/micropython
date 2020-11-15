@@ -15,7 +15,7 @@
 #if MICROPY_PY_UZLIB
 
 #define UZLIB_CONF_PARANOID_CHECKS (1)
-#include "../../lib/uzlib/src/tinf.h"
+#include "lib/uzlib/src/tinf.h"
 
 #if 0 // print debugging info
 #define DEBUG_printf DEBUG_printf

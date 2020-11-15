@@ -1,1 +1,1 @@
-ignore = ["stm", "cxd56", "esp32s2", "mimxrt10xx", "atmel-samd"]
+ignore = ["stm", "cxd56", "esp32s2", "mimxrt10xx", "atmel-samd", "unix"]

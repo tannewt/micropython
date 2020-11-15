@@ -1,1 +1,1 @@
-ignore = ["**/build-*", ".env", "build"]
+ignore = ["**/build-*", ".env", "build", "extmod/ulab"]

@@ -1,0 +1,2 @@
+ignore = ["moduhashlib.c",
+    "moduzlib.c", "modframebuf.c", "modussl_axtls.c", "modussl_mbedtls.c", "modlwip.c"]
