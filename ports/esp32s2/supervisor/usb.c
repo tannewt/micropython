@@ -35,6 +35,7 @@
 #include "components/esp_rom/include/esp32s2/rom/gpio.h"
 #include "components/esp_rom/include/esp_rom_gpio.h"
 #include "components/hal/esp32s2/include/hal/gpio_ll.h"
+#include "components/xtensa/include/esp_debug_helpers.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -42,6 +43,10 @@
 #include "hal/usb_hal.h"
 
 #include "tusb.h"
+
+#include "components/log/include/esp_log.h"
+
+static const char* TAG = "esp usb";
 
 #ifdef CFG_TUSB_DEBUG
   #define USBD_STACK_SIZE     (3*configMINIMAL_STACK_SIZE)
@@ -116,6 +121,39 @@ void init_usb_hardware(void) {
                              usb_device_stack,
                              &usb_device_taskdef);
 }
+
+// void print_backtrace(size_t pc, size_t sp, size_t next_pc) {
+//   //Initialize stk_frame with first frame of stack
+//     esp_backtrace_frame_t stk_frame;
+//     stk_frame.pc = pc;
+//     stk_frame.sp = sp;
+//     stk_frame.next_pc = next_pc;
+//     esp_rom_printf("\r\n\r\nBacktrace:");
+//     esp_rom_printf("0x%08X:0x%08X ", esp_cpu_process_stack_pc(stk_frame.pc), stk_frame.sp);
+
+//     //Check if first frame is valid
+//     bool corrupted = (esp_stack_ptr_is_sane(stk_frame.sp) &&
+//                       esp_ptr_executable((void*)esp_cpu_process_stack_pc(stk_frame.pc))) ?
+//                       false : true;
+
+//     uint32_t i = (depth <= 0) ? INT32_MAX : depth;
+//     while (i-- > 0 && stk_frame.next_pc != 0 && !corrupted) {
+//         if (!esp_backtrace_get_next_frame(&stk_frame)) {    //Get previous stack frame
+//             corrupted = true;
+//         }
+//         esp_rom_printf("0x%08X:0x%08X ", esp_cpu_process_stack_pc(stk_frame.pc), stk_frame.sp);
+//     }
+
+//     //Print backtrace termination marker
+//     esp_err_t ret = ESP_OK;
+//     if (corrupted) {
+//         esp_rom_printf(" |<-CORRUPTED");
+//         ret =  ESP_FAIL;
+//     } else if (stk_frame.next_pc != 0) {    //Backtrace continues
+//         esp_rom_printf(" |<-CONTINUES");
+//     }
+//     esp_rom_printf("\r\n\r\n");
+// }
 /**
  * Callback invoked when received an "wanted" char.
  * @param itf           Interface index (for multiple cdc interfaces)
@@ -124,6 +162,18 @@ void init_usb_hardware(void) {
 void tud_cdc_rx_wanted_cb(uint8_t itf, char wanted_char)
 {
     (void) itf; // not used
+    ESP_LOGW(TAG, "ctrl-c");
+    TaskStatus_t freertos_info[10];
+    size_t task_count = uxTaskGetSystemState(freertos_info, 10, NULL);
+    for (size_t i = 0; i < task_count; i++) {
+      TaskStatus_t* task = &freertos_info[i];
+      esp_rom_printf("Task #%d - %s - Stack %p\r\n", task->xTaskNumber, task->pcTaskName, task->pxStackBase);
+    }
+
+    esp_backtrace_print(100);
+
+
+
     // Workaround for using lib/utils/interrupt_char.c
     // Compare mp_interrupt_char with wanted_char and ignore if not matched
     if (mp_interrupt_char == wanted_char) {

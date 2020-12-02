@@ -54,6 +54,8 @@
 #include "peripherals/rmt.h"
 #include "peripherals/pcnt.h"
 #include "peripherals/timer.h"
+#include "components/esp_rom/include/esp_rom_sys.h"
+#include "components/esp_rom/include/esp_rom_uart.h"
 #include "components/heap/include/esp_heap_caps.h"
 #include "components/soc/soc/esp32s2/include/soc/cache_memory.h"
 
@@ -71,6 +73,8 @@ void tick_timer_cb(void* arg) {
 }
 
 safe_mode_t port_init(void) {
+    esp_rom_install_channel_putc(1, esp_rom_uart_putc);
+
     esp_timer_create_args_t args;
     args.callback = &tick_timer_cb;
     args.arg = NULL;
