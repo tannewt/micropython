@@ -131,6 +131,7 @@ bool rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
     const mcu_pin_obj_t * first_set_pin, uint8_t set_pin_count,
     const mcu_pin_obj_t * first_sideset_pin, uint8_t sideset_pin_count,
     uint32_t initial_pin_state, uint32_t initial_pin_direction,
+    uint32_t pull_pin_up, uint32_t pull_pin_down,
     uint32_t pins_we_use, bool tx_fifo, bool rx_fifo,
     bool auto_pull, uint8_t pull_threshold, bool out_shift_right,
     bool wait_for_txstall,
@@ -293,7 +294,7 @@ void common_hal_rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
     size_t frequency,
     const uint16_t* init, size_t init_len,
     const mcu_pin_obj_t * first_out_pin, uint8_t out_pin_count, uint32_t initial_out_pin_state, uint32_t initial_out_pin_direction,
-    const mcu_pin_obj_t * first_in_pin, uint8_t in_pin_count,
+    const mcu_pin_obj_t * first_in_pin, uint8_t in_pin_count, uint32_t pull_in_pin_up, uint32_t pull_in_pin_down,
     const mcu_pin_obj_t * first_set_pin, uint8_t set_pin_count, uint32_t initial_set_pin_state, uint32_t initial_set_pin_direction,
     const mcu_pin_obj_t * first_sideset_pin, uint8_t sideset_pin_count, uint32_t initial_sideset_pin_state, uint32_t initial_sideset_pin_direction,
     bool exclusive_pin_use,
@@ -431,6 +432,9 @@ void common_hal_rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
     initial_pin_state |= initial_set_pin_state;
     initial_pin_direction |= initial_set_pin_direction;
 
+    uint32_t pull_pin_up = mask_and_rotate(first_in_pin, in_pin_count, pull_in_pin_up);
+    uint32_t pull_pin_down = mask_and_rotate(first_in_pin, in_pin_count, pull_in_pin_down);
+
     // Sideset overrides OUT or SET so we always use its values.
     uint32_t sideset_mask = mask_and_rotate(first_sideset_pin, sideset_pin_count, 0x1f);
     initial_pin_state = (initial_pin_state & ~sideset_mask) | mask_and_rotate(first_sideset_pin, sideset_pin_count, initial_sideset_pin_state);
@@ -445,6 +449,7 @@ void common_hal_rp2pio_statemachine_construct(rp2pio_statemachine_obj_t *self,
         first_set_pin, set_pin_count,
         first_sideset_pin, sideset_pin_count,
         initial_pin_state, initial_pin_direction,
+        pull_pin_up, pull_pin_down,
         pins_we_use, tx_fifo, rx_fifo,
         auto_pull, pull_threshold, out_shift_right,
         wait_for_txstall,

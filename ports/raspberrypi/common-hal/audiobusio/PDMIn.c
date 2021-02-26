@@ -67,7 +67,7 @@ void common_hal_audiobusio_pdmin_construct(audiobusio_pdmin_obj_t* self,
         44100 * 32 * 2, // Clock at 44.1 khz to warm the DAC up.
         NULL, 0,
         NULL, 1, 0, 0xffffffff, // out pin
-        data_pin, 1, // in pins
+        data_pin, 1, 0, 0, // in pins
         NULL, 0, 0, 0x1f, // set pins
         clock_pin, 1, 0, 0x1f, // sideset pins
         true, // exclusive pin use

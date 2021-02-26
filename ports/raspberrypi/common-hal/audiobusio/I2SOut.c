@@ -121,7 +121,7 @@ void common_hal_audiobusio_i2sout_construct(audiobusio_i2sout_obj_t* self,
         44100 * 32 * 6, // Clock at 44.1 khz to warm the DAC up.
         NULL, 0,
         data, 1, 0, 0xffffffff, // out pin
-        NULL, 0, // in pins
+        NULL, 0, 0, 0, // in pins
         NULL, 0, 0, 0x1f, // set pins
         bit_clock, 2, 0, 0x1f, // sideset pins
         true, // exclusive pin use

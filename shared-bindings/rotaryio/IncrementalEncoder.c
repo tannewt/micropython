@@ -72,7 +72,7 @@ STATIC mp_obj_t rotaryio_incrementalencoder_make_new(const mp_obj_type_t *type, 
     const mcu_pin_obj_t* pin_a = validate_obj_is_free_pin(args[ARG_pin_a].u_obj);
     const mcu_pin_obj_t* pin_b = validate_obj_is_free_pin(args[ARG_pin_b].u_obj);
 
-    rotaryio_incrementalencoder_obj_t *self = m_new_obj(rotaryio_incrementalencoder_obj_t);
+    rotaryio_incrementalencoder_obj_t *self = m_new_ll_obj_with_finalizer(rotaryio_incrementalencoder_obj_t);
     self->base.type = &rotaryio_incrementalencoder_type;
 
     common_hal_rotaryio_incrementalencoder_construct(self, pin_a, pin_b);
@@ -146,6 +146,7 @@ const mp_obj_property_t rotaryio_incrementalencoder_position_obj = {
 
 STATIC const mp_rom_map_elem_t rotaryio_incrementalencoder_locals_dict_table[] = {
     // Methods
+    { MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&rotaryio_incrementalencoder_deinit_obj) },
     { MP_ROM_QSTR(MP_QSTR_deinit), MP_ROM_PTR(&rotaryio_incrementalencoder_deinit_obj) },
     { MP_ROM_QSTR(MP_QSTR___enter__), MP_ROM_PTR(&default___enter___obj) },
     { MP_ROM_QSTR(MP_QSTR___exit__), MP_ROM_PTR(&rotaryio_incrementalencoder___exit___obj) },
