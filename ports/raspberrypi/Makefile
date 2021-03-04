@@ -269,9 +269,9 @@ $(BUILD)/boot2.bin: $(BUILD)/boot2.elf
 	$(STEPECHO) "OBJCOPY $<"
 	$(Q)$(OBJCOPY) -O binary $< $@
 
-$(BUILD)/boot2.elf: $(BOOT2_S_UPPER) | $(BUILD)/
+$(BUILD)/boot2.elf: stage2.c | $(BUILD)/
 	$(STEPECHO) "BOOT $<"
-	$(Q)$(CC) $(CFLAGS) $(BOOT2_S_CFLAGS) -Isdk/src/rp2_common/boot_stage2/asminclude --specs=nosys.specs -nostartfiles -Wl,-T,sdk/src/rp2_common/boot_stage2/boot_stage2.ld -o $@ $<
+	$(Q)$(CC) $(CFLAGS) $(BOOT2_S_CFLAGS) -I. -fPIC --specs=nosys.specs -nostartfiles -Wl,-T,sdk/src/rp2_common/boot_stage2/boot_stage2.ld -o $@ $<
 
 SRC_QSTR += $(SRC_C) $(SRC_SUPERVISOR) $(SRC_COMMON_HAL_EXPANDED) $(SRC_SHARED_MODULE_EXPANDED)
 
