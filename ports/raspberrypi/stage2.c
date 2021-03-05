@@ -49,10 +49,15 @@ void _stage2_boot(void) {
 
     ssi_hw->baudr = 4; // 125 mhz / clock divider
 
-    ssi_hw->ctrlr0 = (CMD_READ << SSI_SPI_CTRLR0_XIP_CMD_LSB) |        /* Value of instruction prefix */ \
-                     (ADDR_L << SSI_SPI_CTRLR0_ADDR_L_LSB) |           /* Total number of address + mode bits */ \
-                     (2 << SSI_SPI_CTRLR0_INST_L_LSB) |                /* 8 bit command prefix (field value is bits divided by 4) */ \
-                     (SSI_SPI_CTRLR0_TRANS_TYPE_VALUE_1C1A << SSI_SPI_CTRLR0_TRANS_TYPE_LSB); /* command and address both in serial format */
+    ssi_hw->ctrlr0 = (SSI_CTRLR0_SPI_FRF_VALUE_STD << SSI_CTRLR0_SPI_FRF_LSB) |  /* Standard 1-bit SPI serial frames */ \
+                     (31 << SSI_CTRLR0_DFS_32_LSB)  |                            /* 32 clocks per data frame */ \
+                     (SSI_CTRLR0_TMOD_VALUE_EEPROM_READ  << SSI_CTRLR0_TMOD_LSB); /* Send instr + addr, receive data */
+
+    // SPI specific settings
+    ssi_hw->spi_ctrlr0 = (CMD_READ << SSI_SPI_CTRLR0_XIP_CMD_LSB) |        /* Value of instruction prefix */ \
+                         (ADDR_L << SSI_SPI_CTRLR0_ADDR_L_LSB) |           /* Total number of address + mode bits */ \
+                         (2 << SSI_SPI_CTRLR0_INST_L_LSB) |                /* 8 bit command prefix (field value is bits divided by 4) */ \
+                         (SSI_SPI_CTRLR0_TRANS_TYPE_VALUE_1C1A << SSI_SPI_CTRLR0_TRANS_TYPE_LSB); /* command and address both in serial format */
 
     ssi_hw->ctrlr1 = 0; // Single 32b read
 
@@ -67,8 +72,8 @@ void _stage2_boot(void) {
         // Set the top of the stack according to the vector table.
         asm volatile ("MSR msp, %0" : : "r" (vector_table[0]) : );
         // The reset handler is the second entry in the vector table
-        asm volatile ("bx %0" : : "r" (vector_table[2]) : );
-        // Doesn't return. It jumpts to the reset handler instead.
+        asm volatile ("bx %0" : : "r" (vector_table[1]) : );
+        // Doesn't return. It jumps to the reset handler instead.
     }
     // Otherwise we return.
 }
